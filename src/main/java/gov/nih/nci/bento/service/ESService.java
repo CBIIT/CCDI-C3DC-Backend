@@ -27,7 +27,7 @@ public class ESService {
     public static final String AGGS = "aggs";
     public static final int MAX_ES_SIZE = 10000;
 
-    private static final Logger logger = LogManager.getLogger(RedisService.class);
+    private static final Logger logger = LogManager.getLogger(ESService.class);
     private RestClient client;
     private final RestHighLevelClient restHighLevelClient;
     private final Gson gson;

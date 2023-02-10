@@ -61,22 +61,6 @@ public class GraphQLController {
 	}
 
 	@CrossOrigin
-	@RequestMapping(value = "/neo4j-version", method = {RequestMethod.GET},
-			produces = MediaType.APPLICATION_JSON_VALUE + "; charset=utf-8")
-	public ResponseEntity<String> getNeo4jVersion(HttpEntity<String> httpEntity){
-		logger.info("Hit end point: /neo4j-version");
-		return new Neo4jVersionQuery(httpEntity).queryDataSourceVersion();
-	}
-
-	@CrossOrigin
-	@RequestMapping(value = "/opensearch-version", method = {RequestMethod.GET},
-			produces = MediaType.APPLICATION_JSON_VALUE + "; charset=utf-8")
-	public ResponseEntity<String> getOpenSearchVersion(HttpEntity<String> httpEntity){
-		logger.info("Hit end point: /opensearch-version");
-		return new OpenSearchVersionQuery(httpEntity).queryDataSourceVersion();
-	}
-
-	@CrossOrigin
 	@RequestMapping(value = {"/v1/graphql/", "/v1/public-graphql/"}, method = {RequestMethod.GET, RequestMethod.HEAD,
 			RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.TRACE, RequestMethod.OPTIONS, RequestMethod.PATCH},
 			produces = MediaType.APPLICATION_JSON_VALUE + "; charset=utf-8")
@@ -91,15 +75,6 @@ public class GraphQLController {
 	public ResponseEntity<String> getPrivateGraphQLResponse(HttpEntity<String> httpEntity){
         logger.info("hit end point:/v1/graphql/");
         return getGraphQLResponse(httpEntity, bentoGraphQL.getPrivateGraphQL());
-	}
-
-	@CrossOrigin
-	@RequestMapping(value = "/v1/public-graphql/", method = RequestMethod.POST,
-			produces = MediaType.APPLICATION_JSON_VALUE + "; charset=utf-8")
-	@ResponseBody
-	public ResponseEntity<String> getPublicGraphQLResponse(HttpEntity<String> httpEntity){
-        logger.info("hit end point:/v1/public-graphql/");
-		return getGraphQLResponse(httpEntity, bentoGraphQL.getPublicGraphQL());
 	}
 
 	@ResponseBody
@@ -165,60 +140,5 @@ public class GraphQLController {
 		ArrayList<String> errors = new ArrayList<>();
 		errors.add(error);
 		return logAndReturnError(status, errors);
-	}
-
-	private abstract class VersionQuery{
-
-		URI uri;
-		private HttpEntity httpEntity;
-
-		VersionQuery(String query, HttpEntity httpEntity) {
-			this.httpEntity = new HttpEntity<>(query, httpEntity.getHeaders());
-		}
-
-		ResponseEntity<String> queryDataSourceVersion(){
-			try{
-				ResponseEntity<String> responseEntity = getGraphQLResponse(httpEntity,bentoGraphQL.getPublicGraphQL());
-				JsonObject jsonResponseBody = gson.fromJson(responseEntity.getBody(), JsonObject.class);
-				if (jsonResponseBody.has("errors")){
-					jsonResponseBody.getAsJsonArray("errors").forEach(x-> logger.error(x.getAsJsonObject()
-							.getAsJsonPrimitive("message").getAsString()));
-					return responseEntity;
-				}
-				return ResponseEntity.ok(gson.toJson(Map.of("version", parseVersion(jsonResponseBody))));
-			}
-			catch (Exception e) {
-				logger.error(e);
-				return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An internal server error has " +
-						"occurred, please notify the administrators");
-			}
-		}
-
-		abstract String parseVersion(JsonObject jsonObject);
-	}
-
-	private class Neo4jVersionQuery extends VersionQuery{
-
-		Neo4jVersionQuery(HttpEntity httpEntity) {
-			super("{\"query\":\"{neo4jVersion}\",\"variables\":{}}", httpEntity);
-		}
-
-		@Override
-		public String parseVersion(JsonObject jsonObject){
-			return jsonObject.get("data").getAsJsonObject().get("neo4jVersion").getAsString();
-		}
-
-	}
-
-	private class OpenSearchVersionQuery extends VersionQuery{
-		OpenSearchVersionQuery(HttpEntity httpEntity){
-			super("{\"query\":\"{esVersion}\",\"variables\":{}}",	httpEntity);
-		}
-
-		@Override
-		public String parseVersion(JsonObject jsonResponseBody) {
-			return jsonResponseBody.getAsJsonObject("data")
-					.getAsJsonPrimitive("esVersion").getAsString();
-		}
 	}
 }
