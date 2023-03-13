@@ -1,0 +1,51 @@
+name: Codacy Security Scan
+
+on:
+  pull_request:
+    branches: [ "dev**", "qa**", "main"]
+  push:
+    branches: [ "main" ]
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  Build-and-Scan:
+    name: Maven Package and SAST 
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@main
+      - name: Remove Example Properties File 
+        run: rm $GITHUB_WORKSPACE/src/main/resources/application_local.properties 
+      - name: Rename Properties File 
+        run: mv $GITHUB_WORKSPACE/src/main/resources/application.properties.j2 $GITHUB_WORKSPACE/src/main/resources/application.properties
+      - name: Setup Java JDK
+        uses: actions/setup-java@v3.10.0
+        with: 
+          java-version: '11'
+          distribution: 'temurin'
+          cache: 'maven'
+      - name: Build SprintBoot Application 
+        run: mvn clean package -DskipTests=true 
+      - name: Rename WAR Artifact 
+        run: mv $GITHUB_WORKSPACE/target/Bento-0.0.1.war $GITHUB_WORKSPACE/target/ROOT.war 
+      - name: Run Codacy Analysis CLI
+        uses: codacy/codacy-analysis-cli-action@master
+        with:
+          tool: spotbugs
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          upload: true
+          max-allowed-issues: 2147483647
+          verbose: true
+          allow-network: true 
+          skip-uncommitted-files-check: true
+          force-file-permissions: true
+      - name: Submit Maven Dependency Tree
+        uses: advanced-security/maven-dependency-submission-action@v3.0.0
+        with:
+          directory: ${{ github.workspace }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ignore-maven-wrapper: true
+      
+
+
