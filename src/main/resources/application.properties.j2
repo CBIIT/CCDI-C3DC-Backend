@@ -18,12 +18,12 @@ error.redirect_url=http://localhost/error.html
 # neo4j.password =
 
 #GraphQL
-graphql.schema=graphql/bento-extended.graphql
-graphql.es_schema = graphql/bento-extended-private-es.graphql
+graphql.schema=graphql/{{schema_file}}
+graphql.es_schema = graphql/{{es_schema_file}}
 
 #Public GraphQL
-graphql.public.schema=graphql/bento-extended-public.graphql
-graphql.public.es_schema=graphql/bento-extended-public-es.graphql
+graphql.public.schema=graphql/{{schema_file}}
+graphql.public.es_schema=graphql/{{es_schema_file}}
 
 #Query Restrictions
 allow_graphql_query = true
