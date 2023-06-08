@@ -778,9 +778,9 @@ Indices:
     # type mapping for each property of the index
     mapping:
       page:
-        type: search_as_you_type
+        type: keyword
       title:
-        type: search_as_you_type
+        type: keyword
       primaryContentImage:
         type: text
       content:
