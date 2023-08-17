@@ -3,7 +3,7 @@ package gov.nih.nci.bento_ri.model;
 import gov.nih.nci.bento.constants.Const;
 import gov.nih.nci.bento.model.AbstractPublicESDataFetcher;
 import gov.nih.nci.bento.model.search.yaml.YamlQueryFactory;
-import gov.nih.nci.bento.service.ESService;
+import gov.nih.nci.bento_ri.service.InventoryESService;
 import graphql.schema.idl.RuntimeWiring;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -19,7 +19,7 @@ public class PublicESDataFetcher extends AbstractPublicESDataFetcher {
     private static final Logger logger = LogManager.getLogger(PublicESDataFetcher.class);
     private final YamlQueryFactory yamlQueryFactory;
 
-    public PublicESDataFetcher(ESService esService) {
+    public PublicESDataFetcher(InventoryESService esService) {
         super(esService);
         yamlQueryFactory = new YamlQueryFactory(esService);
     }

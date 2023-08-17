@@ -1,21 +1,3 @@
-type GS_Program {
-    type: String
-    program_id: String
-    program_code: String
-    program_name: String
-}
-
-type GS_Model {
-    type: String
-    node_name: String
-    property_name: String
-    property_description: String
-    property_required: String
-    property_type: String
-    value: String
-    highlight: String
-}
-
 type GS_About {
     page: String
     title: String
@@ -23,20 +5,62 @@ type GS_About {
     text: [String]
 }
 
-type PublicGlobalSearchResult {
-    program_count: Int
-    programs: [GS_Program]
-
+type GlobalSearchResult {
     about_count: Int
     about_page: [GS_About]
+}
 
-    model_count: Int
-    model: [GS_Model]
+type IdsListsES {
+    participantIds: [String]
+}
 
-    study_count: Int
-    subject_count: Int
-    sample_count: Int
-    file_count: Int
+type SearchParticipantsReturnObject {
+    group: String
+    subjects: Int
+}
+
+type RangeCount {
+    lowerBound: Int
+    upperBound: Int
+    subjects: Int
+}
+
+type SearchParticipantsResult {
+    filterParticipantCountByGender: [SearchParticipantsReturnObject]
+    filterParticipantCountByRace: [SearchParticipantsReturnObject]
+    filterParticipantCountByEthnicity: [SearchParticipantsReturnObject]
+    filterParticipantCountByDiagnosisAge: RangeCount
+    filterParticipantCountByDiagnosisAnatomicSite: [SearchParticipantsReturnObject]
+    filterParticipantCountByDiseasePhase: [SearchParticipantsReturnObject]
+    filterParticipantCountByICDO: [SearchParticipantsReturnObject]
+    filterParticipantCountByVitalStatus: [SearchParticipantsReturnObject]
+    filterParticipantCountBySampleAnatomicSite: [SearchParticipantsReturnObject]
+    filterParticipantCountBySampleAge: RangeCount
+    filterParticipantCountByTumorStatus: [SearchParticipantsReturnObject]
+    filterParticipantCountByTumorClassification: [SearchParticipantsReturnObject]
+    filterParticipantCountByAssayMethod: [SearchParticipantsReturnObject]
+    filterParticipantCountByFileType: [SearchParticipantsReturnObject]
+    filterParticipantCountByPHSAccession: [SearchParticipantsReturnObject]
+    filterParticipantCountByGrantID: [SearchParticipantsReturnObject]
+    filterParticipantCountByInstitution: [SearchParticipantsReturnObject]
+    filterParticipantCountByName: [SearchParticipantsReturnObject]
+    filterParticipantCountByAcronym: [SearchParticipantsReturnObject]
+    filterParticipantCountByStudyTitle: [SearchParticipantsReturnObject]
+    filterParticipantCountByLibrarySelection: [SearchParticipantsReturnObject]
+    filterParticipantCountByLibrarySource: [SearchParticipantsReturnObject]
+    filterParticipantCountByLibraryStrategy: [SearchParticipantsReturnObject]
+
+    numberOfStudies: Int
+    numberOfParticipants: Int
+    numberOfSamples: Int
+    numberOfFiles: Int
+
+    participantCountByStudy: [SearchParticipantsReturnObject]
+    participantCountByDiagnosis: [SearchParticipantsReturnObject]
+    participantCountByDiagnosisAge: [SearchParticipantsReturnObject]
+    participantCountByGender: [SearchParticipantsReturnObject]
+    participantCountByRace: [SearchParticipantsReturnObject]
+    participantCountByEthnicity: [SearchParticipantsReturnObject]
 }
 
 schema {
@@ -45,12 +69,10 @@ schema {
 
 type QueryType {
     esVersion: String
-    numberOfPrograms: Int
-    numberOfStudies: Int
-    numberOfSubjects: Int
-    numberOfSamples: Int
-    numberOfLabProcedures: Int
-    numberOfFiles: Int
+    globalSearch (input: String, first: Int = 10, offset: Int = 0): GlobalSearchResult
 
-    publicGlobalSearch (input: String, first: Int = 10, offset: Int = 0): PublicGlobalSearchResult
+    idsLists: IdsListsES
+    
+    searchParticipants (participant_ids: [String] = [""], race: [String] = [""], gender: [String] = [""], ethnicity: [String] = [""], age_at_diagnosis: [Int] = [0], diagnosis_anatomic_site: [String] = [""], disease_phase: [String] = [""], diagnosis_icd_o: [String] = [""], vital_status: [String] = [""], sample_anatomic_site: [String] = [""], participant_age_at_collection: [Int] = [0], sample_tumor_status: [String] = [""], tumor_classification: [String] = [""], assay_method: [String] = [""], file_type: [String] = [""], phs_accession: [String] = [""], grant_id: [String] = [""], institution: [String] = [""], study_name: [String] = [""], study_acronym: [String] = [""], study_short_title: [String] = [""], library_selection: [String] = [""], library_source: [String] = [""], library_strategy: [String] = [""]): SearchParticipantsResult
+
 }
