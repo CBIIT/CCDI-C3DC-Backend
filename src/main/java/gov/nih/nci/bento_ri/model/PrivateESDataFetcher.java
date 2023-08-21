@@ -11,8 +11,10 @@ import graphql.schema.idl.RuntimeWiring;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Request;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -27,6 +29,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private static final Logger logger = LogManager.getLogger(PrivateESDataFetcher.class);
     private final YamlQueryFactory yamlQueryFactory;
     private InventoryESService inventoryESService;
+    @Autowired
+    Cache<String, Object> caffeineCache;
 
     // parameters used in queries
     final String PAGE_SIZE = "first";
@@ -219,233 +223,252 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map<String, String[]> results = new HashMap<>();
         //Iterate through each index properties map and make a request to each endpoint then format the results as
         // String arrays
-        for (String endpoint: indexProperties.keySet()){
-            Request request = new Request("GET", endpoint);
-            String[][] properties = indexProperties.get(endpoint);
-            List<Map<String, Object>> result = esService.collectPage(request, query, properties, ESService.MAX_ES_SIZE,
-                    0);
-            Map<String, List<String>> indexResults = new HashMap<>();
-            Arrays.asList(properties).forEach(x -> indexResults.put(x[0], new ArrayList<>()));
-            for(Map<String, Object> resultElement: result){
+        String cacheKey = "participantIDs";
+        Map<String, String[]> data = (Map<String, String[]>)caffeineCache.asMap().get(cacheKey);
+        if (data != null) {
+            return data;
+        } else {
+            for (String endpoint: indexProperties.keySet()){
+                Request request = new Request("GET", endpoint);
+                String[][] properties = indexProperties.get(endpoint);
+                List<Map<String, Object>> result = esService.collectPage(request, query, properties, ESService.MAX_ES_SIZE,
+                        0);
+                Map<String, List<String>> indexResults = new HashMap<>();
+                Arrays.asList(properties).forEach(x -> indexResults.put(x[0], new ArrayList<>()));
+                for(Map<String, Object> resultElement: result){
+                    for(String key: indexResults.keySet()){
+                        indexResults.get(key).add((String) resultElement.get(key));
+                    }
+                }
                 for(String key: indexResults.keySet()){
-                    indexResults.get(key).add((String) resultElement.get(key));
+                    results.put(key, indexResults.get(key).toArray(new String[indexResults.size()]));
                 }
             }
-            for(String key: indexResults.keySet()){
-                results.put(key, indexResults.get(key).toArray(new String[indexResults.size()]));
-            }
+            caffeineCache.put(cacheKey, results);
         }
+        
         return results;
     }
 
     private Map<String, Object> searchParticipants(Map<String, Object> params) throws IOException {
-        final String AGG_NESTED = "agg_nested";
-        final String AGG_NAME = "agg_name";
-        final String AGG_ENDPOINT = "agg_endpoint";
-        final String WIDGET_QUERY = "widgetQueryName";
-        final String FILTER_COUNT_QUERY = "filterCountQueryName";
-        // Query related values
-        final List<Map<String, String>> PARTICIPANT_TERM_AGGS = new ArrayList<>();
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NAME, "study_acronym",
-                WIDGET_QUERY, "participantCountByStudy",
-                FILTER_COUNT_QUERY, "filterParticipantCountByAcronym",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NESTED, "nested_filters",
-                AGG_NAME, "diagnosis_icd_o",
-                WIDGET_QUERY, "participantCountByDiagnosis",
-                FILTER_COUNT_QUERY, "filterParticipantCountByICDO",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-                
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NESTED, "nested_filters",
-                AGG_NAME, "age_at_diagnosis",
-                WIDGET_QUERY, "participantCountByDiagnosisAge",
-                FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisAge",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NAME, "gender",
-                WIDGET_QUERY,"participantCountByGender",
-                FILTER_COUNT_QUERY, "filterParticipantCountByGender",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NAME, "race",
-                WIDGET_QUERY, "participantCountByRace",
-                FILTER_COUNT_QUERY, "filterParticipantCountByRace",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NAME, "ethnicity",
-                WIDGET_QUERY,"participantCountByEthnicity",
-                FILTER_COUNT_QUERY, "filterParticipantCountByEthnicity",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NAME, "phs_accession",
-                FILTER_COUNT_QUERY, "filterParticipantCountByPHSAccession",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NESTED, "nested_filters",
-                AGG_NAME, "diagnosis_anatomic_site",
-                FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisAnatomicSite",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NESTED, "nested_filters",
-                AGG_NAME, "disease_phase",
-                FILTER_COUNT_QUERY, "filterParticipantCountByDiseasePhase",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NESTED, "nested_filters",
-                AGG_NAME, "vital_status",
-                FILTER_COUNT_QUERY, "filterParticipantCountByVitalStatus",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NESTED, "nested_filters",
-                AGG_NAME, "sample_anatomic_site",
-                FILTER_COUNT_QUERY, "filterParticipantCountBySampleAnatomicSite",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NESTED, "nested_filters",
-                AGG_NAME, "participant_age_at_collection",
-                FILTER_COUNT_QUERY, "filterParticipantCountBySampleAge",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NESTED, "nested_filters",
-                AGG_NAME, "sample_tumor_status",
-                FILTER_COUNT_QUERY, "filterParticipantCountByTumorStatus",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NESTED, "nested_filters",
-                AGG_NAME, "tumor_classification",
-                FILTER_COUNT_QUERY, "filterParticipantCountByTumorClassification",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NESTED, "nested_filters",
-                AGG_NAME, "assay_method",
-                FILTER_COUNT_QUERY, "filterParticipantCountByAssayMethod",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NESTED, "nested_filters",
-                AGG_NAME, "file_type",
-                FILTER_COUNT_QUERY, "filterParticipantCountByFileType",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NAME, "study_short_title",
-                FILTER_COUNT_QUERY, "filterParticipantCountByStudyTitle",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NESTED, "nested_filters",
-                AGG_NAME, "grant_id",
-                FILTER_COUNT_QUERY, "filterParticipantCountByGrantID",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NESTED, "nested_filters",
-                AGG_NAME, "institution",
-                FILTER_COUNT_QUERY, "filterParticipantCountByInstitution",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NESTED, "nested_filters",
-                AGG_NAME, "library_selection",
-                FILTER_COUNT_QUERY, "filterParticipantCountByLibrarySelection",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NESTED, "nested_filters",
-                AGG_NAME, "library_source",
-                FILTER_COUNT_QUERY, "filterParticipantCountByLibrarySource",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NESTED, "nested_filters",
-                AGG_NAME, "library_strategy",
-                FILTER_COUNT_QUERY, "filterParticipantCountByLibraryStrategy",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        
-        Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
-        // System.out.println(gson.toJson(query_participants));
-        int numberOfStudies = getNodeCount("study_id", query_participants, PARTICIPANTS_END_POINT).size();
+        String cacheKey = generateCacheKey(params);
+        Map<String, Object> data = (Map<String, Object>)caffeineCache.asMap().get(cacheKey);
+        if (data != null) {
+            System.out.println("hit cache!");
+            return data;
+        } else {
+            System.out.println("cache miss... getting data then.");
+            data = new HashMap<>();
 
-        Request participantsCountRequest = new Request("GET", PARTICIPANTS_COUNT_END_POINT);
-        // System.out.println(gson.toJson(query_participants));
-        participantsCountRequest.setJsonEntity(gson.toJson(query_participants));
-        JsonObject participantsCountResult = inventoryESService.send(participantsCountRequest);
-        int numberOfParticipants = participantsCountResult.get("count").getAsInt();
-
-        Map<String, Object> query_diagnosis = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), DIAGNOSIS_REGULAR_PARAMS, "nested_filters", "diagnosis");
-        Request diagnosisCountRequest = new Request("GET", DIAGNOSIS_COUNT_END_POINT);
-        // System.out.println(gson.toJson(query_samples));
-        diagnosisCountRequest.setJsonEntity(gson.toJson(query_diagnosis));
-        JsonObject diagnosisCountResult = inventoryESService.send(diagnosisCountRequest);
-        int numberOfDiagnosis = diagnosisCountResult.get("count").getAsInt();
-        
-        Map<String, Object> query_samples = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), SAMPLE_REGULAR_PARAMS, "nested_filters", "samples");
-        Request samplesCountRequest = new Request("GET", SAMPLES_COUNT_END_POINT);
-        // System.out.println(gson.toJson(query_samples));
-        samplesCountRequest.setJsonEntity(gson.toJson(query_samples));
-        JsonObject samplesCountResult = inventoryESService.send(samplesCountRequest);
-        int numberOfSamples = samplesCountResult.get("count").getAsInt();
-
-        Map<String, Object> query_files = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), FILE_REGULAR_PARAMS, "nested_filters", "files");
-        Request filesCountRequest = new Request("GET", FILES_COUNT_END_POINT);
-        // System.out.println(gson.toJson(query_files));
-        filesCountRequest.setJsonEntity(gson.toJson(query_files));
-        JsonObject filesCountResult = inventoryESService.send(filesCountRequest);
-        int numberOfFiles = filesCountResult.get("count").getAsInt();
-
-        Map<String, Object> data = new HashMap<>();
-
-        data.put("numberOfStudies", numberOfStudies);
-        data.put("numberOfDiagnosis", numberOfDiagnosis);
-        data.put("numberOfParticipants", numberOfParticipants);
-        data.put("numberOfSamples", numberOfSamples);
-        data.put("numberOfFiles", numberOfFiles);
-
-        // widgets data and facet filter counts for projects
-        for (var agg: PARTICIPANT_TERM_AGGS) {
-            String agg_nested_field = agg.get(AGG_NESTED);
-            String field = agg.get(AGG_NAME);
-            String widgetQueryName = agg.get(WIDGET_QUERY);
-            String filterCountQueryName = agg.get(FILTER_COUNT_QUERY);
-            String endpoint = agg.get(AGG_ENDPOINT);
-            List<Map<String, Object>> filterCount = filterSubjectCountBy(field, params, endpoint, agg_nested_field);
-            if(RANGE_PARAMS.contains(field)) {
-                data.put(filterCountQueryName, filterCount.get(0));
-            } else {
-                data.put(filterCountQueryName, filterCount);
-            }
+            final String AGG_NESTED = "agg_nested";
+            final String AGG_NAME = "agg_name";
+            final String AGG_ENDPOINT = "agg_endpoint";
+            final String WIDGET_QUERY = "widgetQueryName";
+            final String FILTER_COUNT_QUERY = "filterCountQueryName";
+            // Query related values
+            final List<Map<String, String>> PARTICIPANT_TERM_AGGS = new ArrayList<>();
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NAME, "study_acronym",
+                    WIDGET_QUERY, "participantCountByStudy",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByAcronym",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NESTED, "nested_filters",
+                    AGG_NAME, "diagnosis_icd_o",
+                    WIDGET_QUERY, "participantCountByDiagnosis",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByICDO",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NESTED, "nested_filters",
+                    AGG_NAME, "age_at_diagnosis",
+                    WIDGET_QUERY, "participantCountByDiagnosisAge",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisAge",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NAME, "gender",
+                    WIDGET_QUERY,"participantCountByGender",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByGender",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NAME, "race",
+                    WIDGET_QUERY, "participantCountByRace",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByRace",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NAME, "ethnicity",
+                    WIDGET_QUERY,"participantCountByEthnicity",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByEthnicity",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NAME, "phs_accession",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByPHSAccession",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
             
-            if (widgetQueryName != null) {
-                if (RANGE_PARAMS.contains(field)) {
-                    List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, endpoint, agg_nested_field);
-                    data.put(widgetQueryName, subjectCount);
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NESTED, "nested_filters",
+                    AGG_NAME, "diagnosis_anatomic_site",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisAnatomicSite",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NESTED, "nested_filters",
+                    AGG_NAME, "disease_phase",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByDiseasePhase",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NESTED, "nested_filters",
+                    AGG_NAME, "vital_status",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByVitalStatus",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NESTED, "nested_filters",
+                    AGG_NAME, "sample_anatomic_site",
+                    FILTER_COUNT_QUERY, "filterParticipantCountBySampleAnatomicSite",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NESTED, "nested_filters",
+                    AGG_NAME, "participant_age_at_collection",
+                    FILTER_COUNT_QUERY, "filterParticipantCountBySampleAge",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NESTED, "nested_filters",
+                    AGG_NAME, "sample_tumor_status",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByTumorStatus",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NESTED, "nested_filters",
+                    AGG_NAME, "tumor_classification",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByTumorClassification",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NESTED, "nested_filters",
+                    AGG_NAME, "assay_method",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByAssayMethod",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NESTED, "nested_filters",
+                    AGG_NAME, "file_type",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByFileType",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NAME, "study_short_title",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByStudyTitle",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NESTED, "nested_filters",
+                    AGG_NAME, "grant_id",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByGrantID",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NESTED, "nested_filters",
+                    AGG_NAME, "institution",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByInstitution",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NESTED, "nested_filters",
+                    AGG_NAME, "library_selection",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByLibrarySelection",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NESTED, "nested_filters",
+                    AGG_NAME, "library_source",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByLibrarySource",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NESTED, "nested_filters",
+                    AGG_NAME, "library_strategy",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByLibraryStrategy",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            
+            Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
+            // System.out.println(gson.toJson(query_participants));
+            int numberOfStudies = getNodeCount("study_id", query_participants, PARTICIPANTS_END_POINT).size();
+
+            Request participantsCountRequest = new Request("GET", PARTICIPANTS_COUNT_END_POINT);
+            // System.out.println(gson.toJson(query_participants));
+            participantsCountRequest.setJsonEntity(gson.toJson(query_participants));
+            JsonObject participantsCountResult = inventoryESService.send(participantsCountRequest);
+            int numberOfParticipants = participantsCountResult.get("count").getAsInt();
+
+            Map<String, Object> query_diagnosis = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), DIAGNOSIS_REGULAR_PARAMS, "nested_filters", "diagnosis");
+            Request diagnosisCountRequest = new Request("GET", DIAGNOSIS_COUNT_END_POINT);
+            // System.out.println(gson.toJson(query_samples));
+            diagnosisCountRequest.setJsonEntity(gson.toJson(query_diagnosis));
+            JsonObject diagnosisCountResult = inventoryESService.send(diagnosisCountRequest);
+            int numberOfDiagnosis = diagnosisCountResult.get("count").getAsInt();
+            
+            Map<String, Object> query_samples = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), SAMPLE_REGULAR_PARAMS, "nested_filters", "samples");
+            Request samplesCountRequest = new Request("GET", SAMPLES_COUNT_END_POINT);
+            // System.out.println(gson.toJson(query_samples));
+            samplesCountRequest.setJsonEntity(gson.toJson(query_samples));
+            JsonObject samplesCountResult = inventoryESService.send(samplesCountRequest);
+            int numberOfSamples = samplesCountResult.get("count").getAsInt();
+
+            Map<String, Object> query_files = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), FILE_REGULAR_PARAMS, "nested_filters", "files");
+            Request filesCountRequest = new Request("GET", FILES_COUNT_END_POINT);
+            // System.out.println(gson.toJson(query_files));
+            filesCountRequest.setJsonEntity(gson.toJson(query_files));
+            JsonObject filesCountResult = inventoryESService.send(filesCountRequest);
+            int numberOfFiles = filesCountResult.get("count").getAsInt();
+
+            data.put("numberOfStudies", numberOfStudies);
+            data.put("numberOfDiagnosis", numberOfDiagnosis);
+            data.put("numberOfParticipants", numberOfParticipants);
+            data.put("numberOfSamples", numberOfSamples);
+            data.put("numberOfFiles", numberOfFiles);
+
+            // widgets data and facet filter counts for projects
+            for (var agg: PARTICIPANT_TERM_AGGS) {
+                String agg_nested_field = agg.get(AGG_NESTED);
+                String field = agg.get(AGG_NAME);
+                String widgetQueryName = agg.get(WIDGET_QUERY);
+                String filterCountQueryName = agg.get(FILTER_COUNT_QUERY);
+                String endpoint = agg.get(AGG_ENDPOINT);
+                List<Map<String, Object>> filterCount = filterSubjectCountBy(field, params, endpoint, agg_nested_field);
+                if(RANGE_PARAMS.contains(field)) {
+                    data.put(filterCountQueryName, filterCount.get(0));
                 } else {
-                    data.put(widgetQueryName, filterCount);
+                    data.put(filterCountQueryName, filterCount);
                 }
                 
+                if (widgetQueryName != null) {
+                    if (RANGE_PARAMS.contains(field)) {
+                        List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, endpoint, agg_nested_field);
+                        data.put(widgetQueryName, subjectCount);
+                    } else {
+                        data.put(widgetQueryName, filterCount);
+                    }
+                    
+                }
             }
-        }
 
-        return data;
+            caffeineCache.put(cacheKey, data);
+
+            return data;
+        }
+        
     }
 
     private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
@@ -709,5 +732,37 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
 
         return new ArrayList<>();
+    }
+
+    private String generateCacheKey(Map<String, Object> params) throws IOException {
+        List<String> keys = new ArrayList<>();
+        for (String key: params.keySet()) {
+            if (RANGE_PARAMS.contains(key)) {
+                // Range parameters, should contain two doubles, first lower bound, then upper bound
+                // Any other values after those two will be ignored
+                List<Integer> bounds = (List<Integer>) params.get(key);
+                if (bounds.size() >= 2) {
+                    Integer lower = bounds.get(0);
+                    Integer higher = bounds.get(1);
+                    if (lower == null && higher == null) {
+                        throw new IOException("Lower bound and Upper bound can't be both null!");
+                    }
+                    keys.add(key.concat(lower.toString()).concat(higher.toString()));
+                }
+            } else {
+                List<String> valueSet = (List<String>) params.get(key);
+                // list with only one empty string [""] means return all records
+                if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
+                    keys.add(key.concat(valueSet.toString()));
+                }
+            }
+        }
+        if (keys.size() == 0){
+            // System.out.println("all");
+            return "all";
+        } else {
+            // System.out.println(keys.toString());
+            return keys.toString();
+        }
     }
 }

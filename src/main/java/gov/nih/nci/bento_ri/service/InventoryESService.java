@@ -162,6 +162,9 @@ public class InventoryESService extends ESService {
                 if (indexType == "files" && key.equals("assay_method")) {
                     key = "file_category";
                 }
+                if (key.equals("participant_ids")) {
+                    key = "participant_id";
+                }
                 // list with only one empty string [""] means return all records
                 if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
                     if (!regular_fields.contains(key)) {  // nested queries are on nested property keys
