@@ -65,6 +65,7 @@ type SearchParticipantsResult {
 }
 
 type ParticipantOverViewResult {
+    id: String
     participant_id: String
     phs_accession: String
     race: String
@@ -74,6 +75,7 @@ type ParticipantOverViewResult {
 }
 
 type DiagnosisOverViewResult {
+    id: String
     diagnosis_id: String
     participant_id: String
     phs_accession: String
@@ -86,6 +88,7 @@ type DiagnosisOverViewResult {
 }
 
 type StudyOverViewResult {
+    id: String
     study_id: String
     grant_id: [String]
     phs_accession: String
@@ -102,6 +105,7 @@ type StudyOverViewResult {
 }
 
 type SampleOverViewResult {
+    id: String
     sample_id: String
     participant_id: String
     study_id: String
@@ -114,25 +118,32 @@ type SampleOverViewResult {
 }
 
 type FileOverViewResult {
+    id: String
     file_name: String
     file_category: String
     file_description: String
     file_type: String
     file_size: String
-    study_id: String
+    link_study_id: String
+    link_participant_id: String
+    link_sample_id: String
     participant_id: String
-    sample_id: String
+    study_id: String
     file_id: String
     md5sum: String
 }
 
 type FileDetail {
+    id: String
     file_id: String
     file_name: String
     study_short_title: String
     phs_accession: String
+    link_study_id: String
+    link_participant_id: String
+    link_sample_id: String
     participant_id: String
-    sample_id: String
+    study_id: String
     file_type: String
     file_size: Float
     md5sum: String
@@ -169,7 +180,7 @@ type QueryType {
     ): [String]
 
     filesInList(
-        file_id: [String],
+        id: [String],
         order_by: String = "",
         sort_direction: String = "ASC",
         first: Int = 10,

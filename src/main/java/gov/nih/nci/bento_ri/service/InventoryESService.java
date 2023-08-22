@@ -212,15 +212,10 @@ public class InventoryESService extends ESService {
         return result;
     }
 
-    public Map<String, Object> buildGetFileIDsQuery(List<String> ids, String id_field) throws IOException {
+    public Map<String, Object> buildGetFileIDsQuery(List<String> ids) throws IOException {
         Map<String, Object> result = new HashMap<>();
-        if (id_field.equals("file_id")) {
-            result.put("_source", Set.of(id_field));
-            result.put("query", Map.of("terms", Map.of(id_field, ids)));
-        } else {
-            result.put("_source", Set.of(id_field, "files"));
-            result.put("query", Map.of("terms", Map.of(id_field, ids)));
-        }
+        result.put("_source", Set.of("id", "files"));
+        result.put("query", Map.of("terms", Map.of("id", ids)));
         return result;
     }
 
@@ -517,7 +512,7 @@ public class InventoryESService extends ESService {
         return data;
     }
 
-    public List<String> collectFileIDs(JsonObject jsonObject, String id_field) {
+    public List<String> collectFileIDs(JsonObject jsonObject) {
         List<String> data = new ArrayList<>();
         JsonArray searchHits = jsonObject.getAsJsonObject("hits").getAsJsonArray("hits");
         //data.put(searchHits, aggs.getAsJsonObject(agg_nested_field).getAsJsonObject(rangeAggName).getAsJsonArray("buckets"));
@@ -563,7 +558,7 @@ public class InventoryESService extends ESService {
         // data within limit can use just from/size
         query.put("size", pageSize);
         query.put("from", offset);
-        // System.out.println(gson.toJson(query));
+        System.out.println(gson.toJson(query));
         request.setJsonEntity(gson.toJson(query));
 
         JsonObject jsonObject = send(request);

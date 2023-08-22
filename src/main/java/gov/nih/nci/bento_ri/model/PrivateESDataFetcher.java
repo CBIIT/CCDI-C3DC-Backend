@@ -237,7 +237,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Arrays.asList(properties).forEach(x -> indexResults.put(x[0], new ArrayList<>()));
                 for(Map<String, Object> resultElement: result){
                     for(String key: indexResults.keySet()){
-                        indexResults.get(key).add((String) resultElement.get(key));
+                        List<String> tmp = indexResults.get(key);
+                        String v = (String) resultElement.get(key);
+                        if (!tmp.contains(v)) {
+                            tmp.add(v);
+                        }
                     }
                 }
                 for(String key: indexResults.keySet()){
@@ -473,6 +477,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
+            new String[]{"id", "id"},
             new String[]{"participant_id", "participant_id"},
             new String[]{"phs_accession", "phs_accession"},
             new String[]{"race", "race"},
@@ -497,6 +502,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<Map<String, Object>> diagnosisOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
+            new String[]{"id", "id"},
             new String[]{"diagnosis_id", "diagnosis_id"},
             new String[]{"participant_id", "participant_id"},
             new String[]{"phs_accession", "phs_accession"},
@@ -526,6 +532,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<Map<String, Object>> studyOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
+            new String[]{"id", "id"},
             new String[]{"study_id", "study_id"},
             new String[]{"grant_id", "grant_id"},
             new String[]{"phs_accession", "phs_accession"},
@@ -583,6 +590,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<Map<String, Object>> sampleOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
+            new String[]{"id", "id"},
             new String[]{"sample_id", "sample_id"},
             new String[]{"participant_id", "participant_id"},
             new String[]{"study_id", "study_id"},
@@ -612,15 +620,18 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<Map<String, Object>> fileOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
+            new String[]{"id", "id"},
             new String[]{"file_id", "file_id"},
             new String[]{"file_name", "file_name"},
             new String[]{"file_category", "file_category"},
             new String[]{"file_description", "file_description"},
             new String[]{"file_type", "file_type"},
             new String[]{"file_size", "file_size"},
-            new String[]{"study_id", "link_study_id"},
-            new String[]{"participant_id", "link_participant_id"},
-            new String[]{"sample_id", "link_sample_id"},
+            new String[]{"study_id", "study_id"},
+            new String[]{"participant_id", "participant_id"},
+            new String[]{"link_study_id", "link_study_id"},
+            new String[]{"link_participant_id", "link_participant_id"},
+            new String[]{"link_sample_id", "link_sample_id"},
             new String[]{"md5sum", "md5sum"},
         };
 
@@ -633,9 +644,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("file_description", "file_description"),
                 Map.entry("file_type", "file_type"),
                 Map.entry("file_size", "file_size"),
-                Map.entry("study_id", "link_study_id"),
-                Map.entry("participant_id", "link_participant_id"),
-                Map.entry("sample_id", "link_sample_id"),
+                Map.entry("link_study_id", "link_study_id"),
+                Map.entry("link_participant_id", "link_participant_id"),
+                Map.entry("link_sample_id", "link_sample_id"),
                 Map.entry("md5sum", "md5sum")
         );
 
@@ -680,42 +691,42 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         List<String> fileIDsSet = (List<String>) params.get("file_ids");
         
         if (participantIDsSet.size() > 0 && !(participantIDsSet.size() == 1 && participantIDsSet.get(0).equals(""))) {
-            Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(participantIDsSet, "participant_id");
+            Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(participantIDsSet);
             Request request = new Request("GET", PARTICIPANTS_END_POINT);
             // System.out.println(gson.toJson(query));
             request.setJsonEntity(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
-            List<String> result = inventoryESService.collectFileIDs(jsonObject, "participant_id");
+            List<String> result = inventoryESService.collectFileIDs(jsonObject);
             return result;
         }
 
         if (diagnosisIDsSet.size() > 0 && !(diagnosisIDsSet.size() == 1 && diagnosisIDsSet.get(0).equals(""))) {
-            Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(diagnosisIDsSet, "diagnosis_id");
+            Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(diagnosisIDsSet);
             Request request = new Request("GET", DIAGNOSIS_END_POINT);
             // System.out.println(gson.toJson(query));
             request.setJsonEntity(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
-            List<String> result = inventoryESService.collectFileIDs(jsonObject, "diagnosis_id");
+            List<String> result = inventoryESService.collectFileIDs(jsonObject);
             return result;
         }
 
         if (studyIDsSet.size() > 0 && !(studyIDsSet.size() == 1 && studyIDsSet.get(0).equals(""))) {
-            Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(studyIDsSet, "study_id");
+            Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(studyIDsSet);
             Request request = new Request("GET", STUDIES_END_POINT);
             // System.out.println(gson.toJson(query));
             request.setJsonEntity(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
-            List<String> result = inventoryESService.collectFileIDs(jsonObject, "study_id");
+            List<String> result = inventoryESService.collectFileIDs(jsonObject);
             return result;
         }
 
         if (sampleIDsSet.size() > 0 && !(sampleIDsSet.size() == 1 && sampleIDsSet.get(0).equals(""))) {
-            Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(sampleIDsSet, "sample_id");
+            Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(sampleIDsSet);
             Request request = new Request("GET", SAMPLES_END_POINT);
             // System.out.println(gson.toJson(query));
             request.setJsonEntity(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
-            List<String> result = inventoryESService.collectFileIDs(jsonObject, "sample_id");
+            List<String> result = inventoryESService.collectFileIDs(jsonObject);
             return result;
         }
 
