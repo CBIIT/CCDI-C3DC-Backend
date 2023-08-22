@@ -1,5 +1,14 @@
 # Build stage
 FROM maven:3.6.3-openjdk-11 as build
+
+RUN apk update && apk upgrade  \
+    freetype \
+    zlib \
+    libtasn1 \
+    openssl \
+    openjdk11 \
+    libx11
+    
 WORKDIR /usr/src/app
 COPY . .
 RUN mvn package -DskipTests
