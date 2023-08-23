@@ -6,6 +6,7 @@ COPY . .
 RUN mvn package -DskipTests
 
 # Production stage
-FROM tomcat:9.0.79-jdk11 
+#FROM tomcat:9.0.79-jdk11 
+FROM cbiitssrepo/bento-backend:release
 RUN rm -rf /usr/local/tomcat/webapps/ROOT
 COPY --from=build /usr/src/app/target/Bento-0.0.1.war /usr/local/tomcat/webapps/ROOT.war
