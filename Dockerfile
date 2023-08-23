@@ -1,7 +1,7 @@
 # Build stage
 FROM maven:3.6.3-openjdk-11 as build
 
-RUN apk update && apk upgrade  \
+RUN apt update && apt upgrade  \
     freetype \
     zlib \
     libtasn1 \
