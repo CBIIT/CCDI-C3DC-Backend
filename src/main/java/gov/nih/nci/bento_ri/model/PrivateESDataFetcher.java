@@ -30,7 +30,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private final YamlQueryFactory yamlQueryFactory;
     private InventoryESService inventoryESService;
     @Autowired
-    Cache<String, Object> caffeineCache;
+    private Cache<String, Object> caffeineCache;
 
     // parameters used in queries
     final String PAGE_SIZE = "first";
@@ -226,6 +226,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         String cacheKey = "participantIDs";
         Map<String, String[]> data = (Map<String, String[]>)caffeineCache.asMap().get(cacheKey);
         if (data != null) {
+            logger.info("hit cache!");
             return data;
         } else {
             for (String endpoint: indexProperties.keySet()){
@@ -264,10 +265,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         String cacheKey = generateCacheKey(params);
         Map<String, Object> data = (Map<String, Object>)caffeineCache.asMap().get(cacheKey);
         if (data != null) {
-            System.out.println("hit cache!");
+            logger.info("hit cache!");
             return data;
         } else {
-            System.out.println("cache miss... getting data then.");
+            // logger.info("cache miss... querying for data.");
             data = new HashMap<>();
 
             final String AGG_NESTED = "agg_nested";
