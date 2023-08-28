@@ -231,6 +231,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             for (String endpoint: indexProperties.keySet()){
                 Request request = new Request("GET", endpoint);
                 String[][] properties = indexProperties.get(endpoint);
+                List<String> fields = new ArrayList<>();
+                for (String[] prop: properties) {
+                    fields.add(prop[1]);
+                }
+                query.put("_source", fields);
+                
                 List<Map<String, Object>> result = esService.collectPage(request, query, properties, ESService.MAX_ES_SIZE,
                         0);
                 Map<String, List<String>> indexResults = new HashMap<>();
