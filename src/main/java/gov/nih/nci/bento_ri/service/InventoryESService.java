@@ -634,16 +634,6 @@ public class InventoryESService extends ESService {
                 JsonElement element = searchHits.get(i).getAsJsonObject().get("_source").getAsJsonObject().get(dataField);
                 row.put(propName, getValue(element));
             }
-            if (highlights != null) {
-                for (String[] highlight: highlights) {
-                    String hlName = highlight[0];
-                    String hlField = highlight[1];
-                    JsonElement element = searchHits.get(i).getAsJsonObject().get("highlight").getAsJsonObject().get(hlField);
-                    if (element != null) {
-                        row.put(hlName, ((List<String>)getValue(element)).get(0));
-                    }
-                }
-            }
             data.add(row);
             if (data.size() >= pageSize) {
                 break;
