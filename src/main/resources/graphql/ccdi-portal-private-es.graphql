@@ -71,6 +71,7 @@ type ParticipantOverViewResult {
     race: String
     gender: String
     ethnicity: String
+    alternate_participant_id: String
     files: [String]
 }
 
