@@ -219,12 +219,12 @@ public class InventoryESService extends ESService {
         return result;
     }
 
-    public Map<String, Object> addAggregations(Map<String, Object> query, String[] termAggNames, String agg_nested_field) {
-        return addAggregations(query, termAggNames, new String(), new String[]{}, agg_nested_field);
+    public Map<String, Object> addAggregations(Map<String, Object> query, String[] termAggNames, String agg_nested_field, List<String> only_includes) {
+        return addAggregations(query, termAggNames, new String(), new String[]{}, agg_nested_field, only_includes);
     }
 
-    public Map<String, Object> addAggregations(Map<String, Object> query, String[] termAggNames, String cardinalityAggName, String agg_nested_field) {
-        return addAggregations(query, termAggNames, cardinalityAggName, new String[]{}, agg_nested_field);
+    public Map<String, Object> addAggregations(Map<String, Object> query, String[] termAggNames, String cardinalityAggName, String agg_nested_field, List<String> only_includes) {
+        return addAggregations(query, termAggNames, cardinalityAggName, new String[]{}, agg_nested_field, only_includes);
     }
 
     public Map<String, Object> addNodeCountAggregations(Map<String, Object> query, String nodeName) {
@@ -302,7 +302,7 @@ public class InventoryESService extends ESService {
         return newQuery;
     }
 
-    public Map<String, Object> addRangeAggregations(Map<String, Object> query, String rangeAggName, String agg_nested_field) {
+    public Map<String, Object> addRangeAggregations(Map<String, Object> query, String rangeAggName, String agg_nested_field, List<String> only_includes) {
         Map<String, Object> newQuery = new HashMap<>(query);
         newQuery.put("size", 0);
 
@@ -420,14 +420,19 @@ public class InventoryESService extends ESService {
         return newQuery;
     }
 
-    public Map<String, Object> addAggregations(Map<String, Object> query, String[] termAggNames, String subCardinalityAggName, String[] rangeAggNames, String agg_nested_field) {
+    public Map<String, Object> addAggregations(Map<String, Object> query, String[] termAggNames, String subCardinalityAggName, String[] rangeAggNames, String agg_nested_field, List<String> only_includes) {
         Map<String, Object> newQuery = new HashMap<>(query);
         newQuery.put("size", 0);
         if (agg_nested_field == null) {
             Map<String, Object> fields = new HashMap<String, Object>();
             for (String field: termAggNames) {
                 // the "size": 50 is so that we can have more than 10 buckets returned for our aggregations (the default)
-                Map<String, Object> subField = Map.of("field", field, "size", 50);
+                Map<String, Object> subField = new HashMap<String, Object>();
+                subField.put("field", field);
+                subField.put("size", 50);
+                if (only_includes.size() > 0) {
+                    subField.put("include", only_includes);
+                }
                 if (!subCardinalityAggName.isEmpty()) {
                     fields.put(field, Map.of("terms", subField, "aggs", addCardinalityHelper(subCardinalityAggName)));
                 } else {
@@ -440,7 +445,12 @@ public class InventoryESService extends ESService {
             Map<String, Object> nested_fields = new HashMap<String, Object>();
             for (String field: termAggNames) {
                 // the "size": 50 is so that we can have more than 10 buckets returned for our aggregations (the default)
-                Map<String, Object> subField = Map.of("field", agg_nested_field + "." + field, "size", 50);
+                Map<String, Object> subField = new HashMap<String, Object>();
+                subField.put("field", agg_nested_field + "." + field);
+                subField.put("size", 50);
+                if (only_includes.size() > 0) {
+                    subField.put("include", only_includes);
+                }
                 nested_fields.put(field, Map.of("terms", subField, "aggs", Map.of("parent", Map.of("reverse_nested", Map.of()))));
             }
             fields.put(agg_nested_field, Map.of("nested", Map.of("path", agg_nested_field), "aggs", nested_fields));
