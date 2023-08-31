@@ -131,12 +131,14 @@ type FileOverViewResult {
     participant_id: String
     study_id: String
     file_id: String
+    guid: String
     md5sum: String
 }
 
 type FileDetail {
     id: String
     file_id: String
+    guid: String
     file_name: String
     study_short_title: String
     phs_accession: String

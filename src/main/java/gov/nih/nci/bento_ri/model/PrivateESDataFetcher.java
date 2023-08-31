@@ -654,6 +654,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         final String[][] PROPERTIES = new String[][]{
             new String[]{"id", "id"},
             new String[]{"file_id", "file_id"},
+            new String[]{"guid", "guid"},
             new String[]{"file_name", "file_name"},
             new String[]{"file_category", "file_category"},
             new String[]{"file_description", "file_description"},
@@ -671,6 +672,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         Map<String, String> mapping = Map.ofEntries(
                 Map.entry("file_id", "file_id"),
+                Map.entry("guid", "guid"),
                 Map.entry("file_name", "file_name"),
                 Map.entry("file_category", "file_category"),
                 Map.entry("file_description", "file_description"),
