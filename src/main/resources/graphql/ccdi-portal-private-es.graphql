@@ -91,17 +91,17 @@ type DiagnosisOverViewResult {
 type StudyOverViewResult {
     id: String
     study_id: String
-    grant_id: [String]
+    grant_id: String
     phs_accession: String
     study_short_title: String
-    personnel_name: [String]
+    personnel_name: String
     num_of_participants: String
     diagnosis: [String]
     num_of_samples: String
     anatomic_site: [String]
     num_of_files: String
     file_type: [String]
-    pubmed_id: [String]
+    pubmed_id: String
     files: [String]
 }
 
