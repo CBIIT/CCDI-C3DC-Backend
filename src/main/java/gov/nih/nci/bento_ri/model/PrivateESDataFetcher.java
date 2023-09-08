@@ -584,8 +584,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         Map<String, String> mapping = Map.ofEntries(
                 Map.entry("study_id", "study_id"),
+                Map.entry("pubmed_id", "pubmed_ids"),
+                Map.entry("grant_id", "grant_id"),
                 Map.entry("phs_accession", "phs_accession"),
                 Map.entry("study_short_title", "study_short_title"),
+                Map.entry("personnel_name", "PIs"),
                 Map.entry("num_of_participants", "num_of_participants"),
                 Map.entry("num_of_samples", "num_of_samples"),
                 Map.entry("num_of_files", "num_of_files")
