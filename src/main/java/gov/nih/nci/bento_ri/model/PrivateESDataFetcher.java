@@ -434,8 +434,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             
             Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
             // System.out.println(gson.toJson(query_participants));
-            int numberOfStudies = getNodeCount("study_id", query_participants, PARTICIPANTS_END_POINT).size();
-
+            
             Request participantsCountRequest = new Request("GET", PARTICIPANTS_COUNT_END_POINT);
             // System.out.println(gson.toJson(query_participants));
             participantsCountRequest.setJsonEntity(gson.toJson(query_participants));
@@ -457,6 +456,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             int numberOfSamples = samplesCountResult.get("count").getAsInt();
 
             Map<String, Object> query_files = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), FILE_REGULAR_PARAMS, "nested_filters", "files");
+            int numberOfStudies = getNodeCount("study_id", query_files, FILES_END_POINT).size();
+            
             Request filesCountRequest = new Request("GET", FILES_COUNT_END_POINT);
             // System.out.println(gson.toJson(query_files));
             filesCountRequest.setJsonEntity(gson.toJson(query_files));
@@ -594,8 +595,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("num_of_files", "num_of_files")
         );
 
-        Request request = new Request("GET", PARTICIPANTS_END_POINT);
-        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
+        Request request = new Request("GET", FILES_END_POINT);
+        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), FILE_REGULAR_PARAMS, "nested_filters", "files");
         String[] AGG_NAMES = new String[] {"study_id"};
         query = inventoryESService.addAggregations(query, AGG_NAMES);
         // System.out.println(gson.toJson(query));
