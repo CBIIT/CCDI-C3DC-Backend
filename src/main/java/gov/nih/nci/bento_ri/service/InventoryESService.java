@@ -216,6 +216,8 @@ public class InventoryESService extends ESService {
         Map<String, Object> result = new HashMap<>();
         result.put("_source", Set.of("id", "files"));
         result.put("query", Map.of("terms", Map.of("id", ids)));
+        result.put("size", ids.size());
+        result.put("from", 0);
         return result;
     }
 
