@@ -670,6 +670,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"link_participant_id", "link_participant_id"},
             new String[]{"link_sample_id", "link_sample_id"},
             new String[]{"md5sum", "md5sum"},
+            new String[]{"files", "files"}
         };
 
         String defaultSort = "file_id"; // Default sort order
@@ -770,6 +771,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         if (fileIDsSet.size() > 0 && !(fileIDsSet.size() == 1 && fileIDsSet.get(0).equals(""))) {
             //return with the same file ids
+            
             return fileIDsSet;
             // Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(fileIDsSet, "file_id");
             // Request request = new Request("GET", FILES_END_POINT);

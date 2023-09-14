@@ -133,6 +133,7 @@ type FileOverViewResult {
     file_id: String
     guid: String
     md5sum: String
+    files: [String]
 }
 
 type FileDetail {
