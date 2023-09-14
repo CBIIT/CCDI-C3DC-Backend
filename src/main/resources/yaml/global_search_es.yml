@@ -15,8 +15,8 @@ queries:
         highlight:
           fields:
             - content.paragraph
-          preTag: $
-          postTag: $
+          preTag: K
+          postTag: K
         result:
           type: global_about
       - name: about_count
@@ -31,7 +31,7 @@ queries:
         highlight:
           fields:
             - content.paragraph
-          preTag: $
-          postTag: $
+          preTag: K
+          postTag: K
         result:
           type: int_total_count
