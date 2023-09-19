@@ -62,7 +62,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis");
     final Set<String> SAMPLE_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
     final Set<String> STUDY_REGULAR_PARAMS = Set.of("study_id", "phs_accession", "study_acronym", "study_short_title");
-    final Set<String> FILE_REGULAR_PARAMS = Set.of("file_category", "participant_id", "phs_accession", "study_acronym", "study_short_title", "file_type", "library_selection", "library_source", "library_strategy");
+    final Set<String> FILE_REGULAR_PARAMS = Set.of("file_category", "phs_accession", "study_acronym", "study_short_title", "file_type", "library_selection", "library_source", "library_strategy");
 
     public PrivateESDataFetcher(InventoryESService esService) {
         super(esService);
