@@ -436,6 +436,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             // System.out.println(gson.toJson(query_participants));
             Map<String, Object> newQuery_participants = new HashMap<>(query_participants);
             newQuery_participants.put("size", 0);
+            newQuery_participants.put("track_total_hits", 10000000);
             Map<String, Object> fields = new HashMap<String, Object>();
             fields.put("file_count", Map.of("sum", Map.of("field", "file_count")));
             newQuery_participants.put("aggs", fields);
@@ -456,11 +457,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map<String, Object> query_samples = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), SAMPLE_REGULAR_PARAMS, "nested_filters", "samples");
             Map<String, Object> newQuery_samples = new HashMap<>(query_samples);
             newQuery_samples.put("size", 0);
+            newQuery_samples.put("track_total_hits", 10000000);
             Map<String, Object> fields_sample = new HashMap<String, Object>();
             fields_sample.put("file_count", Map.of("sum", Map.of("field", "file_count")));
             newQuery_samples.put("aggs", fields_sample);
             Request samplesCountRequest = new Request("GET", SAMPLES_END_POINT);
-            // System.out.println(gson.toJson(newQuery_samples));
+            System.out.println(gson.toJson(newQuery_samples));
             samplesCountRequest.setJsonEntity(gson.toJson(newQuery_samples));
             JsonObject samplesCountResult = inventoryESService.send(samplesCountRequest);
             int numberOfSamples = samplesCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
