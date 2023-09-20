@@ -434,26 +434,37 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             
             Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
             // System.out.println(gson.toJson(query_participants));
-            
-            Request participantsCountRequest = new Request("GET", PARTICIPANTS_COUNT_END_POINT);
-            // System.out.println(gson.toJson(query_participants));
-            participantsCountRequest.setJsonEntity(gson.toJson(query_participants));
+            Map<String, Object> newQuery_participants = new HashMap<>(query_participants);
+            newQuery_participants.put("size", 0);
+            Map<String, Object> fields = new HashMap<String, Object>();
+            fields.put("file_count", Map.of("sum", Map.of("field", "file_count")));
+            newQuery_participants.put("aggs", fields);
+            Request participantsCountRequest = new Request("GET", PARTICIPANTS_END_POINT);
+            // System.out.println(gson.toJson(newQuery_participants));
+            participantsCountRequest.setJsonEntity(gson.toJson(newQuery_participants));
             JsonObject participantsCountResult = inventoryESService.send(participantsCountRequest);
-            int numberOfParticipants = participantsCountResult.get("count").getAsInt();
+            int numberOfParticipants = participantsCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
+            int participants_file_count = participantsCountResult.getAsJsonObject("aggregations").getAsJsonObject("file_count").get("value").getAsInt();
 
             Map<String, Object> query_diagnosis = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), DIAGNOSIS_REGULAR_PARAMS, "nested_filters", "diagnosis");
             Request diagnosisCountRequest = new Request("GET", DIAGNOSIS_COUNT_END_POINT);
-            // System.out.println(gson.toJson(query_samples));
+            // System.out.println(gson.toJson(query_diagnosis));
             diagnosisCountRequest.setJsonEntity(gson.toJson(query_diagnosis));
             JsonObject diagnosisCountResult = inventoryESService.send(diagnosisCountRequest);
             int numberOfDiagnosis = diagnosisCountResult.get("count").getAsInt();
             
             Map<String, Object> query_samples = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), SAMPLE_REGULAR_PARAMS, "nested_filters", "samples");
-            Request samplesCountRequest = new Request("GET", SAMPLES_COUNT_END_POINT);
-            // System.out.println(gson.toJson(query_samples));
-            samplesCountRequest.setJsonEntity(gson.toJson(query_samples));
+            Map<String, Object> newQuery_samples = new HashMap<>(query_samples);
+            newQuery_samples.put("size", 0);
+            Map<String, Object> fields_sample = new HashMap<String, Object>();
+            fields_sample.put("file_count", Map.of("sum", Map.of("field", "file_count")));
+            newQuery_samples.put("aggs", fields_sample);
+            Request samplesCountRequest = new Request("GET", SAMPLES_END_POINT);
+            // System.out.println(gson.toJson(newQuery_samples));
+            samplesCountRequest.setJsonEntity(gson.toJson(newQuery_samples));
             JsonObject samplesCountResult = inventoryESService.send(samplesCountRequest);
-            int numberOfSamples = samplesCountResult.get("count").getAsInt();
+            int numberOfSamples = samplesCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
+            int samples_file_count = samplesCountResult.getAsJsonObject("aggregations").getAsJsonObject("file_count").get("value").getAsInt();
 
             Map<String, Object> query_files = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), FILE_REGULAR_PARAMS, "nested_filters", "files");
             int numberOfStudies = getNodeCount("study_id", query_files, FILES_END_POINT).size();
@@ -469,7 +480,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             data.put("numberOfParticipants", numberOfParticipants);
             data.put("numberOfSamples", numberOfSamples);
             data.put("numberOfFiles", numberOfFiles);
-
+            data.put("participantsFileCount", participants_file_count);
+            data.put("diagnosisFileCount", participants_file_count);
+            data.put("samplesFileCount", samples_file_count);
+            data.put("studiesFileCount", numberOfFiles);
+            data.put("filesFileCount", numberOfFiles);
+            
             // widgets data and facet filter counts for projects
             for (var agg: PARTICIPANT_TERM_AGGS) {
                 String agg_nested_field = agg.get(AGG_NESTED);

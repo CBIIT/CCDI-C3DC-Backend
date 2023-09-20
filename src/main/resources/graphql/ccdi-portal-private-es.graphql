@@ -55,6 +55,11 @@ type SearchParticipantsResult {
     numberOfSamples: Int
     numberOfFiles: Int
     numberOfDiagnosis: Int
+    participantsFileCount: Int
+    diagnosisFileCount: Int
+    samplesFileCount: Int
+    studiesFileCount: Int
+    filesFileCount: Int
 
     participantCountByStudy: [SearchParticipantsReturnObject]
     participantCountByDiagnosis: [SearchParticipantsReturnObject]
