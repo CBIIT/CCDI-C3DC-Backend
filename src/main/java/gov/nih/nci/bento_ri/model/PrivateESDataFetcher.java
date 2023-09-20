@@ -462,7 +462,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             fields_sample.put("file_count", Map.of("sum", Map.of("field", "file_count")));
             newQuery_samples.put("aggs", fields_sample);
             Request samplesCountRequest = new Request("GET", SAMPLES_END_POINT);
-            System.out.println(gson.toJson(newQuery_samples));
+            // System.out.println(gson.toJson(newQuery_samples));
             samplesCountRequest.setJsonEntity(gson.toJson(newQuery_samples));
             JsonObject samplesCountResult = inventoryESService.send(samplesCountRequest);
             int numberOfSamples = samplesCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
