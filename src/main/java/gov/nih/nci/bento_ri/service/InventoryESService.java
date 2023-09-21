@@ -431,7 +431,7 @@ public class InventoryESService extends ESService {
                 // the "size": 50 is so that we can have more than 10 buckets returned for our aggregations (the default)
                 Map<String, Object> subField = new HashMap<String, Object>();
                 subField.put("field", field);
-                subField.put("size", 50);
+                subField.put("size", 100000);
                 if (only_includes.size() > 0) {
                     subField.put("include", only_includes);
                 }
@@ -449,7 +449,7 @@ public class InventoryESService extends ESService {
                 // the "size": 50 is so that we can have more than 10 buckets returned for our aggregations (the default)
                 Map<String, Object> subField = new HashMap<String, Object>();
                 subField.put("field", agg_nested_field + "." + field);
-                subField.put("size", 50);
+                subField.put("size", 100000);
                 if (only_includes.size() > 0) {
                     subField.put("include", only_includes);
                 }

@@ -684,9 +684,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"file_size", "file_size"},
             new String[]{"study_id", "study_id"},
             new String[]{"participant_id", "participant_id"},
-            new String[]{"link_study_id", "link_study_id"},
-            new String[]{"link_participant_id", "link_participant_id"},
-            new String[]{"link_sample_id", "link_sample_id"},
+            new String[]{"sample_id", "sample_id"},
             new String[]{"md5sum", "md5sum"},
             new String[]{"files", "files"}
         };
@@ -701,9 +699,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("file_description", "file_description"),
                 Map.entry("file_type", "file_type"),
                 Map.entry("file_size", "file_size"),
-                Map.entry("link_study_id", "link_study_id"),
-                Map.entry("link_participant_id", "link_participant_id"),
-                Map.entry("link_sample_id", "link_sample_id"),
+                Map.entry("study_id", "study_id"),
+                Map.entry("participant_id", "participant_id"),
+                Map.entry("sample_id", "sample_id"),
                 Map.entry("md5sum", "md5sum")
         );
 

@@ -130,9 +130,7 @@ type FileOverViewResult {
     file_description: String
     file_type: String
     file_size: String
-    link_study_id: String
-    link_participant_id: String
-    link_sample_id: String
+    sample_id: String
     participant_id: String
     study_id: String
     file_id: String
@@ -148,9 +146,7 @@ type FileDetail {
     file_name: String
     study_short_title: String
     phs_accession: String
-    link_study_id: String
-    link_participant_id: String
-    link_sample_id: String
+    sample_id: String
     participant_id: String
     study_id: String
     file_type: String
