@@ -58,7 +58,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     final Set<String> INCLUDE_PARAMS  = Set.of("race", "ethnicity");
 
-    final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title");
+    final Set<String> REGULAR_PARAMS = Set.of("study_id", "participant_id", "race", "gender", "ethnicity", "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis", "vital_status", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution", "library_selection", "library_source", "library_strategy");
+    final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis", "vital_status", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution", "library_selection", "library_source", "library_strategy");
     final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis");
     final Set<String> SAMPLE_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
     final Set<String> STUDY_REGULAR_PARAMS = Set.of("study_id", "phs_accession", "study_acronym", "study_short_title");
@@ -108,12 +109,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 .build();
     }
 
-    private List<Map<String, Object>> subjectCountBy(String category, Map<String, Object> params, String endpoint, String agg_nested_field) throws IOException {
-        return subjectCountBy(category, params, endpoint, Map.of(), agg_nested_field);
+    private List<Map<String, Object>> subjectCountBy(String category, Map<String, Object> params, String endpoint, String cardinalityAggName, String indexType) throws IOException {
+        return subjectCountBy(category, params, endpoint, Map.of(), cardinalityAggName, indexType);
     }
 
-    private List<Map<String, Object>> subjectCountBy(String category, Map<String, Object> params, String endpoint, Map<String, Object> additionalParams, String agg_nested_field) throws IOException {
-        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE), PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
+    private List<Map<String, Object>> subjectCountBy(String category, Map<String, Object> params, String endpoint, Map<String, Object> additionalParams, String cardinalityAggName, String indexType) throws IOException {
+        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE), REGULAR_PARAMS, "nested_filters", indexType);
         List<String> only_includes;
         List<String> valueSet = INCLUDE_PARAMS.contains(category) ? (List<String>)params.get(category) : List.of();
         if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))){
@@ -121,25 +122,25 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         } else {
             only_includes = List.of();
         }
-        return getGroupCount(category, query, endpoint, agg_nested_field, only_includes);
+        return getGroupCount(category, query, endpoint, cardinalityAggName, only_includes);
     }
 
-    private List<Map<String, Object>> subjectCountByRange(String category, Map<String, Object> params, String endpoint, String agg_nested_field) throws IOException {
-        return subjectCountByRange(category, params, endpoint, Map.of(), agg_nested_field);
+    private List<Map<String, Object>> subjectCountByRange(String category, Map<String, Object> params, String endpoint, String cardinalityAggName, String indexType) throws IOException {
+        return subjectCountByRange(category, params, endpoint, Map.of(), cardinalityAggName, indexType);
     }
 
-    private List<Map<String, Object>> subjectCountByRange(String category, Map<String, Object> params, String endpoint, Map<String, Object> additionalParams, String agg_nested_field) throws IOException {
-        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE), PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
-        return getGroupCountByRange(category, query, endpoint, agg_nested_field);
+    private List<Map<String, Object>> subjectCountByRange(String category, Map<String, Object> params, String endpoint, Map<String, Object> additionalParams, String cardinalityAggName, String indexType) throws IOException {
+        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE), REGULAR_PARAMS, "nested_filters", indexType);
+        return getGroupCountByRange(category, query, endpoint, cardinalityAggName);
     }
 
-    private List<Map<String, Object>> filterSubjectCountBy(String category, Map<String, Object> params, String endpoint, String agg_nested_field) throws IOException {
-        return filterSubjectCountBy(category, params, endpoint, Map.of(), agg_nested_field);
+    private List<Map<String, Object>> filterSubjectCountBy(String category, Map<String, Object> params, String endpoint, String cardinalityAggName, String indexType) throws IOException {
+        return filterSubjectCountBy(category, params, endpoint, Map.of(), cardinalityAggName, indexType);
     }
 
-    private List<Map<String, Object>> filterSubjectCountBy(String category, Map<String, Object> params, String endpoint, Map<String, Object> additionalParams, String agg_nested_field) throws IOException {
-        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, category), PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
-        return getGroupCount(category, query, endpoint, agg_nested_field, List.of());
+    private List<Map<String, Object>> filterSubjectCountBy(String category, Map<String, Object> params, String endpoint, Map<String, Object> additionalParams, String cardinalityAggName, String indexType) throws IOException {
+        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, category), REGULAR_PARAMS, "nested_filters", indexType);
+        return getGroupCount(category, query, endpoint, cardinalityAggName, List.of());
     }
 
     private JsonArray getNodeCount(String category, Map<String, Object> query, String endpoint) throws IOException {
@@ -153,39 +154,40 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return buckets;
     }
 
-    private List<Map<String, Object>> getGroupCountByRange(String category, Map<String, Object> query, String endpoint, String agg_nested_field) throws IOException {
-        query = inventoryESService.addRangeCountAggregations(query, category, agg_nested_field);
+    private List<Map<String, Object>> getGroupCountByRange(String category, Map<String, Object> query, String endpoint, String cardinalityAggName) throws IOException {
+        query = inventoryESService.addRangeCountAggregations(query, category, cardinalityAggName);
         Request request = new Request("GET", endpoint);
+        // System.out.println(gson.toJson(query));
         request.setJsonEntity(gson.toJson(query));
         JsonObject jsonObject = inventoryESService.send(request);
-        Map<String, JsonArray> aggs = inventoryESService.collectRangCountAggs(jsonObject, category, agg_nested_field);
+        Map<String, JsonArray> aggs = inventoryESService.collectRangCountAggs(jsonObject, category);
         JsonArray buckets = aggs.get(category);
 
-        return getGroupCountHelper(buckets, agg_nested_field);
+        return getGroupCountHelper(buckets, cardinalityAggName);
     }
 
-    private List<Map<String, Object>> getGroupCount(String category, Map<String, Object> query, String endpoint, String agg_nested_field, List<String> only_includes) throws IOException {
+    private List<Map<String, Object>> getGroupCount(String category, Map<String, Object> query, String endpoint, String cardinalityAggName, List<String> only_includes) throws IOException {
         if (RANGE_PARAMS.contains(category)) {
-            query = inventoryESService.addRangeAggregations(query, category, agg_nested_field, only_includes);
+            query = inventoryESService.addRangeAggregations(query, category, only_includes);
             Request request = new Request("GET", endpoint);
             // System.out.println(gson.toJson(query));
             request.setJsonEntity(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
-            Map<String, JsonObject> aggs = inventoryESService.collectRangAggs(jsonObject, category, agg_nested_field);
+            Map<String, JsonObject> aggs = inventoryESService.collectRangAggs(jsonObject, category);
             JsonObject ranges = aggs.get(category);
 
             return getRangeGroupCountHelper(ranges);
         } else {
             String[] AGG_NAMES = new String[] {category};
-            query = inventoryESService.addAggregations(query, AGG_NAMES, agg_nested_field, only_includes);
+            query = inventoryESService.addAggregations(query, AGG_NAMES, cardinalityAggName, only_includes);
             Request request = new Request("GET", endpoint);
             request.setJsonEntity(gson.toJson(query));
             // System.out.println(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
-            Map<String, JsonArray> aggs = inventoryESService.collectTermAggs(jsonObject, AGG_NAMES, agg_nested_field);
+            Map<String, JsonArray> aggs = inventoryESService.collectTermAggs(jsonObject, AGG_NAMES);
             JsonArray buckets = aggs.get(category);
 
-            return getGroupCountHelper(buckets, agg_nested_field);
+            return getGroupCountHelper(buckets, cardinalityAggName);
         }
         
     }
@@ -219,11 +221,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return data;
     }
 
-    private List<Map<String, Object>> getGroupCountHelper(JsonArray buckets, String agg_nested_field) throws IOException {
+    private List<Map<String, Object>> getGroupCountHelper(JsonArray buckets, String cardinalityAggName) throws IOException {
         List<Map<String, Object>> data = new ArrayList<>();
         for (JsonElement group: buckets) {
             data.add(Map.of("group", group.getAsJsonObject().get("key").getAsString(),
-                    "subjects", agg_nested_field == null ? group.getAsJsonObject().get("doc_count").getAsInt() : group.getAsJsonObject().get("parent").getAsJsonObject().get("doc_count").getAsInt()
+                    "subjects", !(cardinalityAggName == null) ? group.getAsJsonObject().get("cardinality_count").getAsJsonObject().get("value").getAsInt() : group.getAsJsonObject().get("doc_count").getAsInt()
             ));
 
         }
@@ -290,7 +292,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             // logger.info("cache miss... querying for data.");
             data = new HashMap<>();
 
-            final String AGG_NESTED = "agg_nested";
+            final String CARDINALITY_AGG_NAME = "cardinality_agg_name";
             final String AGG_NAME = "agg_name";
             final String AGG_ENDPOINT = "agg_endpoint";
             final String WIDGET_QUERY = "widgetQueryName";
@@ -304,19 +306,18 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NESTED, "nested_filters",
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "diagnosis_icd_o",
                     WIDGET_QUERY, "participantCountByDiagnosis",
                     FILTER_COUNT_QUERY, "filterParticipantCountByICDO",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
-                    
+                    AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NESTED, "nested_filters",
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "age_at_diagnosis",
                     WIDGET_QUERY, "participantCountByDiagnosisAge",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisAge",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     AGG_NAME, "gender",
@@ -343,58 +344,58 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             ));
             
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NESTED, "nested_filters",
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "diagnosis_anatomic_site",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisAnatomicSite",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NESTED, "nested_filters",
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "disease_phase",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiseasePhase",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NESTED, "nested_filters",
                     AGG_NAME, "vital_status",
                     FILTER_COUNT_QUERY, "filterParticipantCountByVitalStatus",
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NESTED, "nested_filters",
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "sample_anatomic_site",
                     FILTER_COUNT_QUERY, "filterParticipantCountBySampleAnatomicSite",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, SAMPLES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NESTED, "nested_filters",
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "participant_age_at_collection",
                     FILTER_COUNT_QUERY, "filterParticipantCountBySampleAge",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, SAMPLES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NESTED, "nested_filters",
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "sample_tumor_status",
                     FILTER_COUNT_QUERY, "filterParticipantCountByTumorStatus",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, SAMPLES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NESTED, "nested_filters",
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "tumor_classification",
                     FILTER_COUNT_QUERY, "filterParticipantCountByTumorClassification",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, SAMPLES_END_POINT
             ));
+            //assay_method mapped to file_category
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NESTED, "nested_filters",
-                    AGG_NAME, "assay_method",
+                    CARDINALITY_AGG_NAME, "pid",
+                    AGG_NAME, "file_category",
                     FILTER_COUNT_QUERY, "filterParticipantCountByAssayMethod",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NESTED, "nested_filters",
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "file_type",
                     FILTER_COUNT_QUERY, "filterParticipantCountByFileType",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     AGG_NAME, "study_short_title",
@@ -402,37 +403,35 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NESTED, "nested_filters",
                     AGG_NAME, "grant_id",
                     FILTER_COUNT_QUERY, "filterParticipantCountByGrantID",
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NESTED, "nested_filters",
                     AGG_NAME, "institution",
                     FILTER_COUNT_QUERY, "filterParticipantCountByInstitution",
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NESTED, "nested_filters",
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "library_selection",
                     FILTER_COUNT_QUERY, "filterParticipantCountByLibrarySelection",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NESTED, "nested_filters",
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "library_source",
                     FILTER_COUNT_QUERY, "filterParticipantCountByLibrarySource",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NESTED, "nested_filters",
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "library_strategy",
                     FILTER_COUNT_QUERY, "filterParticipantCountByLibraryStrategy",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, FILES_END_POINT
             ));
             
-            Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
+            Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
             // System.out.println(gson.toJson(query_participants));
             Map<String, Object> newQuery_participants = new HashMap<>(query_participants);
             newQuery_participants.put("size", 0);
@@ -447,14 +446,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             int numberOfParticipants = participantsCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
             int participants_file_count = participantsCountResult.getAsJsonObject("aggregations").getAsJsonObject("file_count").get("value").getAsInt();
 
-            Map<String, Object> query_diagnosis = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), DIAGNOSIS_REGULAR_PARAMS, "nested_filters", "diagnosis");
+            Map<String, Object> query_diagnosis = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnosis");
             Request diagnosisCountRequest = new Request("GET", DIAGNOSIS_COUNT_END_POINT);
             // System.out.println(gson.toJson(query_diagnosis));
             diagnosisCountRequest.setJsonEntity(gson.toJson(query_diagnosis));
             JsonObject diagnosisCountResult = inventoryESService.send(diagnosisCountRequest);
             int numberOfDiagnosis = diagnosisCountResult.get("count").getAsInt();
             
-            Map<String, Object> query_samples = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), SAMPLE_REGULAR_PARAMS, "nested_filters", "samples");
+            Map<String, Object> query_samples = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "samples");
             Map<String, Object> newQuery_samples = new HashMap<>(query_samples);
             newQuery_samples.put("size", 0);
             newQuery_samples.put("track_total_hits", 10000000);
@@ -468,7 +467,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             int numberOfSamples = samplesCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
             int samples_file_count = samplesCountResult.getAsJsonObject("aggregations").getAsJsonObject("file_count").get("value").getAsInt();
 
-            Map<String, Object> query_files = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), FILE_REGULAR_PARAMS, "nested_filters", "files");
+            Map<String, Object> query_files = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "files");
             int numberOfStudies = getNodeCount("study_id", query_files, FILES_END_POINT).size();
             
             Request filesCountRequest = new Request("GET", FILES_COUNT_END_POINT);
@@ -490,12 +489,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             
             // widgets data and facet filter counts for projects
             for (var agg: PARTICIPANT_TERM_AGGS) {
-                String agg_nested_field = agg.get(AGG_NESTED);
                 String field = agg.get(AGG_NAME);
                 String widgetQueryName = agg.get(WIDGET_QUERY);
                 String filterCountQueryName = agg.get(FILTER_COUNT_QUERY);
                 String endpoint = agg.get(AGG_ENDPOINT);
-                List<Map<String, Object>> filterCount = filterSubjectCountBy(field, params, endpoint, agg_nested_field);
+                String indexType = endpoint.replace("/", "").replace("_search", "");
+                String cardinalityAggName = agg.get(CARDINALITY_AGG_NAME);
+                // System.out.println(cardinalityAggName);
+                List<Map<String, Object>> filterCount = filterSubjectCountBy(field, params, endpoint, cardinalityAggName, indexType);
                 if(RANGE_PARAMS.contains(field)) {
                     data.put(filterCountQueryName, filterCount.get(0));
                 } else {
@@ -504,11 +505,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 
                 if (widgetQueryName != null) {
                     if (RANGE_PARAMS.contains(field)) {
-                        List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, endpoint, agg_nested_field);
+                        List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, endpoint, cardinalityAggName, indexType);
                         data.put(widgetQueryName, subjectCount);
                     } else {
                         if (params.containsKey(field) && ((List<String>)params.get(field)).size() > 0) {
-                            List<Map<String, Object>> subjectCount = subjectCountBy(field, params, endpoint, agg_nested_field);
+                            List<Map<String, Object>> subjectCount = subjectCountBy(field, params, endpoint, cardinalityAggName, indexType);
                             data.put(widgetQueryName, subjectCount);
                         } else {
                             data.put(widgetQueryName, filterCount);
@@ -548,7 +549,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("alternate_participant_id", "alternate_participant_id")
         );
 
-        return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
+        return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "participants");
     }
 
     private List<Map<String, Object>> diagnosisOverview(Map<String, Object> params) throws IOException {
@@ -578,7 +579,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("vital_status", "last_vital_status")
         );
 
-        return overview(DIAGNOSIS_END_POINT, params, PROPERTIES, defaultSort, mapping, DIAGNOSIS_REGULAR_PARAMS, "nested_filters", "diagnosis");
+        return overview(DIAGNOSIS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "diagnosis");
     }
 
     private List<Map<String, Object>> studyOverview(Map<String, Object> params) throws IOException {
@@ -614,7 +615,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         );
 
         Request request = new Request("GET", FILES_END_POINT);
-        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), FILE_REGULAR_PARAMS, "nested_filters", "files");
+        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), REGULAR_PARAMS, "nested_filters", "files");
         String[] AGG_NAMES = new String[] {"study_id"};
         query = inventoryESService.addAggregations(query, AGG_NAMES);
         // System.out.println(gson.toJson(query));
@@ -639,7 +640,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         study_params.put(PAGE_SIZE, pageSize);
         study_params.put(OFFSET, offset);
         
-        return overview(STUDIES_END_POINT, study_params, PROPERTIES, defaultSort, mapping, STUDY_REGULAR_PARAMS, "nested_filters", "studies");
+        return overview(STUDIES_END_POINT, study_params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "studies");
     }
 
     private List<Map<String, Object>> sampleOverview(Map<String, Object> params) throws IOException {
@@ -669,7 +670,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("tumor_classification", "tumor_classification")
         );
 
-        return overview(SAMPLES_END_POINT, params, PROPERTIES, defaultSort, mapping, SAMPLE_REGULAR_PARAMS, "nested_filters", "samples");
+        return overview(SAMPLES_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "samples");
     }
 
     private List<Map<String, Object>> fileOverview(Map<String, Object> params) throws IOException {
@@ -705,7 +706,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("md5sum", "md5sum")
         );
 
-        return overview(FILES_END_POINT, params, PROPERTIES, defaultSort, mapping, FILE_REGULAR_PARAMS, "nested_filters", "files");
+        return overview(FILES_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "files");
     }
 
     // if the nestedProperty is set, this will filter based upon the params against the nested property for the endpoint's index.

@@ -122,10 +122,12 @@ public class InventoryESService extends ESService {
         Map<String, Object> result = new HashMap<>();
 
         List<Object> filter = new ArrayList<>();
-        List<Object> nested_filter = new ArrayList<>();
-        List<Object> assay_method_filter = new ArrayList<>();
         for (String key: params.keySet()) {
-            if (excludedParams.contains(key)) {
+            String finalKey = key;
+            if (indexType.equals("files") && key.equals("assay_method")) {
+                    finalKey = "file_category";
+            }
+            if (excludedParams.contains(finalKey)) {
                 continue;
             }
 
@@ -146,66 +148,39 @@ public class InventoryESService extends ESService {
                     if (higher != null) {
                         range.put("lte", higher);
                     }
-                    if (!regular_fields.contains(key)) {  // nested queries are on nested property keys
-                        nested_filter.add(Map.of(
-                            "range", Map.of(nestedProperty+"."+key, range)
-                        ));
-                    } else {
-                        filter.add(Map.of(
-                            "range", Map.of(key, range)
-                        ));
-                    }
+                    filter.add(Map.of(
+                        "range", Map.of(key, range)
+                    ));
                 }
             } else {
                 // Term parameters (default)
                 List<String> valueSet = (List<String>) params.get(key);
-                if (indexType == "files" && key.equals("assay_method")) {
-                    key = "file_category";
+                
+                if (indexType.equals("files")) {
+                    if (key.equals("assay_method")) {
+                        key = "file_category";
+                    }
+                    if (key.equals("participant_ids")) {
+                        key = "file_participant_ids";
+                    }
                 }
                 if (key.equals("participant_ids")) {
                     key = "participant_id";
                 }
                 // list with only one empty string [""] means return all records
                 if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
-                    if (!regular_fields.contains(key)) {  // nested queries are on nested property keys
-                        nested_filter.add(Map.of(
-                        "terms", Map.of(nestedProperty+"."+key, valueSet)
-                        ));
-                    } else {
-                        filter.add(Map.of(
-                            "terms", Map.of(key, valueSet)
-                        ));
-                    }
+                    filter.add(Map.of(
+                        "terms", Map.of(key, valueSet)
+                    ));
                 }
             }
         }
 
         int level1FilterLen = filter.size();
-        int level2Filter_regular = nested_filter.size();
-        int level2Filter_assay_type = assay_method_filter.size();
-        int level2FilterLen = level2Filter_regular + level2Filter_assay_type;
 
-        if (level1FilterLen == 0 && level2FilterLen == 0) {
+        if (level1FilterLen == 0) {
             result.put("query", Map.of("match_all", Map.of()));
-        } else if (level1FilterLen != 0 && level2FilterLen == 0) {
-            result.put("query", Map.of("bool", Map.of("filter", filter)));
-        } else if (level1FilterLen == 0 && level2FilterLen != 0) {
-            if (level2Filter_regular > 0 && level2Filter_assay_type == 0) {
-                result.put("query", Map.of("nested", Map.of("path", nestedProperty, "query", Map.of("bool", Map.of("filter", nested_filter)), "inner_hits", Map.of())));
-            } else if (level2Filter_regular == 0 && level2Filter_assay_type > 0) {
-                result.put("query", Map.of("nested", Map.of("path", nestedProperty, "query", Map.of("bool", Map.of("should", assay_method_filter, "minimum_should_match" , 1)), "inner_hits", Map.of())));
-            } else {
-                result.put("query", Map.of("nested", Map.of("path", nestedProperty, "query", Map.of("bool", Map.of("filter", nested_filter, "should", assay_method_filter, "minimum_should_match" , 1)), "inner_hits", Map.of())));
-            }
         } else {
-            if (level2Filter_regular > 0 && level2Filter_assay_type == 0) {
-                filter.add(Map.of("nested", Map.of("path", nestedProperty, "query", Map.of("bool", Map.of("filter", nested_filter)), "inner_hits", Map.of())));
-            } else if (level2Filter_regular == 0 && level2Filter_assay_type > 0) {
-                filter.add(Map.of("nested", Map.of("path", nestedProperty, "query", Map.of("bool", Map.of("should", assay_method_filter, "minimum_should_match" , 1)), "inner_hits", Map.of())));
-                result.put("query", Map.of("nested", Map.of("path", nestedProperty, "query", Map.of("bool", Map.of("should", assay_method_filter, "minimum_should_match" , 1)), "inner_hits", Map.of())));
-            } else {
-                filter.add(Map.of("nested", Map.of("path", nestedProperty, "query", Map.of("bool", Map.of("filter", nested_filter, "should", assay_method_filter, "minimum_should_match" , 1)), "inner_hits", Map.of())));
-            }
             result.put("query", Map.of("bool", Map.of("filter", filter)));
         }
         
@@ -221,12 +196,8 @@ public class InventoryESService extends ESService {
         return result;
     }
 
-    public Map<String, Object> addAggregations(Map<String, Object> query, String[] termAggNames, String agg_nested_field, List<String> only_includes) {
-        return addAggregations(query, termAggNames, new String(), new String[]{}, agg_nested_field, only_includes);
-    }
-
-    public Map<String, Object> addAggregations(Map<String, Object> query, String[] termAggNames, String cardinalityAggName, String agg_nested_field, List<String> only_includes) {
-        return addAggregations(query, termAggNames, cardinalityAggName, new String[]{}, agg_nested_field, only_includes);
+    public Map<String, Object> addAggregations(Map<String, Object> query, String[] termAggNames, String cardinalityAggName, List<String> only_includes) {
+        return addAggregations(query, termAggNames, cardinalityAggName, new String[]{}, only_includes);
     }
 
     public Map<String, Object> addNodeCountAggregations(Map<String, Object> query, String nodeName) {
@@ -246,78 +217,67 @@ public class InventoryESService extends ESService {
         return newQuery;
     }
 
-    public Map<String, Object> addRangeCountAggregations(Map<String, Object> query, String rangeAggName, String agg_nested_field) {
+    public Map<String, Object> addRangeCountAggregations(Map<String, Object> query, String rangeAggName, String cardinalityAggName) {
         Map<String, Object> newQuery = new HashMap<>(query);
         newQuery.put("size", 0);
 
-        // {"aggs": {
-        //     "nested_filters": {
-        //       "nested": {
-        //         "path": "nested_filters"
-        //       },
-        //       "aggs": {
-        //         "age_at_diagnosis": {
-        //            "range": {
-        //               "field": "nested_filters.age_at_diagnosis",
-        //               "ranges": [
-        //                  {
-        //                     "from": 0,
-        //                     "to": 1000
-        //                  },
-        //                  {
-        //                     "from": 1000,
-        //                     "to": 10000
-        //                  },
-        //                  {
-        //                     "from": 10000,
-        //                     "to": 25000
-        //                  },
-        //                  {
-        //                     "from": 25000
-        //                  }
-        //               ]
-        //            },
-        //           "aggs": {
-        //             "parent": {
-        //               "reverse_nested": {}
-        //             }
-        //           }
-        //          }
-        //       }
-        //     }
-        //   }
-        // }
+            //   "aggs": {
+            //     "age_at_diagnosis": {
+            //        "range": {
+            //           "field": "age_at_diagnosis",
+            //           "ranges": [
+            //              {
+            //                 "from": 0,
+            //                 "to": 1000
+            //              },
+            //              {
+            //                 "from": 1000,
+            //                 "to": 10000
+            //              },
+            //              {
+            //                 "from": 10000,
+            //                 "to": 25000
+            //              },
+            //              {
+            //                 "from": 25000
+            //              }
+            //           ]
+            //        },
+            //        "aggs": {
+            //           "unique_count": {
+            //            "cardinality": {
+            //                "field": "participant_id"
+            //            }
+            //          }
+            //        }
+            //      }
+            //    }
 
         Map<String, Object> fields = new HashMap<String, Object>();
-        Map<String, Object> nested_fields = new HashMap<String, Object>();
         Map<String, Object> subField = new HashMap<String, Object>();
         Map<String, Object> subField_ranges = new HashMap<String, Object>();
-        subField_ranges.put("field", agg_nested_field + "." + rangeAggName);
+        subField_ranges.put("field", rangeAggName);
         subField_ranges.put("ranges", Set.of(Map.of("key", "0 - 4", "from", 0, "to", 4 * 365), Map.of("key", "5 - 9", "from", 4 * 365, "to", 9 * 365), Map.of("key", "10 - 14", "from", 9 * 365, "to", 14 * 365), Map.of("key", "15 - 19", "from", 14 * 365, "to", 19 * 365), Map.of("key", "20 - 29", "from", 19 * 365, "to", 29 * 365), Map.of("key", "> 29", "from", 29 * 365)));
         
         subField.put("range", subField_ranges);
-        subField.put("aggs", Map.of("parent", Map.of("reverse_nested", Map.of())));
-        nested_fields.put(rangeAggName, subField);
-        fields.put(agg_nested_field, Map.of("nested", Map.of("path", agg_nested_field), "aggs", nested_fields));
+        if (! (cardinalityAggName == null)) {
+            subField.put("aggs", Map.of("cardinality_count", Map.of("cardinality", Map.of("field", cardinalityAggName))));
+        }
+        fields.put(rangeAggName, subField);
         newQuery.put("aggs", fields);
         
         return newQuery;
     }
 
-    public Map<String, Object> addRangeAggregations(Map<String, Object> query, String rangeAggName, String agg_nested_field, List<String> only_includes) {
+    public Map<String, Object> addRangeAggregations(Map<String, Object> query, String rangeAggName, List<String> only_includes) {
         Map<String, Object> newQuery = new HashMap<>(query);
         newQuery.put("size", 0);
 
-        // "aggs": {
-        //     "nested_filters": {
-        //       "nested": {
-        //         "path": "nested_filters"
-        //       },
         //       "aggs": {
         //         "inner": {
         //           "filter":{  
         //             "range":{  
-        //              "nested_filters.age_at_diagnosis":{  
+        //              "age_at_diagnosis":{  
         //               "gt":0
         //              }
         //             }
@@ -325,163 +285,44 @@ public class InventoryESService extends ESService {
         //            "aggs": {
         //              "age_stats": { 
         //               "stats": { 
-        //                 "field": "nested_filters.age_at_diagnosis"
+        //                 "field": "age_at_diagnosis"
         //               }
         //             }
         //           }
-        //         }
-        //       }
-        //     }
-        //   }
 
         Map<String, Object> fields = new HashMap<String, Object>();
-        Map<String, Object> nested_fields = new HashMap<String, Object>();
         Map<String, Object> subField = new HashMap<String, Object>();
-        subField.put("filter", Map.of("range", Map.of(agg_nested_field + "." + rangeAggName, Map.of("gt", -1))));
-        subField.put("aggs", Map.of("range_stats", Map.of("stats", Map.of("field", agg_nested_field + "." + rangeAggName))));
-        nested_fields.put("inner", subField);
-        fields.put(agg_nested_field, Map.of("nested", Map.of("path", agg_nested_field), "aggs", nested_fields));
+        subField.put("filter", Map.of("range", Map.of(rangeAggName, Map.of("gt", -1))));
+        subField.put("aggs", Map.of("range_stats", Map.of("stats", Map.of("field", rangeAggName))));
+        fields.put("inner", subField);
         newQuery.put("aggs", fields);
         
         return newQuery;
     }
 
-    public Map<String, Object> addBooleanAggregations(Map<String, Object> query, String rangeAggName, String agg_nested_field) {
+    public Map<String, Object> addAggregations(Map<String, Object> query, String[] termAggNames, String subCardinalityAggName, String[] rangeAggNames, List<String> only_includes) {
         Map<String, Object> newQuery = new HashMap<>(query);
         newQuery.put("size", 0);
-
-        // "aggs": {
-        //     "nested_filters": {
-        //       "nested": {
-        //         "path": "nested_filters"
-        //       },
-        //       "aggs" : {
-        //         "assay_method" : {
-        //           "filters" : {
-        //             "filters" : {
-        //               "clinical_measure_file" :   { "match" : { "nested_filters.clinical_measure_file" : true   }},
-        //               "sequencing_file" : { "match" : { "nested_filters.sequencing_file" : true }}
-        //             }
-        //           },
-        //           "aggs": {
-        //             "parent": {
-        //               "reverse_nested": {}
-        //             }
-        //           }
-        //         }
-        //       }
-        //     }
-        //   }
-
         Map<String, Object> fields = new HashMap<String, Object>();
-        Map<String, Object> nested_fields = new HashMap<String, Object>();
-        Map<String, Object> subField = new HashMap<String, Object>();
-        Map<String, Object> subField_filters = new HashMap<String, Object>();
-        subField_filters.put("Clinical measure", Map.of("match", Map.of(agg_nested_field + ".clinical_measure_file", true)));
-        subField_filters.put("Methylation array", Map.of("match", Map.of(agg_nested_field + ".methylation_array_file", true)));
-        subField_filters.put("Pathology imaging", Map.of("match", Map.of(agg_nested_field + ".pathology_file", true)));
-        subField_filters.put("Radiology imaging", Map.of("match", Map.of(agg_nested_field + ".radiology_file", true)));
-        subField_filters.put("Single Cell Sequencing", Map.of("match", Map.of(agg_nested_field + ".single_cell_sequencing_file", true)));
-        subField_filters.put("Sequencing", Map.of("match", Map.of(agg_nested_field + ".sequencing_file", true)));
-        
-        subField.put("filters", Map.of("filters", subField_filters));
-        subField.put("aggs", Map.of("parent", Map.of("reverse_nested", Map.of())));
-        nested_fields.put(rangeAggName, subField);
-        fields.put(agg_nested_field, Map.of("nested", Map.of("path", agg_nested_field), "aggs", nested_fields));
-        newQuery.put("aggs", fields);
-        
-        return newQuery;
-    }
-
-    public Map<String, Object> addArrayAggregations(Map<String, Object> query, String rangeAggName, String agg_nested_field) {
-        Map<String, Object> newQuery = new HashMap<>(query);
-        newQuery.put("size", 0);
-
-        // "aggs" : {
-        //     "file_type" : {
-        //       "terms" : { 
-        //           "field" : "nested_filters.file_type.keyword"
-        //       },
-        //       "aggs": {
-        //         "parent": {
-        //           "reverse_nested": {}
-        //         }
-        //       }
-        //     }
-        //   }
-
-        Map<String, Object> fields = new HashMap<String, Object>();
-        Map<String, Object> nested_fields = new HashMap<String, Object>();
-        Map<String, Object> subField = new HashMap<String, Object>();
-        subField.put("terms", Map.of("field", agg_nested_field + "." + rangeAggName + ".keyword"));
-        subField.put("aggs", Map.of("parent", Map.of("reverse_nested", Map.of())));
-        nested_fields.put(rangeAggName, subField);
-        fields.put(agg_nested_field, Map.of("nested", Map.of("path", agg_nested_field), "aggs", nested_fields));
-        newQuery.put("aggs", fields);
-        
-        return newQuery;
-    }
-
-    public Map<String, Object> addAggregations(Map<String, Object> query, String[] termAggNames, String subCardinalityAggName, String[] rangeAggNames, String agg_nested_field, List<String> only_includes) {
-        Map<String, Object> newQuery = new HashMap<>(query);
-        newQuery.put("size", 0);
-        if (agg_nested_field == null) {
-            Map<String, Object> fields = new HashMap<String, Object>();
-            for (String field: termAggNames) {
-                // the "size": 50 is so that we can have more than 10 buckets returned for our aggregations (the default)
-                Map<String, Object> subField = new HashMap<String, Object>();
-                subField.put("field", field);
-                subField.put("size", 100000);
-                if (only_includes.size() > 0) {
-                    subField.put("include", only_includes);
-                }
-                if (!subCardinalityAggName.isEmpty()) {
-                    fields.put(field, Map.of("terms", subField, "aggs", addCardinalityHelper(subCardinalityAggName)));
-                } else {
-                    fields.put(field, Map.of("terms", subField));
-                }
+        for (String field: termAggNames) {
+            Map<String, Object> subField = new HashMap<String, Object>();
+            subField.put("field", field);
+            subField.put("size", 100000);
+            if (only_includes.size() > 0) {
+                subField.put("include", only_includes);
             }
-            newQuery.put("aggs", fields);
-        } else {
-            Map<String, Object> fields = new HashMap<String, Object>();
-            Map<String, Object> nested_fields = new HashMap<String, Object>();
-            for (String field: termAggNames) {
-                // the "size": 50 is so that we can have more than 10 buckets returned for our aggregations (the default)
-                Map<String, Object> subField = new HashMap<String, Object>();
-                subField.put("field", agg_nested_field + "." + field);
-                subField.put("size", 100000);
-                if (only_includes.size() > 0) {
-                    subField.put("include", only_includes);
-                }
-                nested_fields.put(field, Map.of("terms", subField, "aggs", Map.of("parent", Map.of("reverse_nested", Map.of()))));
+            if (! (subCardinalityAggName == null)) {
+                fields.put(field, Map.of("terms", subField, "aggs", addCardinalityHelper(subCardinalityAggName)));
+            } else {
+                fields.put(field, Map.of("terms", subField));
             }
-            fields.put(agg_nested_field, Map.of("nested", Map.of("path", agg_nested_field), "aggs", nested_fields));
-            newQuery.put("aggs", fields);
         }
-        
+        newQuery.put("aggs", fields);
         return newQuery;
     }
 
     public Map<String, Object> addCardinalityHelper(String cardinalityAggName) {
         return Map.of("cardinality_count", Map.of("cardinality", Map.of("field", cardinalityAggName)));
-    }
-
-    public Map<String, JsonArray> collectTermAggs(JsonObject jsonObject, String[] termAggNames, String agg_nested_field) {
-        Map<String, JsonArray> data = new HashMap<>();
-        JsonObject aggs = jsonObject.getAsJsonObject("aggregations");
-        if (agg_nested_field == null) {
-            for (String aggName: termAggNames) {
-                // Terms buckets
-                data.put(aggName, aggs.getAsJsonObject(aggName).getAsJsonArray("buckets"));
-            }
-        } else {
-            for (String aggName: termAggNames) {
-                // Terms buckets
-                data.put(aggName, aggs.getAsJsonObject(agg_nested_field).getAsJsonObject(aggName).getAsJsonArray("buckets"));
-            }
-        }
-        
-        return data;
     }
 
     public Map<String, JsonArray> collectNodeCountAggs(JsonObject jsonObject, String nodeName) {
@@ -492,34 +333,18 @@ public class InventoryESService extends ESService {
         return data;
     }
 
-    public Map<String, JsonArray> collectRangCountAggs(JsonObject jsonObject, String rangeAggName, String agg_nested_field) {
+    public Map<String, JsonArray> collectRangCountAggs(JsonObject jsonObject, String rangeAggName) {
         Map<String, JsonArray> data = new HashMap<>();
         JsonObject aggs = jsonObject.getAsJsonObject("aggregations");
-        data.put(rangeAggName, aggs.getAsJsonObject(agg_nested_field).getAsJsonObject(rangeAggName).getAsJsonArray("buckets"));
+        data.put(rangeAggName, aggs.getAsJsonObject(rangeAggName).getAsJsonArray("buckets"));
         
         return data;
     }
 
-    public Map<String, JsonObject> collectRangAggs(JsonObject jsonObject, String rangeAggName, String agg_nested_field) {
+    public Map<String, JsonObject> collectRangAggs(JsonObject jsonObject, String rangeAggName) {
         Map<String, JsonObject> data = new HashMap<>();
         JsonObject aggs = jsonObject.getAsJsonObject("aggregations");
-        data.put(rangeAggName, aggs.getAsJsonObject(agg_nested_field).getAsJsonObject("inner").getAsJsonObject("range_stats"));
-        
-        return data;
-    }
-
-    public Map<String, JsonObject> collectBooleanAggs(JsonObject jsonObject, String rangeAggName, String agg_nested_field) {
-        Map<String, JsonObject> data = new HashMap<>();
-        JsonObject aggs = jsonObject.getAsJsonObject("aggregations");
-        data.put(rangeAggName, aggs.getAsJsonObject(agg_nested_field).getAsJsonObject(rangeAggName).getAsJsonObject("buckets"));
-        
-        return data;
-    }
-
-    public Map<String, JsonArray> collectArrayAggs(JsonObject jsonObject, String rangeAggName, String agg_nested_field) {
-        Map<String, JsonArray> data = new HashMap<>();
-        JsonObject aggs = jsonObject.getAsJsonObject("aggregations");
-        data.put(rangeAggName, aggs.getAsJsonObject(agg_nested_field).getAsJsonObject(rangeAggName).getAsJsonArray("buckets"));
+        data.put(rangeAggName, aggs.getAsJsonObject("inner").getAsJsonObject("range_stats"));
         
         return data;
     }
@@ -527,7 +352,6 @@ public class InventoryESService extends ESService {
     public List<String> collectFileIDs(JsonObject jsonObject) {
         List<String> data = new ArrayList<>();
         JsonArray searchHits = jsonObject.getAsJsonObject("hits").getAsJsonArray("hits");
-        //data.put(searchHits, aggs.getAsJsonObject(agg_nested_field).getAsJsonObject(rangeAggName).getAsJsonArray("buckets"));
         for (var hit: searchHits) {
             JsonObject obj = hit.getAsJsonObject().get("_source").getAsJsonObject();
             JsonArray arr = obj.get("files").getAsJsonArray();
