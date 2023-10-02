@@ -15,10 +15,10 @@ public class CacheService {
         return Caffeine.newBuilder()
                 // Set a fixed time to expire after the last write or access.
                 .expireAfterWrite(8, TimeUnit.HOURS)
-                // The initial cache size 5MB
-                .initialCapacity(5000000)
-                // The maximum of cached entries: 10MB
-                .maximumSize(10000000)
+                // The initial cache size 50MB
+                .initialCapacity(50000000)
+                // The maximum of cached entries: 100MB
+                .maximumSize(100000000)
                 .build();
     }
 }
