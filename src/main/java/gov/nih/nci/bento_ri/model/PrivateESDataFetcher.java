@@ -38,6 +38,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String ORDER_BY = "order_by";
     final String SORT_DIRECTION = "sort_direction";
 
+    final String STUDIES_FACET_END_POINT = "/study_participants/_search";
     final String PARTICIPANTS_END_POINT = "/participants/_search";
     final String DIAGNOSIS_END_POINT = "/diagnosis/_search";
     final String STUDIES_END_POINT = "/studies/_search";
@@ -300,10 +301,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             // Query related values
             final List<Map<String, String>> PARTICIPANT_TERM_AGGS = new ArrayList<>();
             PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "study_acronym",
                     WIDGET_QUERY, "participantCountByStudy",
                     FILTER_COUNT_QUERY, "filterParticipantCountByAcronym",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
@@ -338,9 +340,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "phs_accession",
                     FILTER_COUNT_QUERY, "filterParticipantCountByPHSAccession",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
             ));
             
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -398,19 +401,22 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "study_short_title",
                     FILTER_COUNT_QUERY, "filterParticipantCountByStudyTitle",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "grant_id",
                     FILTER_COUNT_QUERY, "filterParticipantCountByGrantID",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "institution",
                     FILTER_COUNT_QUERY, "filterParticipantCountByInstitution",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
