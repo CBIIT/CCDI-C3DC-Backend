@@ -164,17 +164,181 @@ type QueryType {
 
     idsLists: IdsListsES
     
-    searchParticipants (participant_ids: [String] = [""], race: [String] = [""], gender: [String] = [""], ethnicity: [String] = [""], age_at_diagnosis: [Int] = [0], diagnosis_anatomic_site: [String] = [""], disease_phase: [String] = [""], diagnosis_icd_o: [String] = [""], vital_status: [String] = [""], sample_anatomic_site: [String] = [""], participant_age_at_collection: [Int] = [0], sample_tumor_status: [String] = [""], tumor_classification: [String] = [""], assay_method: [String] = [""], file_type: [String] = [""], phs_accession: [String] = [""], grant_id: [String] = [""], institution: [String] = [""], study_acronym: [String] = [""], study_short_title: [String] = [""], library_selection: [String] = [""], library_source: [String] = [""], library_strategy: [String] = [""]): SearchParticipantsResult
+    searchParticipants (
+        participant_ids: [String] = [""],
+        race: [String] = [""],
+        gender: [String] = [""],
+        ethnicity: [String] = [""],
+        age_at_diagnosis: [Int] = [0],
+        diagnosis_anatomic_site: [String] = [""],
+        disease_phase: [String] = [""],
+        diagnosis_icd_o: [String] = [""],
+        vital_status: [String] = [""],
+        sample_anatomic_site: [String] = [""],
+        participant_age_at_collection: [Int] = [0],
+        sample_tumor_status: [String] = [""],
+        tumor_classification: [String] = [""],
+        assay_method: [String] = [""],
+        file_type: [String] = [""],
+        phs_accession: [String] = [""],
+        grant_id: [String] = [""],
+        institution: [String] = [""],
+        study_acronym: [String] = [""],
+        study_short_title: [String] = [""],
+        library_selection: [String] = [""],
+        library_source: [String] = [""],
+        library_strategy: [String] = [""]
+    ): SearchParticipantsResult
     
-    participantOverview (participant_ids: [String] = [""], race: [String] = [""], gender: [String] = [""], ethnicity: [String] = [""], age_at_diagnosis: [Int] = [0], diagnosis_anatomic_site: [String] = [""], disease_phase: [String] = [""], diagnosis_icd_o: [String] = [""], vital_status: [String] = [""], sample_anatomic_site: [String] = [""], participant_age_at_collection: [Int] = [0], sample_tumor_status: [String] = [""], tumor_classification: [String] = [""], assay_method: [String] = [""], file_type: [String] = [""], phs_accession: [String] = [""], grant_id: [String] = [""], institution: [String] = [""], study_acronym: [String] = [""], study_short_title: [String] = [""], library_selection: [String] = [""], library_source: [String] = [""], library_strategy: [String] = [""], offset: Int = 0, first: Int = 10, order_by: String = "", sort_direction: String = ""): [ParticipantOverViewResult]
+    participantOverview (
+        participant_ids: [String] = [""],
+        race: [String] = [""],
+        gender: [String] = [""],
+        ethnicity: [String] = [""],
+        age_at_diagnosis: [Int] = [0],
+        diagnosis_anatomic_site: [String] = [""],
+        disease_phase: [String] = [""],
+        diagnosis_icd_o: [String] = [""],
+        vital_status: [String] = [""],
+        sample_anatomic_site: [String] = [""],
+        participant_age_at_collection: [Int] = [0],
+        sample_tumor_status: [String] = [""],
+        tumor_classification: [String] = [""],
+        assay_method: [String] = [""],
+        file_type: [String] = [""],
+        phs_accession: [String] = [""],
+        grant_id: [String] = [""],
+        institution: [String] = [""],
+        study_acronym: [String] = [""],
+        study_short_title: [String] = [""],
+        library_selection: [String] = [""],
+        library_source: [String] = [""],
+        library_strategy: [String] = [""],
+        offset: Int = 0,
+        first: Int = 10,
+        order_by: String = "",
+        sort_direction: String = ""
+    ): [ParticipantOverViewResult]
 
-    diagnosisOverview (participant_ids: [String] = [""], race: [String] = [""], gender: [String] = [""], ethnicity: [String] = [""], age_at_diagnosis: [Int] = [0], diagnosis_anatomic_site: [String] = [""], disease_phase: [String] = [""], diagnosis_icd_o: [String] = [""], vital_status: [String] = [""], sample_anatomic_site: [String] = [""], participant_age_at_collection: [Int] = [0], sample_tumor_status: [String] = [""], tumor_classification: [String] = [""], assay_method: [String] = [""], file_type: [String] = [""], phs_accession: [String] = [""], grant_id: [String] = [""], institution: [String] = [""], study_acronym: [String] = [""], study_short_title: [String] = [""], library_selection: [String] = [""], library_source: [String] = [""], library_strategy: [String] = [""], offset: Int = 0, first: Int = 10, order_by: String = "", sort_direction: String = ""): [DiagnosisOverViewResult]
+    diagnosisOverview (
+        participant_ids: [String] = [""],
+        race: [String] = [""],
+        gender: [String] = [""],
+        ethnicity: [String] = [""],
+        age_at_diagnosis: [Int] = [0],
+        diagnosis_anatomic_site: [String] = [""],
+        disease_phase: [String] = [""],
+        diagnosis_icd_o: [String] = [""],
+        vital_status: [String] = [""],
+        sample_anatomic_site: [String] = [""],
+        participant_age_at_collection: [Int] = [0],
+        sample_tumor_status: [String] = [""],
+        tumor_classification: [String] = [""],
+        assay_method: [String] = [""],
+        file_type: [String] = [""],
+        phs_accession: [String] = [""],
+        grant_id: [String] = [""],
+        institution: [String] = [""],
+        study_acronym: [String] = [""],
+        study_short_title: [String] = [""],
+        library_selection: [String] = [""],
+        library_source: [String] = [""],
+        library_strategy: [String] = [""],
+        offset: Int = 0,
+        first: Int = 10,
+        order_by: String = "",
+        sort_direction: String = ""
+    ): [DiagnosisOverViewResult]
     
-    studyOverview (participant_ids: [String] = [""], race: [String] = [""], gender: [String] = [""], ethnicity: [String] = [""], age_at_diagnosis: [Int] = [0], diagnosis_anatomic_site: [String] = [""], disease_phase: [String] = [""], diagnosis_icd_o: [String] = [""], vital_status: [String] = [""], sample_anatomic_site: [String] = [""], participant_age_at_collection: [Int] = [0], sample_tumor_status: [String] = [""], tumor_classification: [String] = [""], assay_method: [String] = [""], file_type: [String] = [""], phs_accession: [String] = [""], grant_id: [String] = [""], institution: [String] = [""], study_acronym: [String] = [""], study_short_title: [String] = [""], library_selection: [String] = [""], library_source: [String] = [""], library_strategy: [String] = [""], offset: Int = 0, first: Int = 10, order_by: String = "", sort_direction: String = ""): [StudyOverViewResult]
+    studyOverview (
+        participant_ids: [String] = [""],
+        race: [String] = [""],
+        gender: [String] = [""],
+        ethnicity: [String] = [""],
+        age_at_diagnosis: [Int] = [0],
+        diagnosis_anatomic_site: [String] = [""],
+        disease_phase: [String] = [""],
+        diagnosis_icd_o: [String] = [""],
+        vital_status: [String] = [""],
+        sample_anatomic_site: [String] = [""],
+        participant_age_at_collection: [Int] = [0],
+        sample_tumor_status: [String] = [""],
+        tumor_classification: [String] = [""],
+        assay_method: [String] = [""],
+        file_type: [String] = [""],
+        phs_accession: [String] = [""],
+        grant_id: [String] = [""],
+        institution: [String] = [""],
+        study_acronym: [String] = [""],
+        study_short_title: [String] = [""],
+        library_selection: [String] = [""],
+        library_source: [String] = [""],
+        library_strategy: [String] = [""],
+        offset: Int = 0,
+        first: Int = 10,
+        order_by: String = "",
+        sort_direction: String = ""
+    ): [StudyOverViewResult]
     
-    sampleOverview (participant_ids: [String] = [""], race: [String] = [""], gender: [String] = [""], ethnicity: [String] = [""], age_at_diagnosis: [Int] = [0], diagnosis_anatomic_site: [String] = [""], disease_phase: [String] = [""], diagnosis_icd_o: [String] = [""], vital_status: [String] = [""], sample_anatomic_site: [String] = [""], participant_age_at_collection: [Int] = [0], sample_tumor_status: [String] = [""], tumor_classification: [String] = [""], assay_method: [String] = [""], file_type: [String] = [""], phs_accession: [String] = [""], grant_id: [String] = [""], institution: [String] = [""], study_acronym: [String] = [""], study_short_title: [String] = [""], library_selection: [String] = [""], library_source: [String] = [""], library_strategy: [String] = [""], offset: Int = 0, first: Int = 10, order_by: String = "", sort_direction: String = ""): [SampleOverViewResult]
+    sampleOverview (
+        participant_ids: [String] = [""],
+        race: [String] = [""],
+        gender: [String] = [""],
+        ethnicity: [String] = [""],
+        age_at_diagnosis: [Int] = [0],
+        diagnosis_anatomic_site: [String] = [""],
+        disease_phase: [String] = [""],
+        diagnosis_icd_o: [String] = [""],
+        vital_status: [String] = [""],
+        sample_anatomic_site: [String] = [""],
+        participant_age_at_collection: [Int] = [0],
+        sample_tumor_status: [String] = [""],
+        tumor_classification: [String] = [""],
+        assay_method: [String] = [""],
+        file_type: [String] = [""],
+        phs_accession: [String] = [""],
+        grant_id: [String] = [""],
+        institution: [String] = [""],
+        study_acronym: [String] = [""],
+        study_short_title: [String] = [""],
+        library_selection: [String] = [""], 
+        ibrary_source: [String] = [""],
+        library_strategy: [String] = [""],
+        offset: Int = 0,
+        first: Int = 10,
+        order_by: String = "",
+        sort_direction: String = ""
+    ): [SampleOverViewResult]
 
-    fileOverview (participant_ids: [String] = [""], race: [String] = [""], gender: [String] = [""], ethnicity: [String] = [""], age_at_diagnosis: [Int] = [0], diagnosis_anatomic_site: [String] = [""], disease_phase: [String] = [""], diagnosis_icd_o: [String] = [""], vital_status: [String] = [""], sample_anatomic_site: [String] = [""], participant_age_at_collection: [Int] = [0], sample_tumor_status: [String] = [""], tumor_classification: [String] = [""], assay_method: [String] = [""], file_type: [String] = [""], phs_accession: [String] = [""], grant_id: [String] = [""], institution: [String] = [""], study_acronym: [String] = [""], study_short_title: [String] = [""], library_selection: [String] = [""], library_source: [String] = [""], library_strategy: [String] = [""], offset: Int = 0, first: Int = 10, order_by: String = "", sort_direction: String = ""): [FileOverViewResult]
+    fileOverview (
+        participant_ids: [String] = [""],
+        race: [String] = [""],
+        gender: [String] = [""],
+        ethnicity: [String] = [""],
+        age_at_diagnosis: [Int] = [0],
+        diagnosis_anatomic_site: [String] = [""],
+        disease_phase: [String] = [""],
+        diagnosis_icd_o: [String] = [""],
+        vital_status: [String] = [""],
+        sample_anatomic_site: [String] = [""],
+        participant_age_at_collection: [Int] = [0],
+        sample_tumor_status: [String] = [""],
+        tumor_classification: [String] = [""],
+        assay_method: [String] = [""],
+        file_type: [String] = [""],
+        phs_accession: [String] = [""],
+        grant_id: [String] = [""],
+        institution: [String] = [""],
+        study_acronym: [String] = [""],
+        study_short_title: [String] = [""],
+        library_selection: [String] = [""],
+        library_source: [String] = [""],
+        library_strategy: [String] = [""],
+        offset: Int = 0,
+        first: Int = 10,
+        order_by: String = "",
+        sort_direction: String = ""
+    ): [FileOverViewResult]
 
     fileIDsFromList (
         participant_ids: [String] = [],
@@ -191,4 +355,10 @@ type QueryType {
         first: Int = 10,
         offset: Int = 0
     ): [FileDetail]
+
+    numberOfDiagnoses: Int
+    numberOfParticipants: Int
+    numberOfReferenceFiles: Int
+    numberOfStudies: Int
+    numberOfSurvivals: Int
 }

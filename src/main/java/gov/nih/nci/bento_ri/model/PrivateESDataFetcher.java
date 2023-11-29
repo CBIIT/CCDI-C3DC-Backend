@@ -18,6 +18,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.jayway.jsonpath.JsonPath;
 
 import java.io.IOException;
 import java.util.*;
@@ -41,6 +42,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String STUDIES_FACET_END_POINT = "/study_participants/_search";
     final String PARTICIPANTS_END_POINT = "/participants/_search";
     final String DIAGNOSIS_END_POINT = "/diagnosis/_search";
+    final String HOME_STATS_END_POINT = "/home_stats/_search";
     final String STUDIES_END_POINT = "/studies/_search";
     final String SAMPLES_END_POINT = "/samples/_search";
     final String FILES_END_POINT = "/files/_search";
@@ -106,6 +108,30 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return fileIDsFromList(args);
                         })
+                        .dataFetcher("getLandingPageStatus", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return fileIDsFromList(args);
+                        })
+                        .dataFetcher("numberOfDiagnoses", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return numberOfDiagnoses(args);
+                        })
+                        .dataFetcher("numberOfParticipants", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return numberOfParticipants(args);
+                        })
+                        .dataFetcher("numberOfReferenceFiles", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return numberOfReferenceFiles(args);
+                        })
+                        .dataFetcher("numberOfStudies", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return numberOfStudies(args);
+                        })
+                        .dataFetcher("numberOfSurvivals", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return numberOfSurvivals(args);
+                        })
                 )
                 .build();
     }
@@ -158,7 +184,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private List<Map<String, Object>> getGroupCountByRange(String category, Map<String, Object> query, String endpoint, String cardinalityAggName) throws IOException {
         query = inventoryESService.addRangeCountAggregations(query, category, cardinalityAggName);
         Request request = new Request("GET", endpoint);
-        // System.out.println(gson.toJson(query));
         request.setJsonEntity(gson.toJson(query));
         JsonObject jsonObject = inventoryESService.send(request);
         Map<String, JsonArray> aggs = inventoryESService.collectRangCountAggs(jsonObject, category);
@@ -171,7 +196,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         if (RANGE_PARAMS.contains(category)) {
             query = inventoryESService.addRangeAggregations(query, category, only_includes);
             Request request = new Request("GET", endpoint);
-            // System.out.println(gson.toJson(query));
             request.setJsonEntity(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
             Map<String, JsonObject> aggs = inventoryESService.collectRangAggs(jsonObject, category);
@@ -183,7 +207,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             query = inventoryESService.addAggregations(query, AGG_NAMES, cardinalityAggName, only_includes);
             Request request = new Request("GET", endpoint);
             request.setJsonEntity(gson.toJson(query));
-            // System.out.println(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
             Map<String, JsonArray> aggs = inventoryESService.collectTermAggs(jsonObject, AGG_NAMES);
             JsonArray buckets = aggs.get(category);
@@ -438,7 +461,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             ));
             
             Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
-            // System.out.println(gson.toJson(query_participants));
             Map<String, Object> newQuery_participants = new HashMap<>(query_participants);
             newQuery_participants.put("size", 0);
             newQuery_participants.put("track_total_hits", 10000000);
@@ -446,7 +468,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             fields.put("file_count", Map.of("sum", Map.of("field", "file_count")));
             newQuery_participants.put("aggs", fields);
             Request participantsCountRequest = new Request("GET", PARTICIPANTS_END_POINT);
-            // System.out.println(gson.toJson(newQuery_participants));
             participantsCountRequest.setJsonEntity(gson.toJson(newQuery_participants));
             JsonObject participantsCountResult = inventoryESService.send(participantsCountRequest);
             int numberOfParticipants = participantsCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
@@ -454,7 +475,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
             Map<String, Object> query_diagnosis = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnosis");
             Request diagnosisCountRequest = new Request("GET", DIAGNOSIS_COUNT_END_POINT);
-            // System.out.println(gson.toJson(query_diagnosis));
             diagnosisCountRequest.setJsonEntity(gson.toJson(query_diagnosis));
             JsonObject diagnosisCountResult = inventoryESService.send(diagnosisCountRequest);
             int numberOfDiagnosis = diagnosisCountResult.get("count").getAsInt();
@@ -467,7 +487,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             fields_sample.put("file_count", Map.of("sum", Map.of("field", "file_count")));
             newQuery_samples.put("aggs", fields_sample);
             Request samplesCountRequest = new Request("GET", SAMPLES_END_POINT);
-            // System.out.println(gson.toJson(newQuery_samples));
             samplesCountRequest.setJsonEntity(gson.toJson(newQuery_samples));
             JsonObject samplesCountResult = inventoryESService.send(samplesCountRequest);
             int numberOfSamples = samplesCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
@@ -477,7 +496,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             int numberOfStudies = getNodeCount("study_id", query_files, FILES_END_POINT).size();
             
             Request filesCountRequest = new Request("GET", FILES_COUNT_END_POINT);
-            // System.out.println(gson.toJson(query_files));
             filesCountRequest.setJsonEntity(gson.toJson(query_files));
             JsonObject filesCountResult = inventoryESService.send(filesCountRequest);
             int numberOfFiles = filesCountResult.get("count").getAsInt();
@@ -501,7 +519,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 String endpoint = agg.get(AGG_ENDPOINT);
                 String indexType = endpoint.replace("/", "").replace("_search", "");
                 String cardinalityAggName = agg.get(CARDINALITY_AGG_NAME);
-                // System.out.println(cardinalityAggName);
                 List<Map<String, Object>> filterCount = filterSubjectCountBy(field, params, endpoint, cardinalityAggName, indexType);
                 if(RANGE_PARAMS.contains(field)) {
                     data.put(filterCountQueryName, filterCount.get(0));
@@ -624,7 +641,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), REGULAR_PARAMS, "nested_filters", "files");
         String[] AGG_NAMES = new String[] {"study_id"};
         query = inventoryESService.addAggregations(query, AGG_NAMES);
-        // System.out.println(gson.toJson(query));
         request.setJsonEntity(gson.toJson(query));
         JsonObject jsonObject = inventoryESService.send(request);
         Map<String, JsonArray> aggs = inventoryESService.collectTermAggs(jsonObject, AGG_NAMES);
@@ -755,7 +771,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         if (participantIDsSet.size() > 0 && !(participantIDsSet.size() == 1 && participantIDsSet.get(0).equals(""))) {
             Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(participantIDsSet);
             Request request = new Request("GET", PARTICIPANTS_END_POINT);
-            // System.out.println(gson.toJson(query));
             request.setJsonEntity(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
             List<String> result = inventoryESService.collectFileIDs(jsonObject);
@@ -765,7 +780,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         if (diagnosisIDsSet.size() > 0 && !(diagnosisIDsSet.size() == 1 && diagnosisIDsSet.get(0).equals(""))) {
             Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(diagnosisIDsSet);
             Request request = new Request("GET", DIAGNOSIS_END_POINT);
-            // System.out.println(gson.toJson(query));
             request.setJsonEntity(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
             List<String> result = inventoryESService.collectFileIDs(jsonObject);
@@ -775,7 +789,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         if (studyIDsSet.size() > 0 && !(studyIDsSet.size() == 1 && studyIDsSet.get(0).equals(""))) {
             Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(studyIDsSet);
             Request request = new Request("GET", STUDIES_END_POINT);
-            // System.out.println(gson.toJson(query));
             request.setJsonEntity(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
             List<String> result = inventoryESService.collectFileIDs(jsonObject);
@@ -785,7 +798,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         if (sampleIDsSet.size() > 0 && !(sampleIDsSet.size() == 1 && sampleIDsSet.get(0).equals(""))) {
             Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(sampleIDsSet);
             Request request = new Request("GET", SAMPLES_END_POINT);
-            // System.out.println(gson.toJson(query));
             request.setJsonEntity(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
             List<String> result = inventoryESService.collectFileIDs(jsonObject);
@@ -798,7 +810,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             return fileIDsSet;
             // Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(fileIDsSet, "file_id");
             // Request request = new Request("GET", FILES_END_POINT);
-            // System.out.println(gson.toJson(query));
             // request.setJsonEntity(gson.toJson(query));
             // JsonObject jsonObject = inventoryESService.send(request);
             // List<String> result = inventoryESService.collectFileIDs(jsonObject, "file_id");
@@ -806,6 +817,61 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
 
         return new ArrayList<>();
+    }
+
+    private Integer numberOfDiagnoses(Map<String, Object> params) throws IOException {
+        // String cacheKey = generateCacheKey(params);
+        // Integer data = (Integer)caffeineCache.asMap().get(cacheKey);
+
+        // if (data != null) {
+        //     logger.info("hit cache!");
+        //     return data;
+        // }
+
+        Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
+        JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
+
+        Integer data = (Integer) JsonPath.read(homeStatsResult.toString(), "$.hits.hits[0]._source.num_diagnoses");
+        
+        // caffeineCache.put(cacheKey, data);
+
+        return data;
+    }
+
+    private Integer numberOfParticipants(Map<String, Object> params) throws IOException {
+        Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
+        JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
+
+        Integer data = (Integer) JsonPath.read(homeStatsResult.toString(), "$.hits.hits[0]._source.num_participants");
+
+        return data;
+    }
+
+    private Integer numberOfReferenceFiles(Map<String, Object> params) throws IOException {
+        Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
+        JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
+
+        Integer data = (Integer) JsonPath.read(homeStatsResult.toString(), "$.hits.hits[0]._source.num_reference_files");
+
+        return data;
+    }
+
+    private Integer numberOfStudies(Map<String, Object> params) throws IOException {
+        Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
+        JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
+
+        Integer data = (Integer) JsonPath.read(homeStatsResult.toString(), "$.hits.hits[0]._source.num_studies");
+        
+        return data;
+    }
+
+    private Integer numberOfSurvivals(Map<String, Object> params) throws IOException {
+        Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
+        JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
+
+        Integer data = (Integer) JsonPath.read(homeStatsResult.toString(), "$.hits.hits[0]._source.num_survivals");
+
+        return data;
     }
 
     private String generateCacheKey(Map<String, Object> params) throws IOException {
@@ -832,10 +898,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             }
         }
         if (keys.size() == 0){
-            // System.out.println("all");
             return "all";
         } else {
-            // System.out.println(keys.toString());
             return keys.toString();
         }
     }

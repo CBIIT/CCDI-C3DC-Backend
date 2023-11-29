@@ -39,3 +39,11 @@ The basic access authentication value used in the ````application.properties````
 ### Generate base64 encoding in powershell
 
 ````[Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes("neo4j:my_password"))````
+
+## How to run
+
+On Windows, use the command
+
+```bash
+mvnw.cmd spring-boot:run
+```
