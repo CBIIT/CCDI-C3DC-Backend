@@ -18,7 +18,6 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.jayway.jsonpath.JsonPath;
 
 import java.io.IOException;
 import java.util.*;
@@ -830,48 +829,98 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
         JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
+        JsonArray hits = homeStatsResult.getAsJsonObject("hits").getAsJsonArray("hits");
+        Iterator<JsonElement> hitsIter = hits.iterator();
 
-        Integer data = (Integer) JsonPath.read(homeStatsResult.toString(), "$.hits.hits[0]._source.num_diagnoses");
+        while(hitsIter.hasNext()) {
+            JsonObject hit = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
+            String node = hit.get("node").getAsString();
+
+            if (node.equals("diagnoses")) {
+                int count = hit.get("count").getAsInt();
+                return count;
+            }
+        }
         
         // caffeineCache.put(cacheKey, data);
 
-        return data;
+        return -1;
     }
 
     private Integer numberOfParticipants(Map<String, Object> params) throws IOException {
         Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
         JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
+        JsonArray hits = homeStatsResult.getAsJsonObject("hits").getAsJsonArray("hits");
+        Iterator<JsonElement> hitsIter = hits.iterator();
 
-        Integer data = (Integer) JsonPath.read(homeStatsResult.toString(), "$.hits.hits[0]._source.num_participants");
+        while(hitsIter.hasNext()) {
+            JsonObject hit = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
+            String node = hit.get("node").getAsString();
 
-        return data;
+            if (node.equals("participants")) {
+                int count = hit.get("count").getAsInt();
+                return count;
+            }
+        }
+        
+        return -1;
     }
 
     private Integer numberOfReferenceFiles(Map<String, Object> params) throws IOException {
         Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
         JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
+        JsonArray hits = homeStatsResult.getAsJsonObject("hits").getAsJsonArray("hits");
+        Iterator<JsonElement> hitsIter = hits.iterator();
 
-        Integer data = (Integer) JsonPath.read(homeStatsResult.toString(), "$.hits.hits[0]._source.num_reference_files");
+        while(hitsIter.hasNext()) {
+            JsonObject hit = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
+            String node = hit.get("node").getAsString();
 
-        return data;
+            if (node.equals("reference_files")) {
+                int count = hit.get("count").getAsInt();
+                return count;
+            }
+        }
+        
+        return -1;
     }
 
     private Integer numberOfStudies(Map<String, Object> params) throws IOException {
         Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
         JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
+        JsonArray hits = homeStatsResult.getAsJsonObject("hits").getAsJsonArray("hits");
+        Iterator<JsonElement> hitsIter = hits.iterator();
 
-        Integer data = (Integer) JsonPath.read(homeStatsResult.toString(), "$.hits.hits[0]._source.num_studies");
+        while(hitsIter.hasNext()) {
+            JsonObject hit = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
+            String node = hit.get("node").getAsString();
+
+            if (node.equals("studies")) {
+                int count = hit.get("count").getAsInt();
+                return count;
+            }
+        }
         
-        return data;
+        return -1;
     }
 
     private Integer numberOfSurvivals(Map<String, Object> params) throws IOException {
         Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
         JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
+        JsonArray hits = homeStatsResult.getAsJsonObject("hits").getAsJsonArray("hits");
+        Iterator<JsonElement> hitsIter = hits.iterator();
 
-        Integer data = (Integer) JsonPath.read(homeStatsResult.toString(), "$.hits.hits[0]._source.num_survivals");
+        while(hitsIter.hasNext()) {
+            JsonObject hit = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
+            String node = hit.get("node").getAsString();
 
-        return data;
+            if (node.equals("survivals")) {
+                int count = hit.get("count").getAsInt();
+                return count;
+            }
+        }
+        
+        return -1;
     }
 
     private String generateCacheKey(Map<String, Object> params) throws IOException {
