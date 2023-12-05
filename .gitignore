@@ -15,3 +15,8 @@ target/
 
 # Binaries
 .mvn/wrapper/maven-wrapper.jar
+
+# Dev
+.mvn/wrapper/maven-wrapper.properties
+mvnw
+mvnw.cmd
