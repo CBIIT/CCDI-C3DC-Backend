@@ -1,16 +1,22 @@
+*.iml
 logs/
-.classpath
+src/main/resources/application.properties
 target/
-.classpath
-.settings/
-.project
-.DS_Store
-.factorypath
-.vscode
 .apt_generated
 .apt_generated_tests
+.classpath
+.DS_Store
+.factorypath
 .idea
-*.iml
+.project
+.settings/
 .sts4-cache/*
-src/main/resources/application.properties
-logs/
+.vscode
+
+# Binaries
+.mvn/wrapper/maven-wrapper.jar
+
+# Dev
+.mvn/wrapper/maven-wrapper.properties
+mvnw
+mvnw.cmd
