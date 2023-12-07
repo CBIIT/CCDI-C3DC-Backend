@@ -107,10 +107,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return fileIDsFromList(args);
                         })
-                        .dataFetcher("getLandingPageStatus", env -> {
-                            Map<String, Object> args = env.getArguments();
-                            return fileIDsFromList(args);
-                        })
                         .dataFetcher("numberOfDiagnoses", env -> {
                             Map<String, Object> args = env.getArguments();
                             return numberOfDiagnoses(args);
@@ -818,7 +814,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return new ArrayList<>();
     }
 
-    private Integer numberOfDiagnoses(Map<String, Object> params) throws IOException {
+    private Integer numberOfDiagnoses(Map<String, Object> params) throws Exception {
         // String cacheKey = generateCacheKey(params);
         // Integer data = (Integer)caffeineCache.asMap().get(cacheKey);
 
@@ -832,95 +828,80 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         JsonArray hits = homeStatsResult.getAsJsonObject("hits").getAsJsonArray("hits");
         Iterator<JsonElement> hitsIter = hits.iterator();
 
-        while(hitsIter.hasNext()) {
-            JsonObject hit = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
-            String node = hit.get("node").getAsString();
-
-            if (node.equals("diagnoses")) {
-                int count = hit.get("count").getAsInt();
-                return count;
-            }
+        if (!hitsIter.hasNext()) {
+            throw new Exception("Error: no results for homepage stats!");
         }
-        
+
+        JsonObject counts = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
+        int count = counts.get("num_diagnoses").getAsInt();
+
         // caffeineCache.put(cacheKey, data);
 
-        return -1;
+        return count;
     }
 
-    private Integer numberOfParticipants(Map<String, Object> params) throws IOException {
+    private Integer numberOfParticipants(Map<String, Object> params) throws Exception {
         Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
         JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
         JsonArray hits = homeStatsResult.getAsJsonObject("hits").getAsJsonArray("hits");
         Iterator<JsonElement> hitsIter = hits.iterator();
 
-        while(hitsIter.hasNext()) {
-            JsonObject hit = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
-            String node = hit.get("node").getAsString();
-
-            if (node.equals("participants")) {
-                int count = hit.get("count").getAsInt();
-                return count;
-            }
+        if (!hitsIter.hasNext()) {
+            throw new Exception("Error: no results for homepage stats!");
         }
-        
-        return -1;
+
+        JsonObject counts = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
+        int count = counts.get("num_participants").getAsInt();
+
+        return count;
     }
 
-    private Integer numberOfReferenceFiles(Map<String, Object> params) throws IOException {
+    private Integer numberOfReferenceFiles(Map<String, Object> params) throws Exception {
         Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
         JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
         JsonArray hits = homeStatsResult.getAsJsonObject("hits").getAsJsonArray("hits");
         Iterator<JsonElement> hitsIter = hits.iterator();
 
-        while(hitsIter.hasNext()) {
-            JsonObject hit = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
-            String node = hit.get("node").getAsString();
-
-            if (node.equals("reference_files")) {
-                int count = hit.get("count").getAsInt();
-                return count;
-            }
+        if (!hitsIter.hasNext()) {
+            throw new Exception("Error: no results for homepage stats!");
         }
-        
-        return -1;
+
+        JsonObject counts = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
+        int count = counts.get("num_reference_files").getAsInt();
+
+        return count;
     }
 
-    private Integer numberOfStudies(Map<String, Object> params) throws IOException {
+    private Integer numberOfStudies(Map<String, Object> params) throws Exception {
         Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
         JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
         JsonArray hits = homeStatsResult.getAsJsonObject("hits").getAsJsonArray("hits");
         Iterator<JsonElement> hitsIter = hits.iterator();
 
-        while(hitsIter.hasNext()) {
-            JsonObject hit = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
-            String node = hit.get("node").getAsString();
-
-            if (node.equals("studies")) {
-                int count = hit.get("count").getAsInt();
-                return count;
-            }
+        if (!hitsIter.hasNext()) {
+            throw new Exception("Error: no results for homepage stats!");
         }
-        
-        return -1;
+
+        JsonObject counts = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
+        int count = counts.get("num_studies").getAsInt();
+
+        return count;
     }
 
-    private Integer numberOfSurvivals(Map<String, Object> params) throws IOException {
+    private Integer numberOfSurvivals(Map<String, Object> params) throws Exception {
         Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
         JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
         JsonArray hits = homeStatsResult.getAsJsonObject("hits").getAsJsonArray("hits");
         Iterator<JsonElement> hitsIter = hits.iterator();
 
-        while(hitsIter.hasNext()) {
-            JsonObject hit = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
-            String node = hit.get("node").getAsString();
-
-            if (node.equals("survivals")) {
-                int count = hit.get("count").getAsInt();
-                return count;
-            }
+        if (!hitsIter.hasNext()) {
+            throw new Exception("Error: no results for homepage stats!");
         }
-        
-        return -1;
+
+        JsonObject counts = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
+        int count = counts.get("num_survivals").getAsInt();
+
+        return count;
     }
 
     private String generateCacheKey(Map<String, Object> params) throws IOException {
