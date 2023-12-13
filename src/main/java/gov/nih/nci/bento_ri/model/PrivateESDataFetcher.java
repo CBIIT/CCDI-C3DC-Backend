@@ -54,21 +54,56 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String SAMPLES_COUNT_END_POINT = "/samples/_count";
     final String FILES_COUNT_END_POINT = "/files/_count";
 
-    final Set<String> RANGE_PARAMS = Set.of("age_at_diagnosis", "participant_age_at_collection");
+    // For slider fields
+    final Set<String> RANGE_PARAMS = Set.of("age_at_last_known_survival_status");
 
     final Set<String> BOOLEAN_PARAMS = Set.of("assay_method");
 
     final Set<String> ARRAY_PARAMS = Set.of("file_type");
 
+    // For multiple selection from a list
     final Set<String> INCLUDE_PARAMS  = Set.of("race", "ethnicity");
 
-    final Set<String> REGULAR_PARAMS = Set.of("study_id", "participant_id", "race", "sex_at_birth", "ethnicity", "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis", "vital_status", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution", "library_selection", "library_source", "library_strategy");
-    final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "ethnicity", "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis", "vital_status", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution", "library_selection", "library_source", "library_strategy");
-    final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis");
-    final Set<String> SAMPLE_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
-    final Set<String> STUDY_REGULAR_PARAMS = Set.of("study_id", "phs_accession", "study_acronym", "study_short_title");
-    final Set<String> SURVIVAL_REGULAR_PARAMS = Set.of("age_at_event_free_survival_status", "age_at_last_known_survival_status", "event_free_survival_status", "first_event", "last_known_survival_status", "survival_id");
-    final Set<String> FILE_REGULAR_PARAMS = Set.of("file_category", "phs_accession", "study_acronym", "study_short_title", "file_type", "library_selection", "library_source", "library_strategy");
+    final Set<String> REGULAR_PARAMS = Set.of(
+        "study_id", "participant_id", "ethnicity", "race", "sex_at_birth",
+        "age_at_last_known_survival_status", "first_event", "last_known_survival_status",
+        "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis",
+        "vital_status", "sample_anatomic_site", "participant_age_at_collection",
+        "sample_tumor_status", "tumor_classification", "assay_method", "file_type",
+        "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution",
+        "library_selection", "library_source", "library_strategy"
+    );
+    final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of(
+        "participant_id", "race", "sex_at_birth", "ethnicity",
+        "age_at_last_known_survival_status", "first_event", "last_known_survival_status",
+        "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis",
+        "vital_status", "sample_anatomic_site", "participant_age_at_collection",
+        "sample_tumor_status", "tumor_classification", "assay_method", "file_type",
+        "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution",
+        "library_selection", "library_source", "library_strategy"
+    );
+    final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of(
+        "participant_id", "race", "sex_at_birth", "ethnicity",
+        "phs_accession", "study_acronym", "study_short_title", "diagnosis_icd_o",
+        "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis"
+    );
+    final Set<String> SAMPLE_REGULAR_PARAMS = Set.of(
+        "participant_id", "ethnicity", "race", "sex_at_birth",
+        "phs_accession", "study_acronym", "study_short_title", "sample_anatomic_site",
+        "participant_age_at_collection", "sample_tumor_status", "tumor_classification"
+    );
+    final Set<String> STUDY_REGULAR_PARAMS = Set.of(
+        "study_id", "phs_accession", "study_acronym", "study_short_title"
+    );
+    final Set<String> SURVIVAL_REGULAR_PARAMS = Set.of(
+        "age_at_event_free_survival_status", "age_at_last_known_survival_status",
+        "event_free_survival_status", "first_event", "last_known_survival_status",
+        "survival_id"
+    );
+    final Set<String> FILE_REGULAR_PARAMS = Set.of(
+        "file_category", "phs_accession", "study_acronym", "study_short_title",
+        "file_type", "library_selection", "library_source", "library_strategy"
+    );
 
     public PrivateESDataFetcher(InventoryESService esService) {
         super(esService);
@@ -553,7 +588,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private Map<String, Object> getParticipants(Map<String, Object> params) throws IOException {
         String cacheKey = generateCacheKey(params);
         Map<String, Object> data = (Map<String, Object>)caffeineCache.asMap().get(cacheKey);
-        if (data != null) {
+        if (false && data != null) {
             logger.info("hit cache!");
             return data;
         } else {
@@ -569,33 +604,36 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             final List<Map<String, String>> PARTICIPANT_TERM_AGGS = new ArrayList<>();
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     AGG_NAME, "ethnicity",
+                    WIDGET_QUERY,"participantCountByEthnicity",
                     FILTER_COUNT_QUERY, "filterParticipantCountByEthnicity",
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     AGG_NAME, "race",
+                    WIDGET_QUERY,"participantCountByRace",
                     FILTER_COUNT_QUERY, "filterParticipantCountByRace",
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     AGG_NAME, "sex_at_birth",
+                    WIDGET_QUERY,"participantCountBySexAtBirth",
                     FILTER_COUNT_QUERY, "filterParticipantCountBySexAtBirth",
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
+                    CARDINALITY_AGG_NAME, "participant_id",
                     AGG_NAME, "age_at_last_known_survival_status",
                     FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtLastKnownSurvivalStatus",
                     AGG_ENDPOINT, SURVIVALS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
+                    CARDINALITY_AGG_NAME, "participant_id",
                     AGG_NAME, "first_event",
                     FILTER_COUNT_QUERY, "filterParticipantCountByFirstEvent",
                     AGG_ENDPOINT, SURVIVALS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
+                    CARDINALITY_AGG_NAME, "participant_id",
                     AGG_NAME, "last_known_survival_status",
                     FILTER_COUNT_QUERY, "filterParticipantCountByLastKnownSurvivalStatus",
                     AGG_ENDPOINT, SURVIVALS_END_POINT
@@ -608,7 +646,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map<String, Object> fields = new HashMap<String, Object>();
             newQuery_participants.put("aggs", fields);
             Request participantsCountRequest = new Request("GET", PARTICIPANTS_END_POINT);
-            participantsCountRequest.setJsonEntity(gson.toJson(newQuery_participants));
+            String jsonizedQuery = gson.toJson(newQuery_participants);
+            participantsCountRequest.setJsonEntity(jsonizedQuery);
             JsonObject participantsCountResult = inventoryESService.send(participantsCountRequest);
             int numberOfParticipants = participantsCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
 

@@ -76,7 +76,7 @@ type GetParticipantsResult {
     filterParticipantCountByEthnicity: [SearchParticipantsReturnObject]
     filterParticipantCountByRace: [SearchParticipantsReturnObject]
     filterParticipantCountBySexAtBirth: [SearchParticipantsReturnObject]
-    filterParticipantCountByAgeAtLastKnownSurvivalStatus: [SearchParticipantsReturnObject]
+    filterParticipantCountByAgeAtLastKnownSurvivalStatus: RangeCount
     filterParticipantCountByFirstEvent: [SearchParticipantsReturnObject]
     filterParticipantCountByLastKnownSurvivalStatus: [SearchParticipantsReturnObject]
 
@@ -85,6 +85,9 @@ type GetParticipantsResult {
     participantCountByEthnicity: [SearchParticipantsReturnObject]
     participantCountByRace: [SearchParticipantsReturnObject]
     participantCountBySexAtBirth: [SearchParticipantsReturnObject]
+    participantCountByAgeAtLastKnownSurvivalStatus: [SearchParticipantsReturnObject]
+    participantCountByFirstEvent: [SearchParticipantsReturnObject]
+    participantCountByLastKnownSurvivalStatus: [SearchParticipantsReturnObject]
 }
 
 type ParticipantOverViewResult {
