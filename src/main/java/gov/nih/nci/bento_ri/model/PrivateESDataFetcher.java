@@ -588,7 +588,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private Map<String, Object> getParticipants(Map<String, Object> params) throws IOException {
         String cacheKey = generateCacheKey(params);
         Map<String, Object> data = (Map<String, Object>)caffeineCache.asMap().get(cacheKey);
-        if (data != null) {
+        if (false && data != null) {
             logger.info("hit cache!");
             return data;
         } else {
