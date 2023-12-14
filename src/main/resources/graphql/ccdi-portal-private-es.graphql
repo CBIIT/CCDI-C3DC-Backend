@@ -55,18 +55,39 @@ type SearchParticipantsResult {
     numberOfSamples: Int
     numberOfFiles: Int
     numberOfDiagnosis: Int
+
+    # C3DC does not have "Files"
     participantsFileCount: Int
     diagnosisFileCount: Int
     samplesFileCount: Int
     studiesFileCount: Int
     filesFileCount: Int
 
+    # For widgets
     participantCountByStudy: [SearchParticipantsReturnObject]
     participantCountByDiagnosis: [SearchParticipantsReturnObject]
     participantCountByDiagnosisAge: [SearchParticipantsReturnObject]
     participantCountByGender: [SearchParticipantsReturnObject]
     participantCountByRace: [SearchParticipantsReturnObject]
     participantCountByEthnicity: [SearchParticipantsReturnObject]
+}
+
+type GetParticipantsResult {
+    filterParticipantCountByEthnicity: [SearchParticipantsReturnObject]
+    filterParticipantCountByRace: [SearchParticipantsReturnObject]
+    filterParticipantCountBySexAtBirth: [SearchParticipantsReturnObject]
+    filterParticipantCountByAgeAtLastKnownSurvivalStatus: RangeCount
+    filterParticipantCountByFirstEvent: [SearchParticipantsReturnObject]
+    filterParticipantCountByLastKnownSurvivalStatus: [SearchParticipantsReturnObject]
+
+    numberOfParticipants: Int
+
+    participantCountByEthnicity: [SearchParticipantsReturnObject]
+    participantCountByRace: [SearchParticipantsReturnObject]
+    participantCountBySexAtBirth: [SearchParticipantsReturnObject]
+    participantCountByAgeAtLastKnownSurvivalStatus: [SearchParticipantsReturnObject]
+    participantCountByFirstEvent: [SearchParticipantsReturnObject]
+    participantCountByLastKnownSurvivalStatus: [SearchParticipantsReturnObject]
 }
 
 type ParticipantOverViewResult {
@@ -190,6 +211,16 @@ type QueryType {
         library_strategy: [String] = [""]
     ): SearchParticipantsResult
     
+    getParticipants (
+        participant_ids: [String] = [""],
+        ethnicity: [String] = [""],
+        race: [String] = [""],
+        sex_at_birth: [String] = [""],
+        age_at_last_known_survival_status: [Int] = [0],
+        first_event: [String] = [""],
+        last_known_survival_status: [String] = [""]
+    ): GetParticipantsResult
+
     participantOverview (
         participant_ids: [String] = [""],
         race: [String] = [""],

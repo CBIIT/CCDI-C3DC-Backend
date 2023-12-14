@@ -40,6 +40,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     final String STUDIES_FACET_END_POINT = "/study_participants/_search";
     final String PARTICIPANTS_END_POINT = "/participants/_search";
+    final String SURVIVALS_END_POINT = "/survivals/_search";
     final String DIAGNOSIS_END_POINT = "/diagnosis/_search";
     final String HOME_STATS_END_POINT = "/home_stats/_search";
     final String STUDIES_END_POINT = "/studies/_search";
@@ -49,23 +50,60 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String PARTICIPANTS_COUNT_END_POINT = "/participants/_count";
     final String DIAGNOSIS_COUNT_END_POINT = "/diagnosis/_count";
     final String STUDIES_COUNT_END_POINT = "/studies/_count";
+    final String SURVIVALS_COUNT_END_POINT = "/survivals/_count";
     final String SAMPLES_COUNT_END_POINT = "/samples/_count";
     final String FILES_COUNT_END_POINT = "/files/_count";
 
-    final Set<String> RANGE_PARAMS = Set.of("age_at_diagnosis", "participant_age_at_collection");
+    // For slider fields
+    final Set<String> RANGE_PARAMS = Set.of("age_at_last_known_survival_status");
 
     final Set<String> BOOLEAN_PARAMS = Set.of("assay_method");
 
     final Set<String> ARRAY_PARAMS = Set.of("file_type");
 
+    // For multiple selection from a list
     final Set<String> INCLUDE_PARAMS  = Set.of("race", "ethnicity");
 
-    final Set<String> REGULAR_PARAMS = Set.of("study_id", "participant_id", "race", "gender", "ethnicity", "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis", "vital_status", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution", "library_selection", "library_source", "library_strategy");
-    final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis", "vital_status", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution", "library_selection", "library_source", "library_strategy");
-    final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis");
-    final Set<String> SAMPLE_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
-    final Set<String> STUDY_REGULAR_PARAMS = Set.of("study_id", "phs_accession", "study_acronym", "study_short_title");
-    final Set<String> FILE_REGULAR_PARAMS = Set.of("file_category", "phs_accession", "study_acronym", "study_short_title", "file_type", "library_selection", "library_source", "library_strategy");
+    final Set<String> REGULAR_PARAMS = Set.of(
+        "study_id", "participant_id", "ethnicity", "race", "sex_at_birth",
+        "age_at_last_known_survival_status", "first_event", "last_known_survival_status",
+        "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis",
+        "vital_status", "sample_anatomic_site", "participant_age_at_collection",
+        "sample_tumor_status", "tumor_classification", "assay_method", "file_type",
+        "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution",
+        "library_selection", "library_source", "library_strategy"
+    );
+    final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of(
+        "participant_id", "race", "sex_at_birth", "ethnicity",
+        "age_at_last_known_survival_status", "first_event", "last_known_survival_status",
+        "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis",
+        "vital_status", "sample_anatomic_site", "participant_age_at_collection",
+        "sample_tumor_status", "tumor_classification", "assay_method", "file_type",
+        "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution",
+        "library_selection", "library_source", "library_strategy"
+    );
+    final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of(
+        "participant_id", "race", "sex_at_birth", "ethnicity",
+        "phs_accession", "study_acronym", "study_short_title", "diagnosis_icd_o",
+        "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis"
+    );
+    final Set<String> SAMPLE_REGULAR_PARAMS = Set.of(
+        "participant_id", "ethnicity", "race", "sex_at_birth",
+        "phs_accession", "study_acronym", "study_short_title", "sample_anatomic_site",
+        "participant_age_at_collection", "sample_tumor_status", "tumor_classification"
+    );
+    final Set<String> STUDY_REGULAR_PARAMS = Set.of(
+        "study_id", "phs_accession", "study_acronym", "study_short_title"
+    );
+    final Set<String> SURVIVAL_REGULAR_PARAMS = Set.of(
+        "age_at_event_free_survival_status", "age_at_last_known_survival_status",
+        "event_free_survival_status", "first_event", "last_known_survival_status",
+        "survival_id"
+    );
+    final Set<String> FILE_REGULAR_PARAMS = Set.of(
+        "file_category", "phs_accession", "study_acronym", "study_short_title",
+        "file_type", "library_selection", "library_source", "library_strategy"
+    );
 
     public PrivateESDataFetcher(InventoryESService esService) {
         super(esService);
@@ -82,6 +120,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         .dataFetcher("searchParticipants", env -> {
                             Map<String, Object> args = env.getArguments();
                             return searchParticipants(args);
+                        })
+                        .dataFetcher("getParticipants", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return getParticipants(args);
                         })
                         .dataFetcher("participantOverview", env -> {
                             Map<String, Object> args = env.getArguments();
@@ -454,7 +496,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     FILTER_COUNT_QUERY, "filterParticipantCountByLibraryStrategy",
                     AGG_ENDPOINT, FILES_END_POINT
             ));
-            
+
             Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
             Map<String, Object> newQuery_participants = new HashMap<>(query_participants);
             newQuery_participants.put("size", 0);
@@ -541,7 +583,111 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
             return data;
         }
-        
+    }
+
+    private Map<String, Object> getParticipants(Map<String, Object> params) throws IOException {
+        String cacheKey = generateCacheKey(params);
+        Map<String, Object> data = (Map<String, Object>)caffeineCache.asMap().get(cacheKey);
+        if (false && data != null) {
+            logger.info("hit cache!");
+            return data;
+        } else {
+            // logger.info("cache miss... querying for data.");
+            data = new HashMap<>();
+
+            final String CARDINALITY_AGG_NAME = "cardinality_agg_name";
+            final String AGG_NAME = "agg_name";
+            final String AGG_ENDPOINT = "agg_endpoint";
+            final String WIDGET_QUERY = "widgetQueryName";
+            final String FILTER_COUNT_QUERY = "filterCountQueryName";
+            // Query related values
+            final List<Map<String, String>> PARTICIPANT_TERM_AGGS = new ArrayList<>();
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NAME, "ethnicity",
+                    WIDGET_QUERY,"participantCountByEthnicity",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByEthnicity",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NAME, "race",
+                    WIDGET_QUERY,"participantCountByRace",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByRace",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NAME, "sex_at_birth",
+                    WIDGET_QUERY,"participantCountBySexAtBirth",
+                    FILTER_COUNT_QUERY, "filterParticipantCountBySexAtBirth",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_id",
+                    AGG_NAME, "age_at_last_known_survival_status",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtLastKnownSurvivalStatus",
+                    AGG_ENDPOINT, SURVIVALS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_id",
+                    AGG_NAME, "first_event",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByFirstEvent",
+                    AGG_ENDPOINT, SURVIVALS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_id",
+                    AGG_NAME, "last_known_survival_status",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByLastKnownSurvivalStatus",
+                    AGG_ENDPOINT, SURVIVALS_END_POINT
+            ));
+            
+            Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
+            Map<String, Object> newQuery_participants = new HashMap<>(query_participants);
+            newQuery_participants.put("size", 0);
+            newQuery_participants.put("track_total_hits", 10000000);
+            Map<String, Object> fields = new HashMap<String, Object>();
+            newQuery_participants.put("aggs", fields);
+            Request participantsCountRequest = new Request("GET", PARTICIPANTS_END_POINT);
+            String jsonizedQuery = gson.toJson(newQuery_participants);
+            participantsCountRequest.setJsonEntity(jsonizedQuery);
+            JsonObject participantsCountResult = inventoryESService.send(participantsCountRequest);
+            int numberOfParticipants = participantsCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
+
+            data.put("numberOfParticipants", numberOfParticipants);
+            
+            // widgets data and facet filter counts for projects
+            for (var agg: PARTICIPANT_TERM_AGGS) {
+                String field = agg.get(AGG_NAME);
+                String widgetQueryName = agg.get(WIDGET_QUERY);
+                String filterCountQueryName = agg.get(FILTER_COUNT_QUERY);
+                String endpoint = agg.get(AGG_ENDPOINT);
+                String indexType = endpoint.replace("/", "").replace("_search", "");
+                String cardinalityAggName = agg.get(CARDINALITY_AGG_NAME);
+                List<Map<String, Object>> filterCount = filterSubjectCountBy(field, params, endpoint, cardinalityAggName, indexType);
+                if(RANGE_PARAMS.contains(field)) {
+                    data.put(filterCountQueryName, filterCount.get(0));
+                } else {
+                    data.put(filterCountQueryName, filterCount);
+                }
+                
+                if (widgetQueryName != null) {
+                    if (RANGE_PARAMS.contains(field)) {
+                        List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, endpoint, cardinalityAggName, indexType);
+                        data.put(widgetQueryName, subjectCount);
+                    } else {
+                        if (params.containsKey(field) && ((List<String>)params.get(field)).size() > 0) {
+                            List<Map<String, Object>> subjectCount = subjectCountBy(field, params, endpoint, cardinalityAggName, indexType);
+                            data.put(widgetQueryName, subjectCount);
+                        } else {
+                            data.put(widgetQueryName, filterCount);
+                        }
+                    }
+                    
+                }
+            }
+
+            caffeineCache.put(cacheKey, data);
+
+            return data;
+        }
     }
 
     private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
@@ -729,7 +875,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     // if the nestedProperty is set, this will filter based upon the params against the nested property for the endpoint's index.
     // otherwise, this will filter based upon the params against the top level properties for the index
     private List<Map<String, Object>> overview(String endpoint, Map<String, Object> params, String[][] properties, String defaultSort, Map<String, String> mapping, Set<String> regular_fields, String nestedProperty, String overviewType) throws IOException {
-
         Request request = new Request("GET", endpoint);
         Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), regular_fields, nestedProperty, overviewType);
         String order_by = (String)params.get(ORDER_BY);

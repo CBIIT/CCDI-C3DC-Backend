@@ -1,6 +1,5 @@
 *.iml
 logs/
-src/main/resources/application.properties
 target/
 .apt_generated
 .apt_generated_tests
