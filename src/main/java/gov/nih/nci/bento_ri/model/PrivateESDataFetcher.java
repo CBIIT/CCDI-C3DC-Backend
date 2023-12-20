@@ -42,6 +42,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String PARTICIPANTS_END_POINT = "/participants/_search";
     final String SURVIVALS_END_POINT = "/survivals/_search";
     final String DIAGNOSIS_END_POINT = "/diagnosis/_search";
+    final String DIAGNOSES_END_POINT = "/diagnoses/_search";
     final String HOME_STATS_END_POINT = "/home_stats/_search";
     final String STUDIES_END_POINT = "/studies/_search";
     final String SAMPLES_END_POINT = "/samples/_search";
@@ -55,37 +56,56 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String FILES_COUNT_END_POINT = "/files/_count";
 
     // For slider fields
-    final Set<String> RANGE_PARAMS = Set.of("age_at_last_known_survival_status");
+    final Set<String> RANGE_PARAMS = Set.of(
+        // Diagnoses
+        "age_at_diagnosis",
+        // Survivals
+        "age_at_last_known_survival_status"
+    );
 
     final Set<String> BOOLEAN_PARAMS = Set.of("assay_method");
 
     final Set<String> ARRAY_PARAMS = Set.of("file_type");
 
     // For multiple selection from a list
-    final Set<String> INCLUDE_PARAMS  = Set.of("race", "ethnicity");
+    final Set<String> INCLUDE_PARAMS  = Set.of(
+        // Demographics
+        "race", "ethnicity",
+        // Diagnoses
+        "anatomic_site", "diagnosis_classification"
+    );
 
     final Set<String> REGULAR_PARAMS = Set.of(
+        // Demographics
         "study_id", "participant_id", "ethnicity", "race", "sex_at_birth",
+        // Diagnoses
+        "age_at_diagnosis", "anatomic_site",
+        // Survivals
         "age_at_last_known_survival_status", "first_event", "last_known_survival_status",
-        "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis",
+        "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site",
         "vital_status", "sample_anatomic_site", "participant_age_at_collection",
         "sample_tumor_status", "tumor_classification", "assay_method", "file_type",
         "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution",
         "library_selection", "library_source", "library_strategy"
     );
     final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of(
-        "participant_id", "race", "sex_at_birth", "ethnicity",
+        // Demographics
+        "ethnicity", "participant_id", "race", "sex_at_birth",
+        // Survivals
         "age_at_last_known_survival_status", "first_event", "last_known_survival_status",
-        "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis",
+        // Diagnoses
+        "age_at_diagnosis", "anatomic_site", "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site",
         "vital_status", "sample_anatomic_site", "participant_age_at_collection",
         "sample_tumor_status", "tumor_classification", "assay_method", "file_type",
         "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution",
         "library_selection", "library_source", "library_strategy"
     );
     final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of(
-        "participant_id", "race", "sex_at_birth", "ethnicity",
-        "phs_accession", "study_acronym", "study_short_title", "diagnosis_icd_o",
-        "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis"
+        "age_at_diagnosis", "anatomic_site", "diagnosis_classification",
+        "diagnosis_classification_system", "diagnosis_verification_status",
+        "diagnosis_basis", "disease_phase",
+        // Demographics
+        "ethnicity", "participant_id", "race", "sex_at_birth"
     );
     final Set<String> SAMPLE_REGULAR_PARAMS = Set.of(
         "participant_id", "ethnicity", "race", "sex_at_birth",
@@ -233,7 +253,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         if (RANGE_PARAMS.contains(category)) {
             query = inventoryESService.addRangeAggregations(query, category, only_includes);
             Request request = new Request("GET", endpoint);
-            request.setJsonEntity(gson.toJson(query));
+            String jsonizedRequest = gson.toJson(query);
+            request.setJsonEntity(jsonizedRequest);
             JsonObject jsonObject = inventoryESService.send(request);
             Map<String, JsonObject> aggs = inventoryESService.collectRangAggs(jsonObject, category);
             JsonObject ranges = aggs.get(category);
@@ -619,6 +640,48 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     WIDGET_QUERY,"participantCountBySexAtBirth",
                     FILTER_COUNT_QUERY, "filterParticipantCountBySexAtBirth",
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_id",
+                    AGG_NAME, "age_at_diagnosis",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtDiagnosis",
+                    AGG_ENDPOINT, DIAGNOSES_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_id",
+                    AGG_NAME, "anatomic_site",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByAnatomicSite",
+                    AGG_ENDPOINT, DIAGNOSES_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_id",
+                    AGG_NAME, "diagnosis_classification",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisClassification",
+                    AGG_ENDPOINT, DIAGNOSES_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_id",
+                    AGG_NAME, "diagnosis_classification_system",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisClassificationSystem",
+                    AGG_ENDPOINT, DIAGNOSES_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_id",
+                    AGG_NAME, "diagnosis_verification_status",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisVerificationStatus",
+                    AGG_ENDPOINT, DIAGNOSES_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_id",
+                    AGG_NAME, "diagnosis_basis",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisBasis",
+                    AGG_ENDPOINT, DIAGNOSES_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_id",
+                    AGG_NAME, "disease_phase",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByDiseasePhase",
+                    AGG_ENDPOINT, DIAGNOSES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "participant_id",
