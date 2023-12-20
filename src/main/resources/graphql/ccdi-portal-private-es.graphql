@@ -73,15 +73,29 @@ type SearchParticipantsResult {
 }
 
 type GetParticipantsResult {
+    # Overall count
+    numberOfParticipants: Int
+
+    # Demographics
     filterParticipantCountByEthnicity: [SearchParticipantsReturnObject]
     filterParticipantCountByRace: [SearchParticipantsReturnObject]
     filterParticipantCountBySexAtBirth: [SearchParticipantsReturnObject]
+
+    # Diagnoses
+    filterParticipantCountByAgeAtDiagnosis: RangeCount
+    filterParticipantCountByAnatomicSite: [SearchParticipantsReturnObject]
+    filterParticipantCountByDiagnosisClassification: [SearchParticipantsReturnObject]
+    filterParticipantCountByDiagnosisClassificationSystem: [SearchParticipantsReturnObject]
+    filterParticipantCountByDiagnosisVerificationStatus: [SearchParticipantsReturnObject]
+    filterParticipantCountByDiagnosisBasis: [SearchParticipantsReturnObject]
+    filterParticipantCountByDiseasePhase: [SearchParticipantsReturnObject]
+
+    # Survivals
     filterParticipantCountByAgeAtLastKnownSurvivalStatus: RangeCount
     filterParticipantCountByFirstEvent: [SearchParticipantsReturnObject]
     filterParticipantCountByLastKnownSurvivalStatus: [SearchParticipantsReturnObject]
 
-    numberOfParticipants: Int
-
+    # Widget counts
     participantCountByEthnicity: [SearchParticipantsReturnObject]
     participantCountByRace: [SearchParticipantsReturnObject]
     participantCountBySexAtBirth: [SearchParticipantsReturnObject]
@@ -212,10 +226,22 @@ type QueryType {
     ): SearchParticipantsResult
     
     getParticipants (
+        # Demographics
         participant_ids: [String] = [""],
         ethnicity: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
+
+        # Diagnoses
+        age_at_diagnosis: [Int] = [0],
+        anatomic_site: [String] = [""],
+        diagnosis_classification: [String] = [""],
+        diagnosis_classification_system: [String] = [""],
+        diagnosis_verification_status: [String] = [""],
+        diagnosis_basis: [String] = [""],
+        disease_phase: [String] = [""]
+
+        # Survivals
         age_at_last_known_survival_status: [Int] = [0],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
