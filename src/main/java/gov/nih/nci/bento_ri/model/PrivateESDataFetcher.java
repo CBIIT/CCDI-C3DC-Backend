@@ -50,6 +50,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     final String PARTICIPANTS_COUNT_END_POINT = "/participants/_count";
     final String DIAGNOSIS_COUNT_END_POINT = "/diagnosis/_count";
+    final String DIAGNOSES_COUNT_END_POINT = "/diagnosis/_count";
     final String STUDIES_COUNT_END_POINT = "/studies/_count";
     final String SURVIVALS_COUNT_END_POINT = "/survivals/_count";
     final String SAMPLES_COUNT_END_POINT = "/samples/_count";
