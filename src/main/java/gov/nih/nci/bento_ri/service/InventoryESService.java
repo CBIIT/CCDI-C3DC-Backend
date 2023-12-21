@@ -28,7 +28,14 @@ public class InventoryESService extends ESService {
     public static final String AGGS = "aggs";
     public static final int MAX_ES_SIZE = 500000;
     final Set<String> PARTICIPANT_PARAMS = Set.of("ethnicity", "race", "sex_at_birth");
-    final Set<String> DIAGNOSIS_PARAMS = Set.of("diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis");
+    final Set<String> DIAGNOSIS_PARAMS = Set.of(
+        "age_at_diagnosis", "anatomic_site", "diagnosis_classification",
+        "diagnosis_classification_system", "diagnosis_verification_status",
+        "diagnosis_basis", "disease_phase"
+    );
+    final Set<String> STUDY_PARAMS = Set.of(
+        "phs_accession", "study_acronym", "study_short_title"
+    );
     final Set<String> SAMPLE_PARAMS = Set.of("sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
     final Set<String> SURVIVAL_PARAMS = Set.of("age_at_last_known_survival_status", "first_event", "last_known_survival_status");
     final Set<String> FILE_PARAMS = Set.of("assay_method", "file_type", "library_selection", "library_source", "library_strategy");
@@ -162,9 +169,9 @@ public class InventoryESService extends ESService {
                     if (higher != null) {
                         range.put("lte", higher);
                     }
-                    if (!indexType.equals("diagnosis") && key.equals("age_at_diagnosis")) {
+                    if (!indexType.equals("diagnoses") && key.equals("age_at_diagnosis")) {
                         diagnosis_filters.add(Map.of(
-                            "range", Map.of(nestedProperty+"."+key, range)
+                            "range", Map.of("diagnoses." + key, range)
                         ));
                     } else if (!indexType.equals("samples") && key.equals("participant_age_at_collection")) {
                         sample_file_filters.add(Map.of(
@@ -201,9 +208,9 @@ public class InventoryESService extends ESService {
                         participant_filters.add(Map.of(
                             "terms", Map.of("participant_filters."+key, valueSet)
                         ));
-                    } else if (DIAGNOSIS_PARAMS.contains(key) && !indexType.equals("diagnosis")) {
+                    } else if (DIAGNOSIS_PARAMS.contains(key) && !indexType.equals("diagnoses")) {
                         diagnosis_filters.add(Map.of(
-                            "terms", Map.of("diagnosis_filters."+key, valueSet)
+                            "terms", Map.of("diagnoses." + key, valueSet)
                         ));
                     } else if (SAMPLE_FILE_PARAMS.contains(key) && !(indexType.equals("samples") || indexType.equals("files"))) {
                         sample_file_filters.add(Map.of(
@@ -213,7 +220,7 @@ public class InventoryESService extends ESService {
                         sample_filters.add(Map.of(
                             "terms", Map.of("sample_filters."+key, valueSet)
                         ));
-                    } else if (SURVIVAL_PARAMS.contains(key) && indexType.equals("participants")) {
+                    } else if (SURVIVAL_PARAMS.contains(key) && !indexType.equals("survivals")) {
                         survival_filters.add(Map.of(
                             "terms", Map.of("survivals." + key, valueSet)
                         ));
@@ -244,7 +251,7 @@ public class InventoryESService extends ESService {
                 filter.add(Map.of("nested", Map.of("path", "participant_filters", "query", Map.of("bool", Map.of("filter", participant_filters)), "inner_hits", Map.of())));
             }
             if (diagnosisFilterLen > 0) {
-                filter.add(Map.of("nested", Map.of("path", "diagnosis_filters", "query", Map.of("bool", Map.of("filter", diagnosis_filters)), "inner_hits", Map.of())));
+                filter.add(Map.of("nested", Map.of("path", "diagnoses", "query", Map.of("bool", Map.of("filter", diagnosis_filters)), "inner_hits", Map.of())));
             }
             if (sampleFileFilterLen > 0) {
                 filter.add(Map.of("nested", Map.of("path", "sample_file_filters", "query", Map.of("bool", Map.of("filter", sample_file_filters)), "inner_hits", Map.of())));
