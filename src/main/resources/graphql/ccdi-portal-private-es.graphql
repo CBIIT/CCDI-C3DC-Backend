@@ -90,6 +90,11 @@ type GetParticipantsResult {
     filterParticipantCountByDiagnosisBasis: [SearchParticipantsReturnObject]
     filterParticipantCountByDiseasePhase: [SearchParticipantsReturnObject]
 
+    # Studies
+    filterParticipantCountByPhsAccession: [SearchParticipantsReturnObject]
+    filterParticipantCountByStudyAcronym: [SearchParticipantsReturnObject]
+    filterParticipantCountByStudyShortTitle: [SearchParticipantsReturnObject]
+
     # Survivals
     filterParticipantCountByAgeAtLastKnownSurvivalStatus: RangeCount
     filterParticipantCountByFirstEvent: [SearchParticipantsReturnObject]
@@ -240,6 +245,11 @@ type QueryType {
         diagnosis_verification_status: [String] = [""],
         diagnosis_basis: [String] = [""],
         disease_phase: [String] = [""]
+
+        # Studies
+        phs_accession: [String] = [""],
+        study_acronym: [String] = [""],
+        study_short_title: [String] = [""],
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],

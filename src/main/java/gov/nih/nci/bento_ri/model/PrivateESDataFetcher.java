@@ -114,7 +114,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         "participant_age_at_collection", "sample_tumor_status", "tumor_classification"
     );
     final Set<String> STUDY_REGULAR_PARAMS = Set.of(
-        "study_id", "phs_accession", "study_acronym", "study_short_title"
+        "acl", "consent", "consent_number", "external_url", "phs_accession",
+        "study_acronym", "study_description", "study_id", "study_name",
+        "study_short_title"
     );
     final Set<String> SURVIVAL_REGULAR_PARAMS = Set.of(
         "age_at_event_free_survival_status", "age_at_last_known_survival_status",
@@ -683,6 +685,21 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_NAME, "disease_phase",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiseasePhase",
                     AGG_ENDPOINT, DIAGNOSES_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NAME, "phs_accession",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByPhsAccession",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NAME, "study_acronym",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByStudyAcronym",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NAME, "study_short_title",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByStudyShortTitle",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "participant_id",
