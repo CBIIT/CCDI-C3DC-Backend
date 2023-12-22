@@ -37,7 +37,10 @@ public class InventoryESService extends ESService {
         "phs_accession", "study_acronym", "study_short_title"
     );
     final Set<String> SAMPLE_PARAMS = Set.of("sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
-    final Set<String> SURVIVAL_PARAMS = Set.of("age_at_last_known_survival_status", "first_event", "last_known_survival_status");
+    final Set<String> SURVIVAL_PARAMS = Set.of(
+        "age_at_last_known_survival_status",
+        "first_event", "last_known_survival_status"
+    );
     final Set<String> FILE_PARAMS = Set.of("assay_method", "file_type", "library_selection", "library_source", "library_strategy");
     final Set<String> SAMPLE_FILE_PARAMS = Set.of("sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "library_selection", "library_source", "library_strategy");
     
