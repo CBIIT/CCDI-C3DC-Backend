@@ -78,16 +78,18 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     final Set<String> REGULAR_PARAMS = Set.of(
         // Demographics
-        "study_id", "participant_id", "ethnicity", "race", "sex_at_birth",
+        "participant_id", "ethnicity", "race", "sex_at_birth",
+
         // Diagnoses
-        "age_at_diagnosis", "anatomic_site",
+        "age_at_diagnosis", "anatomic_site", "diagnosis_classification",
+        "diagnosis_classification_system", "diagnosis_verification_status",
+        "diagnosis_basis", "disease_phase",
+
+        // Studies
+        "phs_accession", "study_acronym", "study_short_title",
+
         // Survivals
-        "age_at_last_known_survival_status", "first_event", "last_known_survival_status",
-        "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site",
-        "vital_status", "sample_anatomic_site", "participant_age_at_collection",
-        "sample_tumor_status", "tumor_classification", "assay_method", "file_type",
-        "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution",
-        "library_selection", "library_source", "library_strategy"
+        "age_at_last_known_survival_status", "first_event", "last_known_survival_status"
     );
     final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of(
         // Demographics
@@ -773,25 +775,21 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
-            new String[]{"id", "id"},
             new String[]{"participant_id", "participant_id"},
-            new String[]{"phs_accession", "phs_accession"},
-            new String[]{"race", "race_str"},
-            new String[]{"gender", "gender"},
             new String[]{"ethnicity", "ethnicity_str"},
-            new String[]{"alternate_participant_id", "alternate_participant_id"},
-            new String[]{"files", "files"}
+            new String[]{"race", "race_str"},
+            new String[]{"sex_at_birth", "sex_at_birth"},
+            new String[]{"phs_accession", "phs_accession"},
         };
 
         String defaultSort = "participant_id"; // Default sort order
 
         Map<String, String> mapping = Map.ofEntries(
-                Map.entry("participant_id", "participant_id"),
-                Map.entry("phs_accession", "phs_accession"),
-                Map.entry("race", "race_str"),
-                Map.entry("gender", "gender"),
-                Map.entry("ethnicity", "ethnicity_str"),
-                Map.entry("alternate_participant_id", "alternate_participant_id")
+            Map.entry("participant_id", "participant_id"),
+            Map.entry("ethnicity", "ethnicity_str"),
+            Map.entry("race", "race_str"),
+            Map.entry("sex_at_birth", "sex_at_birth"),
+            Map.entry("phs_accession", "phs_accession")
         );
 
         return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "participants");
