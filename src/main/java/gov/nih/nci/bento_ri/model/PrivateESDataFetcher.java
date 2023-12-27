@@ -125,10 +125,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         "event_free_survival_status", "first_event", "last_known_survival_status",
         "survival_id"
     );
-    final Set<String> FILE_REGULAR_PARAMS = Set.of(
-        "file_category", "phs_accession", "study_acronym", "study_short_title",
-        "file_type", "library_selection", "library_source", "library_strategy"
-    );
 
     public PrivateESDataFetcher(InventoryESService esService) {
         super(esService);
@@ -142,10 +138,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 .type(newTypeWiring("QueryType")
                         .dataFetchers(yamlQueryFactory.createYamlQueries(Const.ES_ACCESS_TYPE.PRIVATE))
                         .dataFetcher("idsLists", env -> idsLists())
-                        .dataFetcher("searchParticipants", env -> {
-                            Map<String, Object> args = env.getArguments();
-                            return searchParticipants(args);
-                        })
                         .dataFetcher("getParticipants", env -> {
                             Map<String, Object> args = env.getArguments();
                             return getParticipants(args);
@@ -161,18 +153,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         .dataFetcher("studyOverview", env -> {
                             Map<String, Object> args = env.getArguments();
                             return studyOverview(args);
-                        })
-                        .dataFetcher("sampleOverview", env -> {
-                            Map<String, Object> args = env.getArguments();
-                            return sampleOverview(args);
-                        })
-                        .dataFetcher("fileOverview", env -> {
-                            Map<String, Object> args = env.getArguments();
-                            return fileOverview(args);
-                        })
-                        .dataFetcher("fileIDsFromList", env -> {
-                            Map<String, Object> args = env.getArguments();
-                            return fileIDsFromList(args);
                         })
                         .dataFetcher("numberOfDiagnoses", env -> {
                             Map<String, Object> args = env.getArguments();
@@ -369,248 +349,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return results;
     }
 
-    private Map<String, Object> searchParticipants(Map<String, Object> params) throws IOException {
-        String cacheKey = generateCacheKey(params);
-        Map<String, Object> data = (Map<String, Object>)caffeineCache.asMap().get(cacheKey);
-        if (data != null) {
-            logger.info("hit cache!");
-            return data;
-        } else {
-            // logger.info("cache miss... querying for data.");
-            data = new HashMap<>();
-
-            final String CARDINALITY_AGG_NAME = "cardinality_agg_name";
-            final String AGG_NAME = "agg_name";
-            final String AGG_ENDPOINT = "agg_endpoint";
-            final String WIDGET_QUERY = "widgetQueryName";
-            final String FILTER_COUNT_QUERY = "filterCountQueryName";
-            // Query related values
-            final List<Map<String, String>> PARTICIPANT_TERM_AGGS = new ArrayList<>();
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "study_acronym",
-                    WIDGET_QUERY, "participantCountByStudy",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByAcronym",
-                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "diagnosis_icd_o",
-                    WIDGET_QUERY, "participantCountByDiagnosis",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByICDO",
-                    AGG_ENDPOINT, DIAGNOSIS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "age_at_diagnosis",
-                    WIDGET_QUERY, "participantCountByDiagnosisAge",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisAge",
-                    AGG_ENDPOINT, DIAGNOSIS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NAME, "gender",
-                    WIDGET_QUERY,"participantCountByGender",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByGender",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NAME, "race",
-                    WIDGET_QUERY, "participantCountByRace",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByRace",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NAME, "ethnicity",
-                    WIDGET_QUERY,"participantCountByEthnicity",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByEthnicity",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "phs_accession",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByPHSAccession",
-                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
-            ));
-            
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "diagnosis_anatomic_site",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisAnatomicSite",
-                    AGG_ENDPOINT, DIAGNOSIS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "disease_phase",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByDiseasePhase",
-                    AGG_ENDPOINT, DIAGNOSIS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NAME, "vital_status",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByVitalStatus",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "sample_anatomic_site",
-                    FILTER_COUNT_QUERY, "filterParticipantCountBySampleAnatomicSite",
-                    AGG_ENDPOINT, SAMPLES_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "participant_age_at_collection",
-                    FILTER_COUNT_QUERY, "filterParticipantCountBySampleAge",
-                    AGG_ENDPOINT, SAMPLES_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "sample_tumor_status",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByTumorStatus",
-                    AGG_ENDPOINT, SAMPLES_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "tumor_classification",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByTumorClassification",
-                    AGG_ENDPOINT, SAMPLES_END_POINT
-            ));
-            //assay_method mapped to file_category
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "file_category",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByAssayMethod",
-                    AGG_ENDPOINT, FILES_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "file_type",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByFileType",
-                    AGG_ENDPOINT, FILES_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "study_short_title",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByStudyTitle",
-                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "grant_id",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByGrantID",
-                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "institution",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByInstitution",
-                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "library_selection",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByLibrarySelection",
-                    AGG_ENDPOINT, FILES_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "library_source",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByLibrarySource",
-                    AGG_ENDPOINT, FILES_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "library_strategy",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByLibraryStrategy",
-                    AGG_ENDPOINT, FILES_END_POINT
-            ));
-
-            Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
-            Map<String, Object> newQuery_participants = new HashMap<>(query_participants);
-            newQuery_participants.put("size", 0);
-            newQuery_participants.put("track_total_hits", 10000000);
-            Map<String, Object> fields = new HashMap<String, Object>();
-            fields.put("file_count", Map.of("sum", Map.of("field", "file_count")));
-            newQuery_participants.put("aggs", fields);
-            Request participantsCountRequest = new Request("GET", PARTICIPANTS_END_POINT);
-            participantsCountRequest.setJsonEntity(gson.toJson(newQuery_participants));
-            JsonObject participantsCountResult = inventoryESService.send(participantsCountRequest);
-            int numberOfParticipants = participantsCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
-            int participants_file_count = participantsCountResult.getAsJsonObject("aggregations").getAsJsonObject("file_count").get("value").getAsInt();
-
-            Map<String, Object> query_diagnosis = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnosis");
-            Request diagnosisCountRequest = new Request("GET", DIAGNOSIS_COUNT_END_POINT);
-            diagnosisCountRequest.setJsonEntity(gson.toJson(query_diagnosis));
-            JsonObject diagnosisCountResult = inventoryESService.send(diagnosisCountRequest);
-            int numberOfDiagnosis = diagnosisCountResult.get("count").getAsInt();
-            
-            Map<String, Object> query_samples = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "samples");
-            Map<String, Object> newQuery_samples = new HashMap<>(query_samples);
-            newQuery_samples.put("size", 0);
-            newQuery_samples.put("track_total_hits", 10000000);
-            Map<String, Object> fields_sample = new HashMap<String, Object>();
-            fields_sample.put("file_count", Map.of("sum", Map.of("field", "file_count")));
-            newQuery_samples.put("aggs", fields_sample);
-            Request samplesCountRequest = new Request("GET", SAMPLES_END_POINT);
-            samplesCountRequest.setJsonEntity(gson.toJson(newQuery_samples));
-            JsonObject samplesCountResult = inventoryESService.send(samplesCountRequest);
-            int numberOfSamples = samplesCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
-            int samples_file_count = samplesCountResult.getAsJsonObject("aggregations").getAsJsonObject("file_count").get("value").getAsInt();
-
-            Map<String, Object> query_files = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "files");
-            int numberOfStudies = getNodeCount("study_id", query_files, FILES_END_POINT).size();
-            
-            Request filesCountRequest = new Request("GET", FILES_COUNT_END_POINT);
-            filesCountRequest.setJsonEntity(gson.toJson(query_files));
-            JsonObject filesCountResult = inventoryESService.send(filesCountRequest);
-            int numberOfFiles = filesCountResult.get("count").getAsInt();
-
-            data.put("numberOfStudies", numberOfStudies);
-            data.put("numberOfDiagnosis", numberOfDiagnosis);
-            data.put("numberOfParticipants", numberOfParticipants);
-            data.put("numberOfSamples", numberOfSamples);
-            data.put("numberOfFiles", numberOfFiles);
-            data.put("participantsFileCount", participants_file_count);
-            data.put("diagnosisFileCount", participants_file_count);
-            data.put("samplesFileCount", samples_file_count);
-            data.put("studiesFileCount", numberOfFiles);
-            data.put("filesFileCount", numberOfFiles);
-            
-            // widgets data and facet filter counts for projects
-            for (var agg: PARTICIPANT_TERM_AGGS) {
-                String field = agg.get(AGG_NAME);
-                String widgetQueryName = agg.get(WIDGET_QUERY);
-                String filterCountQueryName = agg.get(FILTER_COUNT_QUERY);
-                String endpoint = agg.get(AGG_ENDPOINT);
-                String indexType = endpoint.replace("/", "").replace("_search", "");
-                String cardinalityAggName = agg.get(CARDINALITY_AGG_NAME);
-                List<Map<String, Object>> filterCount = filterSubjectCountBy(field, params, endpoint, cardinalityAggName, indexType);
-                if(RANGE_PARAMS.contains(field)) {
-                    data.put(filterCountQueryName, filterCount.get(0));
-                } else {
-                    data.put(filterCountQueryName, filterCount);
-                }
-                
-                if (widgetQueryName != null) {
-                    if (RANGE_PARAMS.contains(field)) {
-                        List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, endpoint, cardinalityAggName, indexType);
-                        data.put(widgetQueryName, subjectCount);
-                    } else {
-                        if (params.containsKey(field) && ((List<String>)params.get(field)).size() > 0) {
-                            List<Map<String, Object>> subjectCount = subjectCountBy(field, params, endpoint, cardinalityAggName, indexType);
-                            data.put(widgetQueryName, subjectCount);
-                        } else {
-                            data.put(widgetQueryName, filterCount);
-                        }
-                    }
-                    
-                }
-            }
-
-            caffeineCache.put(cacheKey, data);
-
-            return data;
-        }
-    }
-
     private Map<String, Object> getParticipants(Map<String, Object> params) throws IOException {
         String cacheKey = generateCacheKey(params);
         Map<String, Object> data = (Map<String, Object>)caffeineCache.asMap().get(cacheKey);
@@ -721,8 +459,17 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     FILTER_COUNT_QUERY, "filterParticipantCountByLastKnownSurvivalStatus",
                     AGG_ENDPOINT, SURVIVALS_END_POINT
             ));
-            
+
+            Map<String, Object> query_diagnoses = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnoses");
+            Request diagnosesCountRequest = new Request("GET", DIAGNOSES_COUNT_END_POINT);
+            // System.out.println(gson.toJson(query_diagnoses));
+            diagnosesCountRequest.setJsonEntity(gson.toJson(query_diagnoses));
+            JsonObject diagnosesCountResult = inventoryESService.send(diagnosesCountRequest);
+            int numberOfDiagnoses = diagnosesCountResult.get("count").getAsInt();
+
             Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
+            int numberOfStudies = getNodeCount("study_id", query_participants, PARTICIPANTS_END_POINT).size();
+            
             Map<String, Object> newQuery_participants = new HashMap<>(query_participants);
             newQuery_participants.put("size", 0);
             newQuery_participants.put("track_total_hits", 10000000);
@@ -734,6 +481,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             JsonObject participantsCountResult = inventoryESService.send(participantsCountRequest);
             int numberOfParticipants = participantsCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
 
+            data.put("numberOfStudies", numberOfStudies);
+            data.put("numberOfDiagnoses", numberOfDiagnoses);
             data.put("numberOfParticipants", numberOfParticipants);
             
             // widgets data and facet filter counts for projects
