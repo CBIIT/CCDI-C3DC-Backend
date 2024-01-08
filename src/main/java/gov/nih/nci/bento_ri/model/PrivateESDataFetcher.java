@@ -41,7 +41,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String STUDIES_FACET_END_POINT = "/study_participants/_search";
     final String PARTICIPANTS_END_POINT = "/participants/_search";
     final String SURVIVALS_END_POINT = "/survivals/_search";
-    final String DIAGNOSIS_END_POINT = "/diagnosis/_search";
     final String DIAGNOSES_END_POINT = "/diagnoses/_search";
     final String HOME_STATS_END_POINT = "/home_stats/_search";
     final String STUDIES_END_POINT = "/studies/_search";
@@ -49,7 +48,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String FILES_END_POINT = "/files/_search";
 
     final String PARTICIPANTS_COUNT_END_POINT = "/participants/_count";
-    final String DIAGNOSIS_COUNT_END_POINT = "/diagnosis/_count";
     final String DIAGNOSES_COUNT_END_POINT = "/diagnoses/_count";
     final String STUDIES_COUNT_END_POINT = "/studies/_count";
     final String SURVIVALS_COUNT_END_POINT = "/survivals/_count";
@@ -765,7 +763,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         if (diagnosisIDsSet.size() > 0 && !(diagnosisIDsSet.size() == 1 && diagnosisIDsSet.get(0).equals(""))) {
             Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(diagnosisIDsSet);
-            Request request = new Request("GET", DIAGNOSIS_END_POINT);
+            Request request = new Request("GET", DIAGNOSES_END_POINT);
             request.setJsonEntity(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
             List<String> result = inventoryESService.collectFileIDs(jsonObject);
