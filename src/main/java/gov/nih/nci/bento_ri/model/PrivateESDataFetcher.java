@@ -79,9 +79,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         "participant_id", "ethnicity", "race", "sex_at_birth",
 
         // Diagnoses
-        "age_at_diagnosis", "anatomic_site", "diagnosis_classification",
-        "diagnosis_classification_system", "diagnosis_verification_status",
-        "diagnosis_basis", "disease_phase",
+        "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
+        "diagnosis_classification", "diagnosis_classification_system",
+        "diagnosis_verification_status", "disease_phase",
 
         // Studies
         "phs_accession", "study_acronym", "study_short_title",
@@ -102,9 +102,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         "library_selection", "library_source", "library_strategy"
     );
     final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of(
-        "age_at_diagnosis", "anatomic_site", "diagnosis_classification",
-        "diagnosis_classification_system", "diagnosis_verification_status",
-        "diagnosis_basis", "disease_phase",
+        "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
+        "diagnosis_classification", "diagnosis_classification_system",
+        "diagnosis_verification_status", "disease_phase", "tumor_classification",
         // Demographics
         "ethnicity", "participant_id", "race", "sex_at_birth"
     );
@@ -564,6 +564,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"diagnosis_classification_system", "diagnosis_classification_system"},
             new String[]{"diagnosis_verification_status", "diagnosis_verification_status"},
             new String[]{"disease_phase", "disease_phase"},
+            new String[]{"tumor_classification", "tumor_classification"},
 
             // Demographics
             new String[]{"participant_id", "participant_id"},
@@ -584,6 +585,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("diagnosis_classification_system", "diagnosis_classification_system"),
             Map.entry("diagnosis_verification_status", "diagnosis_verification_status"),
             Map.entry("disease_phase", "disease_phase"),
+            Map.entry("tumor_classification", "tumor_classification"),
 
             // Demographics
             Map.entry("participant_id", "participant_id"),
