@@ -482,8 +482,8 @@ public class InventoryESService extends ESService {
         // data within limit can use just from/size
         query.put("size", pageSize);
         query.put("from", offset);
-        // System.out.println(gson.toJson(query));
-        request.setJsonEntity(gson.toJson(query));
+        String queryJson = gson.toJson(query);
+        request.setJsonEntity(queryJson);
 
         JsonObject jsonObject = send(request);
         return collectPage(jsonObject, properties, pageSize);

@@ -554,10 +554,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"diagnosis_id", "diagnosis_id"},
             new String[]{"age_at_diagnosis", "age_at_diagnosis"},
             new String[]{"anatomic_site", "anatomic_site"},
+            new String[]{"diagnosis_basis", "diagnosis_basis"},
             new String[]{"diagnosis_classification", "diagnosis_classification"},
             new String[]{"diagnosis_classification_system", "diagnosis_classification_system"},
             new String[]{"diagnosis_verification_status", "diagnosis_verification_status"},
-            new String[]{"diagnosis_basis", "diagnosis_basis"},
             new String[]{"disease_phase", "disease_phase"},
 
             // Demographics
@@ -574,10 +574,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("diagnosis_id", "diagnosis_id"),
             Map.entry("age_at_diagnosis", "age_at_diagnosis"),
             Map.entry("anatomic_site", "anatomic_site"),
+            Map.entry("diagnosis_basis", "diagnosis_basis"),
             Map.entry("diagnosis_classification", "diagnosis_classification"),
             Map.entry("diagnosis_classification_system", "diagnosis_classification_system"),
             Map.entry("diagnosis_verification_status", "diagnosis_verification_status"),
-            Map.entry("diagnosis_basis", "diagnosis_basis"),
             Map.entry("disease_phase", "disease_phase"),
 
             // Demographics
@@ -587,7 +587,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("phs_accession", "phs_accession")
         );
 
-        return overview(DIAGNOSES_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "diagnosis");
+        return overview(DIAGNOSES_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "diagnoses");
     }
 
     private List<Map<String, Object>> studyOverview(Map<String, Object> params) throws IOException {
