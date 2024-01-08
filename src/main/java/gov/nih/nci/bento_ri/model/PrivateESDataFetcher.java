@@ -775,20 +775,26 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
+            // Demographics
             new String[]{"participant_id", "participant_id"},
             new String[]{"ethnicity", "ethnicity_str"},
             new String[]{"race", "race_str"},
             new String[]{"sex_at_birth", "sex_at_birth"},
+
+            // Studies
             new String[]{"phs_accession", "phs_accession"},
         };
 
         String defaultSort = "participant_id"; // Default sort order
 
         Map<String, String> mapping = Map.ofEntries(
+            // Demographics
             Map.entry("participant_id", "participant_id"),
             Map.entry("ethnicity", "ethnicity_str"),
             Map.entry("race", "race_str"),
             Map.entry("sex_at_birth", "sex_at_birth"),
+
+            // Studies
             Map.entry("phs_accession", "phs_accession")
         );
 
@@ -797,32 +803,44 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<Map<String, Object>> diagnosisOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
-            new String[]{"id", "id"},
+            // Diagnoses
             new String[]{"diagnosis_id", "diagnosis_id"},
-            new String[]{"participant_id", "participant_id"},
-            new String[]{"phs_accession", "phs_accession"},
-            new String[]{"diagnosis_icd_o", "diagnosis_icd_o"},
-            new String[]{"anatomic_site", "diagnosis_anatomic_site"},
-            new String[]{"disease_phase", "disease_phase"},
             new String[]{"age_at_diagnosis", "age_at_diagnosis"},
-            new String[]{"vital_status", "last_vital_status"},
-            new String[]{"files", "files"}
+            new String[]{"anatomic_site", "anatomic_site"},
+            new String[]{"diagnosis_classification", "diagnosis_classification"},
+            new String[]{"diagnosis_classification_system", "diagnosis_classification_system"},
+            new String[]{"diagnosis_verification_status", "diagnosis_verification_status"},
+            new String[]{"diagnosis_basis", "diagnosis_basis"},
+            new String[]{"disease_phase", "disease_phase"},
+
+            // Demographics
+            new String[]{"participant_id", "participant_id"},
+
+            // Studies
+            new String[]{"phs_accession", "phs_accession"},
         };
 
         String defaultSort = "diagnosis_id"; // Default sort order
 
         Map<String, String> mapping = Map.ofEntries(
-                Map.entry("diagnosis_id", "diagnosis_id"),
-                Map.entry("participant_id", "participant_id"),
-                Map.entry("phs_accession", "phs_accession"),
-                Map.entry("diagnosis_icd_o", "diagnosis_icd_o"),
-                Map.entry("diagnosis_anatomic_site", "diagnosis_anatomic_site"),
-                Map.entry("disease_phase", "disease_phase"),
-                Map.entry("age_at_diagnosis", "age_at_diagnosis"),
-                Map.entry("vital_status", "last_vital_status")
+            // Diagnoses
+            Map.entry("diagnosis_id", "diagnosis_id"),
+            Map.entry("age_at_diagnosis", "age_at_diagnosis"),
+            Map.entry("anatomic_site", "anatomic_site"),
+            Map.entry("diagnosis_classification", "diagnosis_classification"),
+            Map.entry("diagnosis_classification_system", "diagnosis_classification_system"),
+            Map.entry("diagnosis_verification_status", "diagnosis_verification_status"),
+            Map.entry("diagnosis_basis", "diagnosis_basis"),
+            Map.entry("disease_phase", "disease_phase"),
+
+            // Demographics
+            Map.entry("participant_id", "participant_id"),
+
+            // Studies
+            Map.entry("phs_accession", "phs_accession")
         );
 
-        return overview(DIAGNOSIS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "diagnosis");
+        return overview(DIAGNOSES_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "diagnosis");
     }
 
     private List<Map<String, Object>> studyOverview(Map<String, Object> params) throws IOException {
