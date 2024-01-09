@@ -29,9 +29,9 @@ public class InventoryESService extends ESService {
     public static final int MAX_ES_SIZE = 500000;
     final Set<String> PARTICIPANT_PARAMS = Set.of("ethnicity", "race", "sex_at_birth");
     final Set<String> DIAGNOSIS_PARAMS = Set.of(
-        "age_at_diagnosis", "anatomic_site", "diagnosis_classification",
-        "diagnosis_classification_system", "diagnosis_verification_status",
-        "diagnosis_basis", "disease_phase"
+        "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
+        "diagnosis_classification", "diagnosis_classification_system",
+        "diagnosis_verification_status", "disease_phase"
     );
     final Set<String> STUDY_PARAMS = Set.of(
         "phs_accession", "study_acronym", "study_short_title"
@@ -482,8 +482,8 @@ public class InventoryESService extends ESService {
         // data within limit can use just from/size
         query.put("size", pageSize);
         query.put("from", offset);
-        // System.out.println(gson.toJson(query));
-        request.setJsonEntity(gson.toJson(query));
+        String queryJson = gson.toJson(query);
+        request.setJsonEntity(queryJson);
 
         JsonObject jsonObject = send(request);
         return collectPage(jsonObject, properties, pageSize);

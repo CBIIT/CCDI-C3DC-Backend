@@ -41,7 +41,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String STUDIES_FACET_END_POINT = "/study_participants/_search";
     final String PARTICIPANTS_END_POINT = "/participants/_search";
     final String SURVIVALS_END_POINT = "/survivals/_search";
-    final String DIAGNOSIS_END_POINT = "/diagnosis/_search";
     final String DIAGNOSES_END_POINT = "/diagnoses/_search";
     final String HOME_STATS_END_POINT = "/home_stats/_search";
     final String STUDIES_END_POINT = "/studies/_search";
@@ -49,7 +48,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String FILES_END_POINT = "/files/_search";
 
     final String PARTICIPANTS_COUNT_END_POINT = "/participants/_count";
-    final String DIAGNOSIS_COUNT_END_POINT = "/diagnosis/_count";
     final String DIAGNOSES_COUNT_END_POINT = "/diagnoses/_count";
     final String STUDIES_COUNT_END_POINT = "/studies/_count";
     final String SURVIVALS_COUNT_END_POINT = "/survivals/_count";
@@ -81,9 +79,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         "participant_id", "ethnicity", "race", "sex_at_birth",
 
         // Diagnoses
-        "age_at_diagnosis", "anatomic_site", "diagnosis_classification",
-        "diagnosis_classification_system", "diagnosis_verification_status",
-        "diagnosis_basis", "disease_phase",
+        "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
+        "diagnosis_classification", "diagnosis_classification_system",
+        "diagnosis_verification_status", "disease_phase",
 
         // Studies
         "phs_accession", "study_acronym", "study_short_title",
@@ -104,9 +102,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         "library_selection", "library_source", "library_strategy"
     );
     final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of(
-        "age_at_diagnosis", "anatomic_site", "diagnosis_classification",
-        "diagnosis_classification_system", "diagnosis_verification_status",
-        "diagnosis_basis", "disease_phase",
+        "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
+        "diagnosis_classification", "diagnosis_classification_system",
+        "diagnosis_verification_status", "disease_phase", "tumor_classification",
         // Demographics
         "ethnicity", "participant_id", "race", "sex_at_birth"
     );
@@ -524,20 +522,26 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
+            // Demographics
             new String[]{"participant_id", "participant_id"},
             new String[]{"ethnicity", "ethnicity_str"},
             new String[]{"race", "race_str"},
             new String[]{"sex_at_birth", "sex_at_birth"},
+
+            // Studies
             new String[]{"phs_accession", "phs_accession"},
         };
 
         String defaultSort = "participant_id"; // Default sort order
 
         Map<String, String> mapping = Map.ofEntries(
+            // Demographics
             Map.entry("participant_id", "participant_id"),
             Map.entry("ethnicity", "ethnicity_str"),
             Map.entry("race", "race_str"),
             Map.entry("sex_at_birth", "sex_at_birth"),
+
+            // Studies
             Map.entry("phs_accession", "phs_accession")
         );
 
@@ -546,32 +550,46 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<Map<String, Object>> diagnosisOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
-            new String[]{"id", "id"},
+            // Diagnoses
             new String[]{"diagnosis_id", "diagnosis_id"},
-            new String[]{"participant_id", "participant_id"},
-            new String[]{"phs_accession", "phs_accession"},
-            new String[]{"diagnosis_icd_o", "diagnosis_icd_o"},
-            new String[]{"anatomic_site", "diagnosis_anatomic_site"},
-            new String[]{"disease_phase", "disease_phase"},
             new String[]{"age_at_diagnosis", "age_at_diagnosis"},
-            new String[]{"vital_status", "last_vital_status"},
-            new String[]{"files", "files"}
+            new String[]{"anatomic_site", "anatomic_site"},
+            new String[]{"diagnosis_basis", "diagnosis_basis"},
+            new String[]{"diagnosis_classification", "diagnosis_classification"},
+            new String[]{"diagnosis_classification_system", "diagnosis_classification_system"},
+            new String[]{"diagnosis_verification_status", "diagnosis_verification_status"},
+            new String[]{"disease_phase", "disease_phase"},
+            new String[]{"tumor_classification", "tumor_classification"},
+
+            // Demographics
+            new String[]{"participant_id", "participant_id"},
+
+            // Studies
+            new String[]{"phs_accession", "phs_accession"},
         };
 
         String defaultSort = "diagnosis_id"; // Default sort order
 
         Map<String, String> mapping = Map.ofEntries(
-                Map.entry("diagnosis_id", "diagnosis_id"),
-                Map.entry("participant_id", "participant_id"),
-                Map.entry("phs_accession", "phs_accession"),
-                Map.entry("diagnosis_icd_o", "diagnosis_icd_o"),
-                Map.entry("diagnosis_anatomic_site", "diagnosis_anatomic_site"),
-                Map.entry("disease_phase", "disease_phase"),
-                Map.entry("age_at_diagnosis", "age_at_diagnosis"),
-                Map.entry("vital_status", "last_vital_status")
+            // Diagnoses
+            Map.entry("diagnosis_id", "diagnosis_id"),
+            Map.entry("age_at_diagnosis", "age_at_diagnosis"),
+            Map.entry("anatomic_site", "anatomic_site"),
+            Map.entry("diagnosis_basis", "diagnosis_basis"),
+            Map.entry("diagnosis_classification", "diagnosis_classification"),
+            Map.entry("diagnosis_classification_system", "diagnosis_classification_system"),
+            Map.entry("diagnosis_verification_status", "diagnosis_verification_status"),
+            Map.entry("disease_phase", "disease_phase"),
+            Map.entry("tumor_classification", "tumor_classification"),
+
+            // Demographics
+            Map.entry("participant_id", "participant_id"),
+
+            // Studies
+            Map.entry("phs_accession", "phs_accession")
         );
 
-        return overview(DIAGNOSIS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "diagnosis");
+        return overview(DIAGNOSES_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "diagnoses");
     }
 
     private List<Map<String, Object>> studyOverview(Map<String, Object> params) throws IOException {
@@ -747,7 +765,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         if (diagnosisIDsSet.size() > 0 && !(diagnosisIDsSet.size() == 1 && diagnosisIDsSet.get(0).equals(""))) {
             Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(diagnosisIDsSet);
-            Request request = new Request("GET", DIAGNOSIS_END_POINT);
+            Request request = new Request("GET", DIAGNOSES_END_POINT);
             request.setJsonEntity(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
             List<String> result = inventoryESService.collectFileIDs(jsonObject);
