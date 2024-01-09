@@ -117,6 +117,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         "study_short_title"
     );
     final Set<String> SURVIVAL_REGULAR_PARAMS = Set.of(
+        // Participants
+        "participant_id",
+        // Studies
+        "phs_accession",
+        // Survivals
         "age_at_event_free_survival_status", "age_at_last_known_survival_status",
         "event_free_survival_status", "first_event", "last_known_survival_status",
         "survival_id"
@@ -149,6 +154,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         .dataFetcher("studyOverview", env -> {
                             Map<String, Object> args = env.getArguments();
                             return studyOverview(args);
+                        })
+                        .dataFetcher("survivalOverview", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return survivalOverview(args);
                         })
                         .dataFetcher("sampleOverview", env -> {
                             Map<String, Object> args = env.getArguments();
@@ -644,6 +653,38 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         study_params.put(OFFSET, offset);
 
         return overview(STUDIES_END_POINT, study_params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "studies");
+    }
+
+    private List<Map<String, Object>> survivalOverview(Map<String, Object> params) throws IOException {
+        final String[][] PROPERTIES = new String[][]{
+            // Participants
+            new String[]{"participant_id", "participant_id"},
+
+            // Studies
+            new String[]{"phs_accession", "phs_accession"},
+
+            // Survivals
+            new String[]{"age_at_last_known_survival_status", "age_at_last_known_survival_status"},
+            new String[]{"first_event", "first_event"},
+            new String[]{"last_known_survival_status", "last_known_survival_status"},
+        };
+
+        String defaultSort = "participant_id"; // Default sort order
+
+        Map<String, String> mapping = Map.ofEntries(
+            // Participants
+            Map.entry("participant_id", "participant_id"),
+
+            // Studies
+            Map.entry("phs_accession", "phs_accession"),
+
+            // Survivals
+            Map.entry("age_at_last_known_survival_status", "age_at_last_known_survival_status"),
+            Map.entry("first_event", "first_event"),
+            Map.entry("last_known_survival_status", "last_known_survival_status")
+        );
+
+        return overview(SURVIVALS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "survivals");
     }
 
     private List<Map<String, Object>> sampleOverview(Map<String, Object> params) throws IOException {

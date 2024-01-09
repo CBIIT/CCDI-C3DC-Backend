@@ -150,6 +150,19 @@ type StudyOverviewResult {
     study_short_title: String
 }
 
+type SurvivalOverviewResult {
+    # Participant
+    participant_id: String
+
+    # Study
+    phs_accession: String
+
+    # Survival
+    age_at_last_known_survival_status: Int
+    first_event: String
+    last_known_survival_status: String
+}
+
 type SampleOverViewResult {
     id: String
     sample_id: String
@@ -355,6 +368,39 @@ type QueryType {
         order_by: String = "",
         sort_direction: String = ""
     ): [StudyOverviewResult]
+
+    survivalOverview (
+        # Demographics
+        participant_ids: [String] = [""],
+        ethnicity: [String] = [""],
+        race: [String] = [""],
+        sex_at_birth: [String] = [""],
+
+        # Diagnoses
+        age_at_diagnosis: [Int] = [0],
+        anatomic_site: [String] = [""],
+        diagnosis_classification: [String] = [""],
+        diagnosis_classification_system: [String] = [""],
+        diagnosis_verification_status: [String] = [""],
+        diagnosis_basis: [String] = [""],
+        disease_phase: [String] = [""]
+
+        # Studies
+        phs_accession: [String] = [""],
+        study_acronym: [String] = [""],
+        study_short_title: [String] = [""],
+
+        # Survivals
+        age_at_last_known_survival_status: [Int] = [0],
+        first_event: [String] = [""],
+        last_known_survival_status: [String] = [""]
+
+        # Table config
+        first: Int = 10,
+        offset: Int = 0,
+        order_by: String = "",
+        sort_direction: String = ""
+    ): [SurvivalOverviewResult]
     
     sampleOverview (
         participant_ids: [String] = [""],
