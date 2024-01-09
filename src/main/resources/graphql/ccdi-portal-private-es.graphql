@@ -138,23 +138,16 @@ type DiagnosisOverviewResult {
 
     # Study
     phs_accession: String
+
+    # Additional fields for download
+    # Stub
 }
 
-type StudyOverViewResult {
-    id: String
-    study_id: String
-    grant_id: String
+type StudyOverviewResult {
+    # Study
     phs_accession: String
+    study_acronym: String
     study_short_title: String
-    personnel_name: String
-    num_of_participants: String
-    diagnosis: [String]
-    num_of_samples: String
-    anatomic_site: [String]
-    num_of_files: String
-    file_type: [String]
-    pubmed_id: String
-    files: [String]
 }
 
 type SampleOverViewResult {
@@ -331,34 +324,37 @@ type QueryType {
     ): [DiagnosisOverviewResult]
     
     studyOverview (
+        # Demographics
         participant_ids: [String] = [""],
-        race: [String] = [""],
-        gender: [String] = [""],
         ethnicity: [String] = [""],
+        race: [String] = [""],
+        sex_at_birth: [String] = [""],
+
+        # Diagnoses
         age_at_diagnosis: [Int] = [0],
-        diagnosis_anatomic_site: [String] = [""],
-        disease_phase: [String] = [""],
-        diagnosis_icd_o: [String] = [""],
-        vital_status: [String] = [""],
-        sample_anatomic_site: [String] = [""],
-        participant_age_at_collection: [Int] = [0],
-        sample_tumor_status: [String] = [""],
-        tumor_classification: [String] = [""],
-        assay_method: [String] = [""],
-        file_type: [String] = [""],
+        anatomic_site: [String] = [""],
+        diagnosis_classification: [String] = [""],
+        diagnosis_classification_system: [String] = [""],
+        diagnosis_verification_status: [String] = [""],
+        diagnosis_basis: [String] = [""],
+        disease_phase: [String] = [""]
+
+        # Studies
         phs_accession: [String] = [""],
-        grant_id: [String] = [""],
-        institution: [String] = [""],
         study_acronym: [String] = [""],
         study_short_title: [String] = [""],
-        library_selection: [String] = [""],
-        library_source: [String] = [""],
-        library_strategy: [String] = [""],
-        offset: Int = 0,
+
+        # Survivals
+        age_at_last_known_survival_status: [Int] = [0],
+        first_event: [String] = [""],
+        last_known_survival_status: [String] = [""]
+
+        # Table config
         first: Int = 10,
+        offset: Int = 0,
         order_by: String = "",
         sort_direction: String = ""
-    ): [StudyOverViewResult]
+    ): [StudyOverviewResult]
     
     sampleOverview (
         participant_ids: [String] = [""],
