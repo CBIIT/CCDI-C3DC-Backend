@@ -45,14 +45,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String HOME_STATS_END_POINT = "/home_stats/_search";
     final String STUDIES_END_POINT = "/studies/_search";
     final String SAMPLES_END_POINT = "/samples/_search";
-    final String FILES_END_POINT = "/files/_search";
 
     final String PARTICIPANTS_COUNT_END_POINT = "/participants/_count";
     final String DIAGNOSES_COUNT_END_POINT = "/diagnoses/_count";
     final String STUDIES_COUNT_END_POINT = "/studies/_count";
     final String SURVIVALS_COUNT_END_POINT = "/survivals/_count";
     final String SAMPLES_COUNT_END_POINT = "/samples/_count";
-    final String FILES_COUNT_END_POINT = "/files/_count";
 
     // For slider fields
     final Set<String> RANGE_PARAMS = Set.of(
@@ -151,6 +149,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         .dataFetcher("studyOverview", env -> {
                             Map<String, Object> args = env.getArguments();
                             return studyOverview(args);
+                        })
+                        .dataFetcher("sampleOverview", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return sampleOverview(args);
+                        })
+                        .dataFetcher("fileIDsFromList", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return fileIDsFromList(args);
                         })
                         .dataFetcher("numberOfDiagnoses", env -> {
                             Map<String, Object> args = env.getArguments();
@@ -566,6 +572,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
             // Studies
             new String[]{"phs_accession", "phs_accession"},
+
+            // Additional fields for download
+            // Stub
         };
 
         String defaultSort = "diagnosis_id"; // Default sort order
@@ -594,41 +603,26 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<Map<String, Object>> studyOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
-            new String[]{"id", "id"},
-            new String[]{"study_id", "study_id"},
-            new String[]{"grant_id", "grant_id"},
+            // Studies
             new String[]{"phs_accession", "phs_accession"},
+            new String[]{"study_acronym", "study_acronym"},
             new String[]{"study_short_title", "study_short_title"},
-            new String[]{"personnel_name", "PIs"},
-            new String[]{"num_of_participants", "num_of_participants"},
-            new String[]{"diagnosis", "diagnosis_cancer"},
-            new String[]{"num_of_samples", "num_of_samples"},
-            new String[]{"anatomic_site", "diagnosis_anatomic_site"},
-            new String[]{"num_of_files", "num_of_files"},
-            new String[]{"file_type", "file_types"},
-            new String[]{"pubmed_id", "pubmed_ids"},
-            new String[]{"files", "files"}
         };
 
-        String defaultSort = "study_id"; // Default sort order
+        String defaultSort = "study_acronym"; // Default sort order
 
         Map<String, String> mapping = Map.ofEntries(
-                Map.entry("study_id", "study_id"),
-                Map.entry("pubmed_id", "pubmed_ids"),
-                Map.entry("grant_id", "grant_id"),
-                Map.entry("phs_accession", "phs_accession"),
-                Map.entry("study_short_title", "study_short_title"),
-                Map.entry("personnel_name", "PIs"),
-                Map.entry("num_of_participants", "num_of_participants"),
-                Map.entry("num_of_samples", "num_of_samples"),
-                Map.entry("num_of_files", "num_of_files")
+            Map.entry("phs_accession", "phs_accession"),
+            Map.entry("study_acronym", "study_acronym"),
+            Map.entry("study_short_title", "study_short_title")
         );
-
-        Request request = new Request("GET", FILES_END_POINT);
-        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), REGULAR_PARAMS, "nested_filters", "files");
+        
+        Request request = new Request("GET", PARTICIPANTS_END_POINT);
+        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), REGULAR_PARAMS, "nested_filters", "participants");
         String[] AGG_NAMES = new String[] {"study_id"};
         query = inventoryESService.addAggregations(query, AGG_NAMES);
-        request.setJsonEntity(gson.toJson(query));
+        String queryJson = gson.toJson(query);
+        request.setJsonEntity(queryJson);
         JsonObject jsonObject = inventoryESService.send(request);
         Map<String, JsonArray> aggs = inventoryESService.collectTermAggs(jsonObject, AGG_NAMES);
         JsonArray buckets = aggs.get("study_id");
@@ -648,7 +642,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         study_params.put(SORT_DIRECTION, direction);
         study_params.put(PAGE_SIZE, pageSize);
         study_params.put(OFFSET, offset);
-        
+
         return overview(STUDIES_END_POINT, study_params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "studies");
     }
 
@@ -680,42 +674,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         );
 
         return overview(SAMPLES_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "samples");
-    }
-
-    private List<Map<String, Object>> fileOverview(Map<String, Object> params) throws IOException {
-        final String[][] PROPERTIES = new String[][]{
-            new String[]{"id", "id"},
-            new String[]{"file_id", "file_id"},
-            new String[]{"guid", "guid"},
-            new String[]{"file_name", "file_name"},
-            new String[]{"file_category", "file_category"},
-            new String[]{"file_description", "file_description"},
-            new String[]{"file_type", "file_type"},
-            new String[]{"file_size", "file_size"},
-            new String[]{"study_id", "study_id"},
-            new String[]{"participant_id", "participant_id"},
-            new String[]{"sample_id", "sample_id"},
-            new String[]{"md5sum", "md5sum"},
-            new String[]{"files", "files"}
-        };
-
-        String defaultSort = "file_id"; // Default sort order
-
-        Map<String, String> mapping = Map.ofEntries(
-                Map.entry("file_id", "file_id"),
-                Map.entry("guid", "guid"),
-                Map.entry("file_name", "file_name"),
-                Map.entry("file_category", "file_category"),
-                Map.entry("file_description", "file_description"),
-                Map.entry("file_type", "file_type"),
-                Map.entry("file_size", "file_size"),
-                Map.entry("study_id", "study_id"),
-                Map.entry("participant_id", "participant_id"),
-                Map.entry("sample_id", "sample_id"),
-                Map.entry("md5sum", "md5sum")
-        );
-
-        return overview(FILES_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "files");
     }
 
     // if the nestedProperty is set, this will filter based upon the params against the nested property for the endpoint's index.
