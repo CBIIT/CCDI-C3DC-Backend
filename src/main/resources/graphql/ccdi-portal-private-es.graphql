@@ -107,9 +107,9 @@ type GetParticipantsResult {
     participantCountByEthnicity: [SearchParticipantsReturnObject]
     participantCountByRace: [SearchParticipantsReturnObject]
     participantCountBySexAtBirth: [SearchParticipantsReturnObject]
-    participantCountByAgeAtLastKnownSurvivalStatus: [SearchParticipantsReturnObject]
-    participantCountByFirstEvent: [SearchParticipantsReturnObject]
-    participantCountByLastKnownSurvivalStatus: [SearchParticipantsReturnObject]
+    participantCountByAgeAtDiagnosis: [SearchParticipantsReturnObject]
+    participantCountByAnatomicSite: [SearchParticipantsReturnObject]
+    participantCountByDiagnosisClassification: [SearchParticipantsReturnObject]
 }
 
 type ParticipantOverviewResult {
