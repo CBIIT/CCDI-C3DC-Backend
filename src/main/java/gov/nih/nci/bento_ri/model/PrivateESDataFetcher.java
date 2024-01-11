@@ -473,12 +473,21 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, SURVIVALS_END_POINT
             ));
 
+            // Get Diagnosis counts for Explore page stats bar
             Map<String, Object> query_diagnoses = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnoses");
             Request diagnosesCountRequest = new Request("GET", DIAGNOSES_COUNT_END_POINT);
             // System.out.println(gson.toJson(query_diagnoses));
             diagnosesCountRequest.setJsonEntity(gson.toJson(query_diagnoses));
             JsonObject diagnosesCountResult = inventoryESService.send(diagnosesCountRequest);
             int numberOfDiagnoses = diagnosesCountResult.get("count").getAsInt();
+
+            // Get Survival counts for Explore page stats bar
+            Map<String, Object> survivalsQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "survivals");
+            Request survivalsCountRequest = new Request("GET", SURVIVALS_COUNT_END_POINT);
+            String survivalsQueryJson = gson.toJson(survivalsQuery);
+            survivalsCountRequest.setJsonEntity(survivalsQueryJson);
+            JsonObject survivalsCountResult = inventoryESService.send(survivalsCountRequest);
+            int numberOfSurvivals = survivalsCountResult.get("count").getAsInt();
 
             Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
             int numberOfStudies = getNodeCount("study_id", query_participants, PARTICIPANTS_END_POINT).size();
@@ -497,6 +506,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             data.put("numberOfStudies", numberOfStudies);
             data.put("numberOfDiagnoses", numberOfDiagnoses);
             data.put("numberOfParticipants", numberOfParticipants);
+            data.put("numberOfSurvivals", numberOfSurvivals);
             
             // widgets data and facet filter counts for projects
             for (var agg: PARTICIPANT_TERM_AGGS) {
