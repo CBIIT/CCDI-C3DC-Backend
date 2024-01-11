@@ -555,6 +555,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
             // Studies
             new String[]{"phs_accession", "phs_accession"},
+
+            // Additional fields for download
+            new String[]{"alternate_participant_id", "alternate_participant_id"},
+            new String[]{"study_id", "study_id"},
         };
 
         String defaultSort = "participant_id"; // Default sort order
@@ -567,7 +571,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("sex_at_birth", "sex_at_birth"),
 
             // Studies
-            Map.entry("phs_accession", "phs_accession")
+            Map.entry("phs_accession", "phs_accession"),
+
+            // Additional fields for download
+            Map.entry("alternate_participant_id", "alternate_participant_id"),
+            Map.entry("study_id", "study_id")
         );
 
         return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "participants");
@@ -576,7 +584,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private List<Map<String, Object>> diagnosisOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
             // Diagnoses
-            new String[]{"diagnosis_id", "diagnosis_id"},
             new String[]{"age_at_diagnosis", "age_at_diagnosis"},
             new String[]{"anatomic_site", "anatomic_site"},
             new String[]{"diagnosis_basis", "diagnosis_basis"},
@@ -593,14 +600,20 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"phs_accession", "phs_accession"},
 
             // Additional fields for download
-            // Stub
+            new String[]{"diagnosis_id", "diagnosis_id"},
+            new String[]{"diagnosis_comment", "diagnosis_comment"},
+            new String[]{"study_id", "study_id"},
+            new String[]{"toronto_childhood_cancer_staging", "toronto_childhood_cancer_staging"},
+            new String[]{"tumor_grade", "tumor_grade"},
+            new String[]{"tumor_stage_clinical_m", "tumor_stage_clinical_m"},
+            new String[]{"tumor_stage_clinical_n", "tumor_stage_clinical_n"},
+            new String[]{"tumor_stage_clinical_t", "tumor_stage_clinical_t"},
         };
 
         String defaultSort = "diagnosis_id"; // Default sort order
 
         Map<String, String> mapping = Map.ofEntries(
             // Diagnoses
-            Map.entry("diagnosis_id", "diagnosis_id"),
             Map.entry("age_at_diagnosis", "age_at_diagnosis"),
             Map.entry("anatomic_site", "anatomic_site"),
             Map.entry("diagnosis_basis", "diagnosis_basis"),
@@ -614,7 +627,17 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("participant_id", "participant_id"),
 
             // Studies
-            Map.entry("phs_accession", "phs_accession")
+            Map.entry("phs_accession", "phs_accession"),
+
+            // Additional fields for download
+            Map.entry("diagnosis_id", "diagnosis_id"),
+            Map.entry("diagnosis_comment", "diagnosis_comment"),
+            Map.entry("study_id", "study_id"),
+            Map.entry("toronto_childhood_cancer_staging", "toronto_childhood_cancer_staging"),
+            Map.entry("tumor_grade", "tumor_grade"),
+            Map.entry("tumor_stage_clinical_m", "tumor_stage_clinical_m"),
+            Map.entry("tumor_stage_clinical_n", "tumor_stage_clinical_n"),
+            Map.entry("tumor_stage_clinical_t", "tumor_stage_clinical_t")
         );
 
         return overview(DIAGNOSES_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "diagnoses");
@@ -626,14 +649,33 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"phs_accession", "phs_accession"},
             new String[]{"study_acronym", "study_acronym"},
             new String[]{"study_short_title", "study_short_title"},
+
+            // Additional fields for download
+            new String[]{"acl", "acl"},
+            new String[]{"consent", "consent"},
+            new String[]{"consent_number", "consent_number"},
+            new String[]{"external_url", "external_url"},
+            new String[]{"study_description", "study_description"},
+            new String[]{"study_id", "study_id"},
+            new String[]{"study_name", "study_name"},
         };
 
         String defaultSort = "study_acronym"; // Default sort order
 
         Map<String, String> mapping = Map.ofEntries(
+            // Studies
             Map.entry("phs_accession", "phs_accession"),
             Map.entry("study_acronym", "study_acronym"),
-            Map.entry("study_short_title", "study_short_title")
+            Map.entry("study_short_title", "study_short_title"),
+
+            // Additional fields for download
+            Map.entry("acl", "acl"),
+            Map.entry("consent", "consent"),
+            Map.entry("consent_number", "consent_number"),
+            Map.entry("external_url", "external_url"),
+            Map.entry("study_description", "study_description"),
+            Map.entry("study_id", "study_id"),
+            Map.entry("study_name", "study_name")
         );
         
         Request request = new Request("GET", PARTICIPANTS_END_POINT);
@@ -677,6 +719,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"age_at_last_known_survival_status", "age_at_last_known_survival_status"},
             new String[]{"first_event", "first_event"},
             new String[]{"last_known_survival_status", "last_known_survival_status"},
+
+            // Additional fields for download
+            new String[]{"age_at_event_free_survival_status", "age_at_event_free_survival_status"},
+            new String[]{"event_free_survival_status", "event_free_survival_status"},
+            new String[]{"study_id", "study_id"},
+            new String[]{"survival_id", "survival_id"},
         };
 
         String defaultSort = "participant_id"; // Default sort order
@@ -691,7 +739,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             // Survivals
             Map.entry("age_at_last_known_survival_status", "age_at_last_known_survival_status"),
             Map.entry("first_event", "first_event"),
-            Map.entry("last_known_survival_status", "last_known_survival_status")
+            Map.entry("last_known_survival_status", "last_known_survival_status"),
+
+            // Additional fields for download
+            Map.entry("age_at_event_free_survival_status", "age_at_event_free_survival_status"),
+            Map.entry("event_free_survival_status", "event_free_survival_status"),
+            Map.entry("study_id", "study_id"),
+            Map.entry("survival_id", "survival_id")
         );
 
         return overview(SURVIVALS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "survivals");
