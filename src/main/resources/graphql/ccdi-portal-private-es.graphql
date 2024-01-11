@@ -121,6 +121,10 @@ type ParticipantOverviewResult {
 
     # Study
     phs_accession: String
+
+    # Additional fields for download
+    alternate_participant_id: String
+    study_id: String
 }
 
 type DiagnosisOverviewResult {
@@ -141,7 +145,14 @@ type DiagnosisOverviewResult {
     phs_accession: String
 
     # Additional fields for download
-    # Stub
+    diagnosis_id: String
+    diagnosis_comment: String
+    study_id: String
+    toronto_childhood_cancer_staging: String
+    tumor_grade: String
+    tumor_stage_clinical_m: String
+    tumor_stage_clinical_n: String
+    tumor_stage_clinical_t: String
 }
 
 type StudyOverviewResult {
@@ -149,6 +160,15 @@ type StudyOverviewResult {
     phs_accession: String
     study_acronym: String
     study_short_title: String
+
+    # Additional fields for download
+    acl: String
+    consent: String
+    consent_number: Int
+    external_url: String
+    study_description: String
+    study_id: String
+    study_name: String
 }
 
 type SurvivalOverviewResult {
@@ -162,6 +182,12 @@ type SurvivalOverviewResult {
     age_at_last_known_survival_status: Int
     first_event: String
     last_known_survival_status: String
+
+    # Additional fields for download
+    age_at_event_free_survival_status: Int
+    event_free_survival_status: String
+    study_id: String
+    survival_id: String
 }
 
 type SampleOverViewResult {
