@@ -25,53 +25,6 @@ type RangeCount {
     subjects: Int
 }
 
-type SearchParticipantsResult {
-    filterParticipantCountByGender: [SearchParticipantsReturnObject]
-    filterParticipantCountByRace: [SearchParticipantsReturnObject]
-    filterParticipantCountByEthnicity: [SearchParticipantsReturnObject]
-    filterParticipantCountByDiagnosisAge: RangeCount
-    filterParticipantCountByDiagnosisAnatomicSite: [SearchParticipantsReturnObject]
-    filterParticipantCountByDiseasePhase: [SearchParticipantsReturnObject]
-    filterParticipantCountByICDO: [SearchParticipantsReturnObject]
-    filterParticipantCountByVitalStatus: [SearchParticipantsReturnObject]
-    filterParticipantCountBySampleAnatomicSite: [SearchParticipantsReturnObject]
-    filterParticipantCountBySampleAge: RangeCount
-    filterParticipantCountByTumorStatus: [SearchParticipantsReturnObject]
-    filterParticipantCountByTumorClassification: [SearchParticipantsReturnObject]
-    filterParticipantCountByAssayMethod: [SearchParticipantsReturnObject]
-    filterParticipantCountByFileType: [SearchParticipantsReturnObject]
-    filterParticipantCountByPHSAccession: [SearchParticipantsReturnObject]
-    filterParticipantCountByGrantID: [SearchParticipantsReturnObject]
-    filterParticipantCountByInstitution: [SearchParticipantsReturnObject]
-    filterParticipantCountByName: [SearchParticipantsReturnObject]
-    filterParticipantCountByAcronym: [SearchParticipantsReturnObject]
-    filterParticipantCountByStudyTitle: [SearchParticipantsReturnObject]
-    filterParticipantCountByLibrarySelection: [SearchParticipantsReturnObject]
-    filterParticipantCountByLibrarySource: [SearchParticipantsReturnObject]
-    filterParticipantCountByLibraryStrategy: [SearchParticipantsReturnObject]
-
-    numberOfStudies: Int
-    numberOfParticipants: Int
-    numberOfSamples: Int
-    numberOfFiles: Int
-    numberOfDiagnosis: Int
-
-    # C3DC does not have "Files"
-    participantsFileCount: Int
-    diagnosisFileCount: Int
-    samplesFileCount: Int
-    studiesFileCount: Int
-    filesFileCount: Int
-
-    # For widgets
-    participantCountByStudy: [SearchParticipantsReturnObject]
-    participantCountByDiagnosis: [SearchParticipantsReturnObject]
-    participantCountByDiagnosisAge: [SearchParticipantsReturnObject]
-    participantCountByGender: [SearchParticipantsReturnObject]
-    participantCountByRace: [SearchParticipantsReturnObject]
-    participantCountByEthnicity: [SearchParticipantsReturnObject]
-}
-
 type GetParticipantsResult {
     # Overall count
     numberOfParticipants: Int
@@ -190,50 +143,6 @@ type SurvivalOverviewResult {
     survival_id: String
 }
 
-type SampleOverViewResult {
-    id: String
-    sample_id: String
-    participant_id: String
-    study_id: String
-    anatomic_site: String
-    participant_age_at_collection: Int
-    diagnosis_icd_o: String
-    sample_tumor_status: String
-    tumor_classification: String
-    files: [String]
-}
-
-type FileOverViewResult {
-    id: String
-    file_name: String
-    file_category: String
-    file_description: String
-    file_type: String
-    file_size: String
-    sample_id: String
-    participant_id: String
-    study_id: String
-    file_id: String
-    guid: String
-    md5sum: String
-    files: [String]
-}
-
-type FileDetail {
-    id: String
-    file_id: String
-    guid: String
-    file_name: String
-    study_short_title: String
-    phs_accession: String
-    sample_id: String
-    participant_id: String
-    study_id: String
-    file_type: String
-    file_size: Float
-    md5sum: String
-}
-
 schema {
     query: QueryType
 }
@@ -243,32 +152,6 @@ type QueryType {
     globalSearch (input: String, first: Int = 10, offset: Int = 0): GlobalSearchResult
 
     idsLists: IdsListsES
-    
-    searchParticipants (
-        participant_ids: [String] = [""],
-        race: [String] = [""],
-        gender: [String] = [""],
-        ethnicity: [String] = [""],
-        age_at_diagnosis: [Int] = [0],
-        diagnosis_anatomic_site: [String] = [""],
-        disease_phase: [String] = [""],
-        diagnosis_icd_o: [String] = [""],
-        vital_status: [String] = [""],
-        sample_anatomic_site: [String] = [""],
-        participant_age_at_collection: [Int] = [0],
-        sample_tumor_status: [String] = [""],
-        tumor_classification: [String] = [""],
-        assay_method: [String] = [""],
-        file_type: [String] = [""],
-        phs_accession: [String] = [""],
-        grant_id: [String] = [""],
-        institution: [String] = [""],
-        study_acronym: [String] = [""],
-        study_short_title: [String] = [""],
-        library_selection: [String] = [""],
-        library_source: [String] = [""],
-        library_strategy: [String] = [""]
-    ): SearchParticipantsResult
     
     getParticipants (
         # Demographics
@@ -429,82 +312,6 @@ type QueryType {
         sort_direction: String = ""
     ): [SurvivalOverviewResult]
     
-    sampleOverview (
-        participant_ids: [String] = [""],
-        race: [String] = [""],
-        gender: [String] = [""],
-        ethnicity: [String] = [""],
-        age_at_diagnosis: [Int] = [0],
-        diagnosis_anatomic_site: [String] = [""],
-        disease_phase: [String] = [""],
-        diagnosis_icd_o: [String] = [""],
-        vital_status: [String] = [""],
-        sample_anatomic_site: [String] = [""],
-        participant_age_at_collection: [Int] = [0],
-        sample_tumor_status: [String] = [""],
-        tumor_classification: [String] = [""],
-        assay_method: [String] = [""],
-        file_type: [String] = [""],
-        phs_accession: [String] = [""],
-        grant_id: [String] = [""],
-        institution: [String] = [""],
-        study_acronym: [String] = [""],
-        study_short_title: [String] = [""],
-        library_selection: [String] = [""], 
-        ibrary_source: [String] = [""],
-        library_strategy: [String] = [""],
-        offset: Int = 0,
-        first: Int = 10,
-        order_by: String = "",
-        sort_direction: String = ""
-    ): [SampleOverViewResult]
-
-    fileOverview (
-        participant_ids: [String] = [""],
-        race: [String] = [""],
-        gender: [String] = [""],
-        ethnicity: [String] = [""],
-        age_at_diagnosis: [Int] = [0],
-        diagnosis_anatomic_site: [String] = [""],
-        disease_phase: [String] = [""],
-        diagnosis_icd_o: [String] = [""],
-        vital_status: [String] = [""],
-        sample_anatomic_site: [String] = [""],
-        participant_age_at_collection: [Int] = [0],
-        sample_tumor_status: [String] = [""],
-        tumor_classification: [String] = [""],
-        assay_method: [String] = [""],
-        file_type: [String] = [""],
-        phs_accession: [String] = [""],
-        grant_id: [String] = [""],
-        institution: [String] = [""],
-        study_acronym: [String] = [""],
-        study_short_title: [String] = [""],
-        library_selection: [String] = [""],
-        library_source: [String] = [""],
-        library_strategy: [String] = [""],
-        offset: Int = 0,
-        first: Int = 10,
-        order_by: String = "",
-        sort_direction: String = ""
-    ): [FileOverViewResult]
-
-    fileIDsFromList (
-        participant_ids: [String] = [],
-        diagnosis_ids: [String] = [],
-        study_ids: [String] = [],
-        sample_ids: [String] = [],
-        file_ids: [String] = []
-    ): [String]
-
-    filesInList(
-        id: [String],
-        order_by: String = "",
-        sort_direction: String = "ASC",
-        first: Int = 10,
-        offset: Int = 0
-    ): [FileDetail]
-
     numberOfDiagnoses: Int
     numberOfParticipants: Int
     numberOfReferenceFiles: Int
