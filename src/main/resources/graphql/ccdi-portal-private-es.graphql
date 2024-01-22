@@ -14,6 +14,11 @@ type IdsListsES {
     participantIds: [String]
 }
 
+type ParticipantResult {
+    participant_id: String
+    study_id: String
+}
+
 type SearchParticipantsReturnObject {
     group: String
     subjects: Int
@@ -149,10 +154,17 @@ schema {
 
 type QueryType {
     esVersion: String
+    findParticipantIdsInList(participant_id: [String] = []): [ParticipantResult]
     globalSearch (input: String, first: Int = 10, offset: Int = 0): GlobalSearchResult
 
     idsLists: IdsListsES
     
+    numberOfDiagnoses: Int
+    numberOfParticipants: Int
+    numberOfReferenceFiles: Int
+    numberOfStudies: Int
+    numberOfSurvivals: Int
+
     getParticipants (
         # Demographics
         participant_ids: [String] = [""],
@@ -311,10 +323,4 @@ type QueryType {
         order_by: String = "",
         sort_direction: String = ""
     ): [SurvivalOverviewResult]
-    
-    numberOfDiagnoses: Int
-    numberOfParticipants: Int
-    numberOfReferenceFiles: Int
-    numberOfStudies: Int
-    numberOfSurvivals: Int
 }

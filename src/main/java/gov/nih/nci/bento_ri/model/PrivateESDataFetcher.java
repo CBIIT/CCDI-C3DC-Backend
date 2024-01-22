@@ -179,6 +179,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return numberOfSurvivals(args);
                         })
+                        .dataFetcher("findParticipantIdsInList", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return findParticipantIdsInList(args);
+                        })
                 )
                 .build();
     }
@@ -758,6 +762,18 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         int offset = (int) params.get(OFFSET);
         List<Map<String, Object>> page = inventoryESService.collectPage(request, query, properties, pageSize, offset);
         return page;
+    }
+
+    private List<Map<String, Object>> findParticipantIdsInList(Map<String, Object> params) throws IOException {
+        final String[][] properties = new String[][]{
+                new String[]{"participant_id", "participant_id"},
+                new String[]{"study_id", "study_id"}
+        };
+
+        Map<String, Object> query = esService.buildListQuery(params, Set.of(), false);
+        Request request = new Request("GET",PARTICIPANTS_END_POINT);
+
+        return esService.collectPage(request, query, properties, ESService.MAX_ES_SIZE, 0);
     }
 
     private Map<String, String> mapSortOrder(String order_by, String direction, String defaultSort, Map<String, String> mapping) {
