@@ -36,14 +36,10 @@ public class InventoryESService extends ESService {
     final Set<String> STUDY_PARAMS = Set.of(
         "phs_accession", "study_acronym", "study_short_title"
     );
-    final Set<String> SAMPLE_PARAMS = Set.of("sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
     final Set<String> SURVIVAL_PARAMS = Set.of(
         "age_at_last_known_survival_status",
         "first_event", "last_known_survival_status"
     );
-    final Set<String> FILE_PARAMS = Set.of("assay_method", "file_type", "library_selection", "library_source", "library_strategy");
-    final Set<String> SAMPLE_FILE_PARAMS = Set.of("sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "library_selection", "library_source", "library_strategy");
-    
 
     static final AWSCredentialsProvider credentialsProvider = new DefaultAWSCredentialsProviderChain();
 
@@ -141,16 +137,10 @@ public class InventoryESService extends ESService {
         List<Object> filter = new ArrayList<>();
         List<Object> participant_filters = new ArrayList<>();
         List<Object> diagnosis_filters = new ArrayList<>();
-        List<Object> sample_filters = new ArrayList<>();
         List<Object> survival_filters = new ArrayList<>();
-        List<Object> file_filters = new ArrayList<>();
-        List<Object> sample_file_filters = new ArrayList<>();
         
         for (String key: params.keySet()) {
             String finalKey = key;
-            if (indexType.equals("files") && key.equals("assay_method")) {
-                    finalKey = "file_category";
-            }
             if (excludedParams.contains(finalKey)) {
                 continue;
             }
@@ -176,10 +166,6 @@ public class InventoryESService extends ESService {
                         diagnosis_filters.add(Map.of(
                             "range", Map.of("diagnoses." + key, range)
                         ));
-                    } else if (!indexType.equals("samples") && key.equals("participant_age_at_collection")) {
-                        sample_file_filters.add(Map.of(
-                            "range", Map.of(nestedProperty+"."+key, range)
-                        ));
                     } else if (!indexType.equals("survivals") && key.equals("age_at_last_known_survival_status")) {
                         survival_filters.add(Map.of(
                             "range", Map.of("survivals." + key, range)
@@ -194,42 +180,18 @@ public class InventoryESService extends ESService {
                 // Term parameters (default)
                 List<String> valueSet = (List<String>) params.get(key);
                 
-                if (indexType.equals("files")) {
-                    if (key.equals("assay_method")) {
-                        key = "file_category";
-                    }
-                    if (key.equals("participant_ids")) {
-                        key = "file_participant_ids";
-                    }
-                }
                 if (key.equals("participant_ids")) {
                     key = "participant_id";
                 }
                 // list with only one empty string [""] means return all records
                 if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
-                    if (PARTICIPANT_PARAMS.contains(key) && indexType.equals("files")) {
-                        participant_filters.add(Map.of(
-                            "terms", Map.of("participant_filters."+key, valueSet)
-                        ));
-                    } else if (DIAGNOSIS_PARAMS.contains(key) && !indexType.equals("diagnoses")) {
+                    if (DIAGNOSIS_PARAMS.contains(key) && !indexType.equals("diagnoses")) {
                         diagnosis_filters.add(Map.of(
                             "terms", Map.of("diagnoses." + key, valueSet)
-                        ));
-                    } else if (SAMPLE_FILE_PARAMS.contains(key) && !(indexType.equals("samples") || indexType.equals("files"))) {
-                        sample_file_filters.add(Map.of(
-                            "terms", Map.of("sample_file_filters."+key, valueSet)
-                        ));
-                    } else if (SAMPLE_PARAMS.contains(key) && indexType.equals("files")) {
-                        sample_filters.add(Map.of(
-                            "terms", Map.of("sample_filters."+key, valueSet)
                         ));
                     } else if (SURVIVAL_PARAMS.contains(key) && !indexType.equals("survivals")) {
                         survival_filters.add(Map.of(
                             "terms", Map.of("survivals." + key, valueSet)
-                        ));
-                    } else if (FILE_PARAMS.contains(key) && indexType.equals("samples")) {
-                        file_filters.add(Map.of(
-                            "terms", Map.of("file_filters."+key, valueSet)
                         ));
                     } else {
                         filter.add(Map.of(
@@ -243,11 +205,8 @@ public class InventoryESService extends ESService {
         int FilterLen = filter.size();
         int participantFilterLen = participant_filters.size();
         int diagnosisFilterLen = diagnosis_filters.size();
-        int sampleFileFilterLen = sample_file_filters.size();
-        int sampleFilterLen = sample_filters.size();
         int survivalFilterLen = survival_filters.size();
-        int fileFilterLen = file_filters.size();
-        if (FilterLen + participantFilterLen + diagnosisFilterLen + sampleFileFilterLen + sampleFilterLen + survivalFilterLen + fileFilterLen == 0) {
+        if (FilterLen + participantFilterLen + diagnosisFilterLen + survivalFilterLen == 0) {
             result.put("query", Map.of("match_all", Map.of()));
         } else {
             if (participantFilterLen > 0) {
@@ -256,30 +215,12 @@ public class InventoryESService extends ESService {
             if (diagnosisFilterLen > 0) {
                 filter.add(Map.of("nested", Map.of("path", "diagnoses", "query", Map.of("bool", Map.of("filter", diagnosis_filters)), "inner_hits", Map.of())));
             }
-            if (sampleFileFilterLen > 0) {
-                filter.add(Map.of("nested", Map.of("path", "sample_file_filters", "query", Map.of("bool", Map.of("filter", sample_file_filters)), "inner_hits", Map.of())));
-            }
-            if (sampleFilterLen > 0) {
-                filter.add(Map.of("nested", Map.of("path", "sample_filters", "query", Map.of("bool", Map.of("filter", sample_filters)), "inner_hits", Map.of())));
-            }
             if (survivalFilterLen > 0) {
                 filter.add(Map.of("nested", Map.of("path", "survivals", "query", Map.of("bool", Map.of("filter", survival_filters)), "inner_hits", Map.of())));
-            }
-            if (fileFilterLen > 0) {
-                filter.add(Map.of("nested", Map.of("path", "file_filters", "query", Map.of("bool", Map.of("filter", file_filters)), "inner_hits", Map.of())));
             }
             result.put("query", Map.of("bool", Map.of("filter", filter)));
         }
         
-        return result;
-    }
-
-    public Map<String, Object> buildGetFileIDsQuery(List<String> ids) throws IOException {
-        Map<String, Object> result = new HashMap<>();
-        result.put("_source", Set.of("id", "files"));
-        result.put("query", Map.of("terms", Map.of("id", ids)));
-        result.put("size", ids.size());
-        result.put("from", 0);
         return result;
     }
 
@@ -434,19 +375,6 @@ public class InventoryESService extends ESService {
         JsonObject aggs = jsonObject.getAsJsonObject("aggregations");
         data.put(rangeAggName, aggs.getAsJsonObject("inner").getAsJsonObject("range_stats"));
         
-        return data;
-    }
-
-    public List<String> collectFileIDs(JsonObject jsonObject) {
-        List<String> data = new ArrayList<>();
-        JsonArray searchHits = jsonObject.getAsJsonObject("hits").getAsJsonArray("hits");
-        for (var hit: searchHits) {
-            JsonObject obj = hit.getAsJsonObject().get("_source").getAsJsonObject();
-            JsonArray arr = obj.get("files").getAsJsonArray();
-            for (int i = 0; i < arr.size(); i++) {
-                data.add(arr.get(i).getAsString());
-            }
-        }
         return data;
     }
 
