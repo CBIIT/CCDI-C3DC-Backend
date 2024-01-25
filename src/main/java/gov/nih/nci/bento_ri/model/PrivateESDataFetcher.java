@@ -697,6 +697,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         int offset = (int) params.get(OFFSET);
         
         Map<String, Object> study_params = new HashMap<>();
+        if (data.size() == 0) {
+            data.add("-1");
+        }
         study_params.put("study_id", data);
         study_params.put(ORDER_BY, order_by);
         study_params.put(SORT_DIRECTION, direction);
