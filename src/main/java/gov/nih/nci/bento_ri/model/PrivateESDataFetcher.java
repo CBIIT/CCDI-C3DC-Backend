@@ -159,9 +159,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return survivalOverview(args);
                         })
-                        .dataFetcher("numberOfDiagnoses", env -> {
+                        .dataFetcher("numberOfDiseases", env -> {
                             Map<String, Object> args = env.getArguments();
-                            return numberOfDiagnoses(args);
+                            return numberOfDiseases(args);
                         })
                         .dataFetcher("numberOfParticipants", env -> {
                             Map<String, Object> args = env.getArguments();
@@ -794,7 +794,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return Map.of(sortOrder, sortDirection);
     }
 
-    private Integer numberOfDiagnoses(Map<String, Object> params) throws Exception {
+    private Integer numberOfDiseases(Map<String, Object> params) throws Exception {
         // String cacheKey = generateCacheKey(params);
         // Integer data = (Integer)caffeineCache.asMap().get(cacheKey);
 
@@ -813,7 +813,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
 
         JsonObject counts = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
-        int count = counts.get("num_diagnoses").getAsInt();
+        int count = counts.get("num_diseases").getAsInt();
 
         // caffeineCache.put(cacheKey, data);
 
