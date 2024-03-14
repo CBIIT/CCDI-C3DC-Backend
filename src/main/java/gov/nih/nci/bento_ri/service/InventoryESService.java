@@ -224,6 +224,30 @@ public class InventoryESService extends ESService {
         return result;
     }
 
+    /**
+     * Count unique values of the given fields
+     * @param query The base Opensearch query map to modify
+     * @param termAggNames The fields whose values to count
+     * @return A modified Opensearch query map
+     */
+    public Map<String, Object> countValues(Map<String, Object> query, String[] termAggNames) {
+        Map<String, Object> newQuery = new HashMap<>(query);
+        Map<String, Object> counts = new HashMap<String, Object>();
+
+        // Add counts for each field
+        for (String term : termAggNames) {
+            counts.put("num_values_of_" + term, Map.ofEntries(
+                Map.entry("cardinality", Map.ofEntries(
+                    Map.entry("field", term)
+                ))
+            ));
+        }
+
+        newQuery.put("aggs", counts);
+        newQuery.put("size", 0);
+        return newQuery;
+    }
+
     public Map<String, Object> addAggregations(Map<String, Object> query, String[] termAggNames, String cardinalityAggName, List<String> only_includes) {
         return addAggregations(query, termAggNames, cardinalityAggName, new String[]{}, only_includes);
     }

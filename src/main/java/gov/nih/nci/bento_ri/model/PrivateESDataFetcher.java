@@ -472,13 +472,16 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, SURVIVALS_END_POINT
             ));
 
-            // Get Diagnosis counts for Explore page stats bar
-            Map<String, Object> query_diagnoses = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnoses");
-            Request diagnosesCountRequest = new Request("GET", DIAGNOSES_COUNT_END_POINT);
-            // System.out.println(gson.toJson(query_diagnoses));
-            diagnosesCountRequest.setJsonEntity(gson.toJson(query_diagnoses));
+            // Get disease counts for Explore page stats bar
+            Map<String, Object> diagnosesQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnoses");
+            String[] diseaseField = new String[]{"diagnosis_classification"};
+            diagnosesQuery = inventoryESService.countValues(diagnosesQuery, diseaseField);
+            Request diagnosesCountRequest = new Request("GET", DIAGNOSES_END_POINT);
+            String diagnosesQueryJson = gson.toJson(diagnosesQuery);
+            diagnosesCountRequest.setJsonEntity(diagnosesQueryJson);
             JsonObject diagnosesCountResult = inventoryESService.send(diagnosesCountRequest);
-            int numberOfDiagnoses = diagnosesCountResult.get("count").getAsInt();
+            int numberOfDiseases = diagnosesCountResult.getAsJsonObject("aggregations")
+                .getAsJsonObject("num_values_of_diagnosis_classification").get("value").getAsInt();
 
             // Get Survival counts for Explore page stats bar
             Map<String, Object> survivalsQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "survivals");
@@ -503,7 +506,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             int numberOfParticipants = participantsCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
 
             data.put("numberOfStudies", numberOfStudies);
-            data.put("numberOfDiagnoses", numberOfDiagnoses);
+            data.put("numberOfDiseases", numberOfDiseases);
             data.put("numberOfParticipants", numberOfParticipants);
             data.put("numberOfSurvivals", numberOfSurvivals);
             
