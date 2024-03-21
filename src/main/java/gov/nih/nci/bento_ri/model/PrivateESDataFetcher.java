@@ -472,11 +472,22 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, SURVIVALS_END_POINT
             ));
 
+            // Get disease counts for Explore page stats bar
+            Map<String, Object> diseaseQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnoses");
+            String[] diseaseField = new String[]{"diagnosis_classification"};
+            diseaseQuery = inventoryESService.countValues(diseaseQuery, diseaseField);
+            Request diseaseCountRequest = new Request("GET", DIAGNOSES_END_POINT);
+            String diseaseQueryJson = gson.toJson(diseaseQuery);
+            diseaseCountRequest.setJsonEntity(diseaseQueryJson);
+            JsonObject diseaseCountResult = inventoryESService.send(diseaseCountRequest);
+            int numberOfDiseases = diseaseCountResult.getAsJsonObject("aggregations")
+                .getAsJsonObject("num_values_of_diagnosis_classification").get("value").getAsInt();
+
             // Get Diagnosis counts for Explore page stats bar
-            Map<String, Object> query_diagnoses = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnoses");
+            Map<String, Object> diagnosesQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnoses");
             Request diagnosesCountRequest = new Request("GET", DIAGNOSES_COUNT_END_POINT);
-            // System.out.println(gson.toJson(query_diagnoses));
-            diagnosesCountRequest.setJsonEntity(gson.toJson(query_diagnoses));
+            String diagnosesQueryJson = gson.toJson(diagnosesQuery);
+            diagnosesCountRequest.setJsonEntity(diagnosesQueryJson);
             JsonObject diagnosesCountResult = inventoryESService.send(diagnosesCountRequest);
             int numberOfDiagnoses = diagnosesCountResult.get("count").getAsInt();
 
@@ -504,6 +515,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
             data.put("numberOfStudies", numberOfStudies);
             data.put("numberOfDiagnoses", numberOfDiagnoses);
+            data.put("numberOfDiseases", numberOfDiseases);
             data.put("numberOfParticipants", numberOfParticipants);
             data.put("numberOfSurvivals", numberOfSurvivals);
             
