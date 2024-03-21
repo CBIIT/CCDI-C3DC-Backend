@@ -33,6 +33,7 @@ type RangeCount {
 type GetParticipantsResult {
     # Overall count
     numberOfParticipants: Int
+    numberOfDiagnoses: Int
     numberOfDiseases: Int
     numberOfStudies: Int
     numberOfSurvivals: Int
