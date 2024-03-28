@@ -113,7 +113,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     );
     final Set<String> STUDY_REGULAR_PARAMS = Set.of(
         "acl", "consent", "consent_number", "external_url", "phs_accession",
-        "study_acronym", "study_description", "study_id", "study_name",
+        "study_acronym", "study_description", "study_id",
         "study_short_title"
     );
     final Set<String> SURVIVAL_REGULAR_PARAMS = Set.of(
@@ -658,7 +658,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"external_url", "external_url"},
             new String[]{"study_description", "study_description"},
             new String[]{"study_id", "study_id"},
-            new String[]{"study_name", "study_name"},
         };
 
         String defaultSort = "study_acronym"; // Default sort order
@@ -675,8 +674,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("consent_number", "consent_number"),
             Map.entry("external_url", "external_url"),
             Map.entry("study_description", "study_description"),
-            Map.entry("study_id", "study_id"),
-            Map.entry("study_name", "study_name")
+            Map.entry("study_id", "study_id")
         );
         
         Request request = new Request("GET", PARTICIPANTS_END_POINT);

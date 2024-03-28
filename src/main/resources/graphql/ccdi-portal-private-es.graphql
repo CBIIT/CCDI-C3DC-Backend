@@ -124,7 +124,6 @@ type StudyOverviewResult {
     external_url: String
     study_description: String
     study_id: String
-    study_name: String
 }
 
 type SurvivalOverviewResult {
