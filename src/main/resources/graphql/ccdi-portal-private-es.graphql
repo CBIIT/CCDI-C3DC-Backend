@@ -81,7 +81,6 @@ type ParticipantOverviewResult {
     phs_accession: String
 
     # Additional fields for download
-    alternate_participant_id: String
     study_id: String
 }
 

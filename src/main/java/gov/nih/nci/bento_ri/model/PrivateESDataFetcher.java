@@ -562,7 +562,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"phs_accession", "phs_accession"},
 
             // Additional fields for download
-            new String[]{"alternate_participant_id", "alternate_participant_id"},
             new String[]{"study_id", "study_id"},
         };
 
@@ -579,7 +578,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("phs_accession", "phs_accession"),
 
             // Additional fields for download
-            Map.entry("alternate_participant_id", "alternate_participant_id"),
             Map.entry("study_id", "study_id")
         );
 
