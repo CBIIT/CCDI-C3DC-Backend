@@ -394,40 +394,40 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_id",
+                    CARDINALITY_AGG_NAME, "participant_pk",
                     WIDGET_QUERY,"participantCountByAgeAtDiagnosis",
                     AGG_NAME, "age_at_diagnosis",
                     FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtDiagnosis",
                     AGG_ENDPOINT, DIAGNOSES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_id",
+                    CARDINALITY_AGG_NAME, "participant_pk",
                     WIDGET_QUERY,"participantCountByAnatomicSite",
                     AGG_NAME, "anatomic_site",
                     FILTER_COUNT_QUERY, "filterParticipantCountByAnatomicSite",
                     AGG_ENDPOINT, DIAGNOSES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_id",
+                    CARDINALITY_AGG_NAME, "participant_pk",
                     WIDGET_QUERY,"participantCountByDiagnosis",
                     AGG_NAME, "diagnosis",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosis",
                     AGG_ENDPOINT, DIAGNOSES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_id",
+                    CARDINALITY_AGG_NAME, "participant_pk",
                     AGG_NAME, "diagnosis_classification_system",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisClassificationSystem",
                     AGG_ENDPOINT, DIAGNOSES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_id",
+                    CARDINALITY_AGG_NAME, "participant_pk",
                     AGG_NAME, "diagnosis_basis",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisBasis",
                     AGG_ENDPOINT, DIAGNOSES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_id",
+                    CARDINALITY_AGG_NAME, "participant_pk",
                     AGG_NAME, "disease_phase",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiseasePhase",
                     AGG_ENDPOINT, DIAGNOSES_END_POINT
@@ -448,19 +448,19 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_id",
+                    CARDINALITY_AGG_NAME, "participant_pk",
                     AGG_NAME, "age_at_last_known_survival_status",
                     FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtLastKnownSurvivalStatus",
                     AGG_ENDPOINT, SURVIVALS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_id",
+                    CARDINALITY_AGG_NAME, "participant_pk",
                     AGG_NAME, "first_event",
                     FILTER_COUNT_QUERY, "filterParticipantCountByFirstEvent",
                     AGG_ENDPOINT, SURVIVALS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_id",
+                    CARDINALITY_AGG_NAME, "participant_pk",
                     AGG_NAME, "last_known_survival_status",
                     FILTER_COUNT_QUERY, "filterParticipantCountByLastKnownSurvivalStatus",
                     AGG_ENDPOINT, SURVIVALS_END_POINT
