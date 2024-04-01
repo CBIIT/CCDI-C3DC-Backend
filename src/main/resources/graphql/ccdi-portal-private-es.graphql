@@ -158,6 +158,13 @@ type StudyDetailsResult {
     num_survivals: Int
 }
 
+type StudiesListingResult {
+    num_diseases: Int
+    num_participants: Int
+    phs_accession: String
+    study_short_title: String
+}
+
 schema {
     query: QueryType
 }
@@ -335,4 +342,5 @@ type QueryType {
     ): [SurvivalOverviewResult]
     
     studyDetails(study_id: String): StudyDetailsResult
+    studiesListing: [StudiesListingResult]
 }

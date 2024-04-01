@@ -163,6 +163,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return studyDetails(args);
                         })
+                        .dataFetcher("studiesListing", env -> studiesListing())
                         .dataFetcher("numberOfDiseases", env -> {
                             Map<String, Object> args = env.getArguments();
                             return numberOfDiseases(args);
@@ -823,6 +824,19 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
 
         return study;
+    }
+  
+    private List<Map<String, Object>> studiesListing() throws IOException {
+        String[][] properties = new String[][]{
+            new String[]{"phs_accession", "phs_accession"},
+            new String[]{"study_short_title", "study_short_title"},
+            new String[]{"num_participants", "num_participants"},
+            new String[]{"num_diseases", "num_diseases"}
+        };
+
+        Map<String, Object> query = esService.buildListQuery();
+        Request request = new Request("GET", STUDIES_END_POINT);
+        return esService.collectPage(request, query, properties, ESService.MAX_ES_SIZE, 0);
     }
 
     private List<Map<String, Object>> findParticipantIdsInList(Map<String, Object> params) throws IOException {
