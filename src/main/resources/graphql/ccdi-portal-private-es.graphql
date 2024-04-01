@@ -149,6 +149,13 @@ type SurvivalOverviewResult {
     survival_id: String
 }
 
+type StudiesListingResult {
+    num_diseases: Int
+    num_participants: Int
+    phs_accession: String
+    study_short_title: String
+}
+
 schema {
     query: QueryType
 }
@@ -324,4 +331,6 @@ type QueryType {
         order_by: String = "",
         sort_direction: String = ""
     ): [SurvivalOverviewResult]
+    
+    studiesListing: [StudiesListingResult]
 }
