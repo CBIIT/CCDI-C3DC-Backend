@@ -149,6 +149,15 @@ type SurvivalOverviewResult {
     survival_id: String
 }
 
+type StudyDetailsResult {
+    phs_accession: String
+    study_description: String
+    num_participants: Int
+    num_diseases: Int
+    num_anatomic_sites: Int
+    num_survivals: Int
+}
+
 type StudiesListingResult {
     num_diseases: Int
     num_participants: Int
@@ -332,5 +341,6 @@ type QueryType {
         sort_direction: String = ""
     ): [SurvivalOverviewResult]
     
+    studyDetails(study_id: String): StudyDetailsResult
     studiesListing: [StudiesListingResult]
 }

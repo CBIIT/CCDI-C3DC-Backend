@@ -159,6 +159,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return survivalOverview(args);
                         })
+                        .dataFetcher("studyDetails", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return studyDetails(args);
+                        })
                         .dataFetcher("studiesListing", env -> studiesListing())
                         .dataFetcher("numberOfDiseases", env -> {
                             Map<String, Object> args = env.getArguments();
@@ -780,6 +784,48 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return page;
     }
 
+    private Map<String, Object> studyDetails(Map<String, Object> params) throws IOException {
+        Map<String, Object> study;
+        String studyId = (String) params.get("study_id");
+        List<Map<String, Object>> studies;
+
+        final String[][] PROPERTIES = new String[][]{
+            new String[]{"phs_accession", "phs_accession"},
+            new String[]{"study_description", "study_description"},
+            new String[]{"num_participants", "num_participants"},
+            new String[]{"num_diseases", "num_diseases"},
+            new String[]{"num_anatomic_sites", "num_anatomic_sites"},
+            new String[]{"num_survivals", "num_survivals"}
+        };
+
+        Map<String, String> mapping = Map.ofEntries(
+            Map.entry("phs_accession", "phs_accession"),
+            Map.entry("study_description", "study_description"),
+            Map.entry("num_participants", "num_participants"),
+            Map.entry("num_diseases", "num_diseases"),
+            Map.entry("num_anatomic_sites", "num_anatomic_sites"),
+            Map.entry("num_survivals", "num_survivals")
+        );
+
+        Map<String, Object> study_params = Map.ofEntries(
+            Map.entry("study_id", List.of(studyId)),
+            Map.entry(ORDER_BY, "study_id"),
+            Map.entry(SORT_DIRECTION, "ASC"),
+            Map.entry(PAGE_SIZE, 1),
+            Map.entry(OFFSET, 0)
+        );
+
+        studies = overview(STUDIES_END_POINT, study_params, PROPERTIES, "study_id", mapping, REGULAR_PARAMS, "nested_filters", "studies");
+
+        try {
+            study = studies.get(0);
+        } catch (IndexOutOfBoundsException e) {
+            return null;
+        }
+
+        return study;
+    }
+  
     private List<Map<String, Object>> studiesListing() throws IOException {
         String[][] properties = new String[][]{
             new String[]{"phs_accession", "phs_accession"},
