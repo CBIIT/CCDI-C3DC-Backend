@@ -223,8 +223,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private JsonArray getNodeCount(String category, Map<String, Object> query, String endpoint) throws IOException {
         query = inventoryESService.addNodeCountAggregations(query, category);
+        String queryJson = gson.toJson(query);
         Request request = new Request("GET", endpoint);
-        request.setJsonEntity(gson.toJson(query));
+        request.setJsonEntity(queryJson);
         JsonObject jsonObject = inventoryESService.send(request);
         Map<String, JsonArray> aggs = inventoryESService.collectNodeCountAggs(jsonObject, category);
         JsonArray buckets = aggs.get(category);

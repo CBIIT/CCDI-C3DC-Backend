@@ -263,7 +263,10 @@ public class InventoryESService extends ESService {
         // }
 
         Map<String, Object> fields = new HashMap<String, Object>();
-        fields.put(nodeName, Map.of("terms", Map.of("field", nodeName)));
+        fields.put(nodeName, Map.of("terms", Map.ofEntries(
+            Map.entry("field", nodeName),
+            Map.entry("size", 10000)
+        )));
         newQuery.put("aggs", fields);
         
         return newQuery;
