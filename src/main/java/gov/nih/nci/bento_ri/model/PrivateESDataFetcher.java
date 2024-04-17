@@ -310,10 +310,17 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private Map<String, String[]> idsLists() throws IOException {
-        Map<String, String[][]> indexProperties = Map.of(
-            PARTICIPANTS_END_POINT, new String[][]{
-                    new String[]{"participantIds", "participant_id"}
-            }
+        // Specify which Opensearch fields to obtain GraphQL return values from
+        Map<String, String[][]> indexProperties = Map.ofEntries(
+            Map.entry(PARTICIPANTS_END_POINT, new String[][]{
+                new String[]{"participantIds", "participant_id"}
+            })
+        );
+        // Define sort priorty, from highest to lowest
+        Map<String, String[]> sortPriority = Map.ofEntries(
+            Map.entry(PARTICIPANTS_END_POINT, new String[]{
+                "participant_id"
+            })
         );
         //Generic Query
         Map<String, Object> query = esService.buildListQuery();
@@ -326,35 +333,44 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         if (data != null) {
             logger.info("hit cache!");
             return data;
-        } else {
-            for (String endpoint: indexProperties.keySet()){
-                Request request = new Request("GET", endpoint);
-                String[][] properties = indexProperties.get(endpoint);
-                List<String> fields = new ArrayList<>();
-                for (String[] prop: properties) {
-                    fields.add(prop[1]);
-                }
-                query.put("_source", fields);
-                
-                List<Map<String, Object>> result = esService.collectPage(request, query, properties, ESService.MAX_ES_SIZE,
-                        0);
-                Map<String, List<String>> indexResults = new HashMap<>();
-                Arrays.asList(properties).forEach(x -> indexResults.put(x[0], new ArrayList<>()));
-                for(Map<String, Object> resultElement: result){
-                    for(String key: indexResults.keySet()){
-                        List<String> tmp = indexResults.get(key);
-                        String v = (String) resultElement.get(key);
-                        if (!tmp.contains(v)) {
-                            tmp.add(v);
-                        }
+        }
+
+        for (String endpoint: indexProperties.keySet()){
+            Request request = new Request("GET", endpoint);
+            String[][] properties = indexProperties.get(endpoint);
+            String[] sortOrder = sortPriority.get(endpoint);
+            ArrayList<Map<String, String>> sortParams = new ArrayList<Map<String, String>>();
+            List<String> fields = new ArrayList<>();
+
+            for (String[] prop: properties) {
+                fields.add(prop[1]);
+            }
+
+            for (String sortField: sortOrder) {
+                sortParams.add(Map.of(sortField, "asc"));
+            }
+            
+            query.put("_source", fields);
+            query.put("sort", sortParams);
+
+            List<Map<String, Object>> result = esService.collectPage(request, query, properties, ESService.MAX_ES_SIZE,
+                    0);
+            Map<String, List<String>> indexResults = new HashMap<>();
+            Arrays.asList(properties).forEach(x -> indexResults.put(x[0], new ArrayList<>()));
+            for(Map<String, Object> resultElement: result){
+                for(String key: indexResults.keySet()){
+                    List<String> tmp = indexResults.get(key);
+                    String v = (String) resultElement.get(key);
+                    if (!tmp.contains(v)) {
+                        tmp.add(v);
                     }
                 }
-                for(String key: indexResults.keySet()){
-                    results.put(key, indexResults.get(key).toArray(new String[indexResults.size()]));
-                }
             }
-            caffeineCache.put(cacheKey, results);
+            for(String key: indexResults.keySet()){
+                results.put(key, indexResults.get(key).toArray(new String[indexResults.size()]));
+            }
         }
+        caffeineCache.put(cacheKey, results);
         
         return results;
     }
