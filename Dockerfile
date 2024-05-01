@@ -6,7 +6,7 @@ COPY . .
 RUN mvn package -DskipTests
 
 # Production stage
-FROM tomcat:10.1.13-jdk17
+FROM tomcat:10.1.13-jdk17 AS fnl_base_image
 
 # install dependencies and clean up unused files
 RUN apt-get update && apt-get install unzip
