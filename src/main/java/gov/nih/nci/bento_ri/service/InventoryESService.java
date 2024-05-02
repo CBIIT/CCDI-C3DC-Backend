@@ -30,8 +30,8 @@ public class InventoryESService extends ESService {
     final Set<String> PARTICIPANT_PARAMS = Set.of("ethnicity", "race", "sex_at_birth");
     final Set<String> DIAGNOSIS_PARAMS = Set.of(
         "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
-        "diagnosis_classification", "diagnosis_classification_system",
-        "diagnosis_verification_status", "disease_phase"
+        "diagnosis", "diagnosis_classification_system",
+        "disease_phase"
     );
     final Set<String> STUDY_PARAMS = Set.of(
         "phs_accession", "study_acronym", "study_short_title"
@@ -263,7 +263,10 @@ public class InventoryESService extends ESService {
         // }
 
         Map<String, Object> fields = new HashMap<String, Object>();
-        fields.put(nodeName, Map.of("terms", Map.of("field", nodeName)));
+        fields.put(nodeName, Map.of("terms", Map.ofEntries(
+            Map.entry("field", nodeName),
+            Map.entry("size", 10000)
+        )));
         newQuery.put("aggs", fields);
         
         return newQuery;

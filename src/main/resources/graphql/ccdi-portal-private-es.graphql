@@ -46,9 +46,8 @@ type GetParticipantsResult {
     # Diagnoses
     filterParticipantCountByAgeAtDiagnosis: RangeCount
     filterParticipantCountByAnatomicSite: [SearchParticipantsReturnObject]
-    filterParticipantCountByDiagnosisClassification: [SearchParticipantsReturnObject]
+    filterParticipantCountByDiagnosis: [SearchParticipantsReturnObject]
     filterParticipantCountByDiagnosisClassificationSystem: [SearchParticipantsReturnObject]
-    filterParticipantCountByDiagnosisVerificationStatus: [SearchParticipantsReturnObject]
     filterParticipantCountByDiagnosisBasis: [SearchParticipantsReturnObject]
     filterParticipantCountByDiseasePhase: [SearchParticipantsReturnObject]
 
@@ -68,7 +67,7 @@ type GetParticipantsResult {
     participantCountBySexAtBirth: [SearchParticipantsReturnObject]
     participantCountByAgeAtDiagnosis: [SearchParticipantsReturnObject]
     participantCountByAnatomicSite: [SearchParticipantsReturnObject]
-    participantCountByDiagnosisClassification: [SearchParticipantsReturnObject]
+    participantCountByDiagnosis: [SearchParticipantsReturnObject]
 }
 
 type ParticipantOverviewResult {
@@ -82,7 +81,6 @@ type ParticipantOverviewResult {
     phs_accession: String
 
     # Additional fields for download
-    alternate_participant_id: String
     study_id: String
 }
 
@@ -94,9 +92,8 @@ type DiagnosisOverviewResult {
     age_at_diagnosis: Int
     anatomic_site: String
     diagnosis_basis: String
-    diagnosis_classification: String
+    diagnosis: String
     diagnosis_classification_system: String
-    diagnosis_verification_status: String
     disease_phase: String
     tumor_classification: String
 
@@ -127,7 +124,6 @@ type StudyOverviewResult {
     external_url: String
     study_description: String
     study_id: String
-    study_name: String
 }
 
 type SurvivalOverviewResult {
@@ -192,9 +188,8 @@ type QueryType {
         # Diagnoses
         age_at_diagnosis: [Int] = [0],
         anatomic_site: [String] = [""],
-        diagnosis_classification: [String] = [""],
+        diagnosis: [String] = [""],
         diagnosis_classification_system: [String] = [""],
-        diagnosis_verification_status: [String] = [""],
         diagnosis_basis: [String] = [""],
         disease_phase: [String] = [""]
 
@@ -219,9 +214,8 @@ type QueryType {
         # Diagnoses
         age_at_diagnosis: [Int] = [0],
         anatomic_site: [String] = [""],
-        diagnosis_classification: [String] = [""],
+        diagnosis: [String] = [""],
         diagnosis_classification_system: [String] = [""],
-        diagnosis_verification_status: [String] = [""],
         diagnosis_basis: [String] = [""],
         disease_phase: [String] = [""]
 
@@ -252,9 +246,8 @@ type QueryType {
         # Diagnoses
         age_at_diagnosis: [Int] = [0],
         anatomic_site: [String] = [""],
-        diagnosis_classification: [String] = [""],
+        diagnosis: [String] = [""],
         diagnosis_classification_system: [String] = [""],
-        diagnosis_verification_status: [String] = [""],
         diagnosis_basis: [String] = [""],
         disease_phase: [String] = [""]
 
@@ -285,9 +278,8 @@ type QueryType {
         # Diagnoses
         age_at_diagnosis: [Int] = [0],
         anatomic_site: [String] = [""],
-        diagnosis_classification: [String] = [""],
+        diagnosis: [String] = [""],
         diagnosis_classification_system: [String] = [""],
-        diagnosis_verification_status: [String] = [""],
         diagnosis_basis: [String] = [""],
         disease_phase: [String] = [""]
 
@@ -318,9 +310,8 @@ type QueryType {
         # Diagnoses
         age_at_diagnosis: [Int] = [0],
         anatomic_site: [String] = [""],
-        diagnosis_classification: [String] = [""],
+        diagnosis: [String] = [""],
         diagnosis_classification_system: [String] = [""],
-        diagnosis_verification_status: [String] = [""],
         diagnosis_basis: [String] = [""],
         disease_phase: [String] = [""]
 

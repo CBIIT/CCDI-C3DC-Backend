@@ -69,7 +69,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         // Demographics
         "race", "ethnicity",
         // Diagnoses
-        "anatomic_site", "diagnosis_classification"
+        "anatomic_site", "diagnosis"
     );
 
     final Set<String> REGULAR_PARAMS = Set.of(
@@ -78,8 +78,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         // Diagnoses
         "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
-        "diagnosis_classification", "diagnosis_classification_system",
-        "diagnosis_verification_status", "disease_phase",
+        "diagnosis", "diagnosis_classification_system",
+        "disease_phase",
 
         // Studies
         "phs_accession", "study_acronym", "study_short_title",
@@ -101,8 +101,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     );
     final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of(
         "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
-        "diagnosis_classification", "diagnosis_classification_system",
-        "diagnosis_verification_status", "disease_phase", "tumor_classification",
+        "diagnosis", "diagnosis_classification_system",
+        "disease_phase", "tumor_classification",
         // Demographics
         "ethnicity", "participant_id", "race", "sex_at_birth"
     );
@@ -113,7 +113,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     );
     final Set<String> STUDY_REGULAR_PARAMS = Set.of(
         "acl", "consent", "consent_number", "external_url", "phs_accession",
-        "study_acronym", "study_description", "study_id", "study_name",
+        "study_acronym", "study_description", "study_id",
         "study_short_title"
     );
     final Set<String> SURVIVAL_REGULAR_PARAMS = Set.of(
@@ -228,8 +228,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private JsonArray getNodeCount(String category, Map<String, Object> query, String endpoint) throws IOException {
         query = inventoryESService.addNodeCountAggregations(query, category);
+        String queryJson = gson.toJson(query);
         Request request = new Request("GET", endpoint);
-        request.setJsonEntity(gson.toJson(query));
+        request.setJsonEntity(queryJson);
         JsonObject jsonObject = inventoryESService.send(request);
         Map<String, JsonArray> aggs = inventoryESService.collectNodeCountAggs(jsonObject, category);
         JsonArray buckets = aggs.get(category);
@@ -314,10 +315,17 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private Map<String, String[]> idsLists() throws IOException {
-        Map<String, String[][]> indexProperties = Map.of(
-            PARTICIPANTS_END_POINT, new String[][]{
-                    new String[]{"participantIds", "participant_id"}
-            }
+        // Specify which Opensearch fields to obtain GraphQL return values from
+        Map<String, String[][]> indexProperties = Map.ofEntries(
+            Map.entry(PARTICIPANTS_END_POINT, new String[][]{
+                new String[]{"participantIds", "participant_id"}
+            })
+        );
+        // Define sort priorty, from highest to lowest
+        Map<String, String[]> sortPriority = Map.ofEntries(
+            Map.entry(PARTICIPANTS_END_POINT, new String[]{
+                "participant_id"
+            })
         );
         //Generic Query
         Map<String, Object> query = esService.buildListQuery();
@@ -330,35 +338,44 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         if (data != null) {
             logger.info("hit cache!");
             return data;
-        } else {
-            for (String endpoint: indexProperties.keySet()){
-                Request request = new Request("GET", endpoint);
-                String[][] properties = indexProperties.get(endpoint);
-                List<String> fields = new ArrayList<>();
-                for (String[] prop: properties) {
-                    fields.add(prop[1]);
-                }
-                query.put("_source", fields);
-                
-                List<Map<String, Object>> result = esService.collectPage(request, query, properties, ESService.MAX_ES_SIZE,
-                        0);
-                Map<String, List<String>> indexResults = new HashMap<>();
-                Arrays.asList(properties).forEach(x -> indexResults.put(x[0], new ArrayList<>()));
-                for(Map<String, Object> resultElement: result){
-                    for(String key: indexResults.keySet()){
-                        List<String> tmp = indexResults.get(key);
-                        String v = (String) resultElement.get(key);
-                        if (!tmp.contains(v)) {
-                            tmp.add(v);
-                        }
+        }
+
+        for (String endpoint: indexProperties.keySet()){
+            Request request = new Request("GET", endpoint);
+            String[][] properties = indexProperties.get(endpoint);
+            String[] sortOrder = sortPriority.get(endpoint);
+            ArrayList<Map<String, String>> sortParams = new ArrayList<Map<String, String>>();
+            List<String> fields = new ArrayList<>();
+
+            for (String[] prop: properties) {
+                fields.add(prop[1]);
+            }
+
+            for (String sortField: sortOrder) {
+                sortParams.add(Map.of(sortField, "asc"));
+            }
+            
+            query.put("_source", fields);
+            query.put("sort", sortParams);
+
+            List<Map<String, Object>> result = esService.collectPage(request, query, properties, ESService.MAX_ES_SIZE,
+                    0);
+            Map<String, List<String>> indexResults = new HashMap<>();
+            Arrays.asList(properties).forEach(x -> indexResults.put(x[0], new ArrayList<>()));
+            for(Map<String, Object> resultElement: result){
+                for(String key: indexResults.keySet()){
+                    List<String> tmp = indexResults.get(key);
+                    String v = (String) resultElement.get(key);
+                    if (!tmp.contains(v)) {
+                        tmp.add(v);
                     }
                 }
-                for(String key: indexResults.keySet()){
-                    results.put(key, indexResults.get(key).toArray(new String[indexResults.size()]));
-                }
             }
-            caffeineCache.put(cacheKey, results);
+            for(String key: indexResults.keySet()){
+                results.put(key, indexResults.get(key).toArray(new String[indexResults.size()]));
+            }
         }
+        caffeineCache.put(cacheKey, results);
         
         return results;
     }
@@ -399,46 +416,40 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_id",
+                    CARDINALITY_AGG_NAME, "participant_pk",
                     WIDGET_QUERY,"participantCountByAgeAtDiagnosis",
                     AGG_NAME, "age_at_diagnosis",
                     FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtDiagnosis",
                     AGG_ENDPOINT, DIAGNOSES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_id",
+                    CARDINALITY_AGG_NAME, "participant_pk",
                     WIDGET_QUERY,"participantCountByAnatomicSite",
                     AGG_NAME, "anatomic_site",
                     FILTER_COUNT_QUERY, "filterParticipantCountByAnatomicSite",
                     AGG_ENDPOINT, DIAGNOSES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_id",
-                    WIDGET_QUERY,"participantCountByDiagnosisClassification",
-                    AGG_NAME, "diagnosis_classification",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisClassification",
+                    CARDINALITY_AGG_NAME, "participant_pk",
+                    WIDGET_QUERY,"participantCountByDiagnosis",
+                    AGG_NAME, "diagnosis",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosis",
                     AGG_ENDPOINT, DIAGNOSES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_id",
+                    CARDINALITY_AGG_NAME, "participant_pk",
                     AGG_NAME, "diagnosis_classification_system",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisClassificationSystem",
                     AGG_ENDPOINT, DIAGNOSES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_id",
-                    AGG_NAME, "diagnosis_verification_status",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisVerificationStatus",
-                    AGG_ENDPOINT, DIAGNOSES_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_id",
+                    CARDINALITY_AGG_NAME, "participant_pk",
                     AGG_NAME, "diagnosis_basis",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisBasis",
                     AGG_ENDPOINT, DIAGNOSES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_id",
+                    CARDINALITY_AGG_NAME, "participant_pk",
                     AGG_NAME, "disease_phase",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiseasePhase",
                     AGG_ENDPOINT, DIAGNOSES_END_POINT
@@ -459,19 +470,19 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_id",
+                    CARDINALITY_AGG_NAME, "participant_pk",
                     AGG_NAME, "age_at_last_known_survival_status",
                     FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtLastKnownSurvivalStatus",
                     AGG_ENDPOINT, SURVIVALS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_id",
+                    CARDINALITY_AGG_NAME, "participant_pk",
                     AGG_NAME, "first_event",
                     FILTER_COUNT_QUERY, "filterParticipantCountByFirstEvent",
                     AGG_ENDPOINT, SURVIVALS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_id",
+                    CARDINALITY_AGG_NAME, "participant_pk",
                     AGG_NAME, "last_known_survival_status",
                     FILTER_COUNT_QUERY, "filterParticipantCountByLastKnownSurvivalStatus",
                     AGG_ENDPOINT, SURVIVALS_END_POINT
@@ -479,14 +490,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
             // Get disease counts for Explore page stats bar
             Map<String, Object> diseaseQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnoses");
-            String[] diseaseField = new String[]{"diagnosis_classification"};
+            String[] diseaseField = new String[]{"diagnosis"};
             diseaseQuery = inventoryESService.countValues(diseaseQuery, diseaseField);
             Request diseaseCountRequest = new Request("GET", DIAGNOSES_END_POINT);
             String diseaseQueryJson = gson.toJson(diseaseQuery);
             diseaseCountRequest.setJsonEntity(diseaseQueryJson);
             JsonObject diseaseCountResult = inventoryESService.send(diseaseCountRequest);
             int numberOfDiseases = diseaseCountResult.getAsJsonObject("aggregations")
-                .getAsJsonObject("num_values_of_diagnosis_classification").get("value").getAsInt();
+                .getAsJsonObject("num_values_of_diagnosis").get("value").getAsInt();
 
             // Get Diagnosis counts for Explore page stats bar
             Map<String, Object> diagnosesQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnoses");
@@ -573,7 +584,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"phs_accession", "phs_accession"},
 
             // Additional fields for download
-            new String[]{"alternate_participant_id", "alternate_participant_id"},
             new String[]{"study_id", "study_id"},
         };
 
@@ -590,7 +600,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("phs_accession", "phs_accession"),
 
             // Additional fields for download
-            Map.entry("alternate_participant_id", "alternate_participant_id"),
             Map.entry("study_id", "study_id")
         );
 
@@ -603,9 +612,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"age_at_diagnosis", "age_at_diagnosis"},
             new String[]{"anatomic_site", "anatomic_site"},
             new String[]{"diagnosis_basis", "diagnosis_basis"},
-            new String[]{"diagnosis_classification", "diagnosis_classification"},
+            new String[]{"diagnosis", "diagnosis"},
             new String[]{"diagnosis_classification_system", "diagnosis_classification_system"},
-            new String[]{"diagnosis_verification_status", "diagnosis_verification_status"},
             new String[]{"disease_phase", "disease_phase"},
             new String[]{"tumor_classification", "tumor_classification"},
 
@@ -633,9 +641,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("age_at_diagnosis", "age_at_diagnosis"),
             Map.entry("anatomic_site", "anatomic_site"),
             Map.entry("diagnosis_basis", "diagnosis_basis"),
-            Map.entry("diagnosis_classification", "diagnosis_classification"),
+            Map.entry("diagnosis", "diagnosis"),
             Map.entry("diagnosis_classification_system", "diagnosis_classification_system"),
-            Map.entry("diagnosis_verification_status", "diagnosis_verification_status"),
             Map.entry("disease_phase", "disease_phase"),
             Map.entry("tumor_classification", "tumor_classification"),
 
@@ -673,7 +680,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"external_url", "external_url"},
             new String[]{"study_description", "study_description"},
             new String[]{"study_id", "study_id"},
-            new String[]{"study_name", "study_name"},
         };
 
         String defaultSort = "study_acronym"; // Default sort order
@@ -690,8 +696,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("consent_number", "consent_number"),
             Map.entry("external_url", "external_url"),
             Map.entry("study_description", "study_description"),
-            Map.entry("study_id", "study_id"),
-            Map.entry("study_name", "study_name")
+            Map.entry("study_id", "study_id")
         );
         
         Request request = new Request("GET", PARTICIPANTS_END_POINT);
