@@ -813,14 +813,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         );
 
         Map<String, Object> study_params = Map.ofEntries(
-            Map.entry("study_id", List.of(studyId)),
-            Map.entry(ORDER_BY, "study_id"),
+            Map.entry("phs_accession", List.of(studyId)),
+            Map.entry(ORDER_BY, "phs_accession"),
             Map.entry(SORT_DIRECTION, "ASC"),
             Map.entry(PAGE_SIZE, 1),
             Map.entry(OFFSET, 0)
         );
 
-        studies = overview(STUDIES_END_POINT, study_params, PROPERTIES, "study_id", mapping, REGULAR_PARAMS, "nested_filters", "studies");
+        studies = overview(STUDIES_END_POINT, study_params, PROPERTIES, "phs_accession", mapping, REGULAR_PARAMS, "nested_filters", "studies");
 
         try {
             study = studies.get(0);
