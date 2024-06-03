@@ -41,6 +41,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String STUDIES_FACET_END_POINT = "/study_participants/_search";
     final String PARTICIPANTS_END_POINT = "/participants/_search";
     final String SURVIVALS_END_POINT = "/survivals/_search";
+    final String TREATMENTS_END_POINT = "/treatments/_search";
+    final String TREATMENT_RESPONSES_END_POINT = "/treatment_responses/_search";
     final String DIAGNOSES_END_POINT = "/diagnoses/_search";
     final String HOME_STATS_END_POINT = "/home_stats/_search";
     final String STUDIES_END_POINT = "/studies/_search";
@@ -158,6 +160,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         .dataFetcher("survivalOverview", env -> {
                             Map<String, Object> args = env.getArguments();
                             return survivalOverview(args);
+                        })
+                        .dataFetcher("treatmentOverview", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return treatmentOverview(args);
+                        })
+                        .dataFetcher("treatmentResponseOverview", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return treatmentResponseOverview(args);
                         })
                         .dataFetcher("studyDetails", env -> {
                             Map<String, Object> args = env.getArguments();
@@ -487,6 +497,54 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     FILTER_COUNT_QUERY, "filterParticipantCountByLastKnownSurvivalStatus",
                     AGG_ENDPOINT, SURVIVALS_END_POINT
             ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_pk",
+                    AGG_NAME, "age_at_treatment_start",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtTreatmentStart",
+                    AGG_ENDPOINT, TREATMENTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_pk",
+                    AGG_NAME, "age_at_treatment_end",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtTreatmentEnd",
+                    AGG_ENDPOINT, TREATMENTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_pk",
+                    AGG_NAME, "treatment_type",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByTreatmentType",
+                    AGG_ENDPOINT, TREATMENTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_pk",
+                    AGG_NAME, "treatment_agent",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByTreatmentAgent",
+                    AGG_ENDPOINT, TREATMENTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_pk",
+                    AGG_NAME, "response",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByResponse",
+                    AGG_ENDPOINT, TREATMENT_RESPONSES_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_pk",
+                    AGG_NAME, "age_at_response",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtResponse",
+                    AGG_ENDPOINT, TREATMENT_RESPONSES_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_pk",
+                    AGG_NAME, "response_category",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByResponseCategory",
+                    AGG_ENDPOINT, TREATMENT_RESPONSES_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_pk",
+                    AGG_NAME, "response_system",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByResponseSystem",
+                    AGG_ENDPOINT, TREATMENT_RESPONSES_END_POINT
+            ));
 
             // Get disease counts for Explore page stats bar
             Map<String, Object> diseaseQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnoses");
@@ -773,6 +831,66 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         );
 
         return overview(SURVIVALS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "survivals");
+    }
+
+    private List<Map<String, Object>> treatmentOverview(Map<String, Object> params) throws IOException {
+        final String[][] PROPERTIES = new String[][]{
+            // Participants
+            new String[]{"participant_id", "participant_id"},
+
+            // Treatments
+            new String[]{"treatment_id", "treatment_id"},
+            new String[]{"age_at_treatment_start", "age_at_treatment_start"},
+            new String[]{"age_at_treatment_end", "age_at_treatment_end"},
+            new String[]{"treatment_type", "treatment_type"},
+            new String[]{"treatment_agent", "treatment_agent"},
+        };
+
+        String defaultSort = "participant_id"; // Default sort order
+
+        Map<String, String> mapping = Map.ofEntries(
+            // Participants
+            Map.entry("participant_id", "participant_id"),
+
+            // Treatments
+            Map.entry("treatment_id", "treatment_id"),
+            Map.entry("age_at_treatment_start", "age_at_treatment_start"),
+            Map.entry("age_at_treatment_end", "age_at_treatment_end"),
+            Map.entry("treatment_type", "treatment_type"),
+            Map.entry("treatment_agent", "treatment_agent")
+        );
+
+        return overview(TREATMENTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "treatments");
+    }
+
+    private List<Map<String, Object>> treatmentResponseOverview(Map<String, Object> params) throws IOException {
+        final String[][] PROPERTIES = new String[][]{
+            // Participants
+            new String[]{"participant_id", "participant_id"},
+
+            // Treatment Responses
+            new String[]{"treatment_response_id", "treatment_response_id"},
+            new String[]{"response", "response"},
+            new String[]{"age_at_response", "age_at_response"},
+            new String[]{"response_category", "response_category"},
+            new String[]{"response_system", "response_system"},
+        };
+
+        String defaultSort = "participant_id"; // Default sort order
+
+        Map<String, String> mapping = Map.ofEntries(
+            // Participants
+            Map.entry("participant_id", "participant_id"),
+
+            // Treatment Responses
+            Map.entry("treatment_response_id", "treatment_response_id"),
+            Map.entry("response", "response"),
+            Map.entry("age_at_response", "age_at_response"),
+            Map.entry("response_category", "response_category"),
+            Map.entry("response_system", "response_system")
+        );
+
+        return overview(TREATMENT_RESPONSES_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "treatment_responses");
     }
 
     // if the nestedProperty is set, this will filter based upon the params against the nested property for the endpoint's index.
