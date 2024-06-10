@@ -59,7 +59,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         // Diagnoses
         "age_at_diagnosis",
         // Survivals
-        "age_at_last_known_survival_status"
+        "age_at_last_known_survival_status",
+        // Treatments
+        "age_at_treatment_end", "age_at_treatment_start",
+        // Treatment Responses
+        "age_at_response"
     );
 
     final Set<String> BOOLEAN_PARAMS = Set.of("assay_method");
