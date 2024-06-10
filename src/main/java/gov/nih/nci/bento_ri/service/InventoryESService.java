@@ -34,7 +34,7 @@ public class InventoryESService extends ESService {
         "disease_phase"
     );
     final Set<String> STUDY_PARAMS = Set.of(
-        "phs_accession", "study_acronym", "study_short_title"
+        "dbgap_accession", "study_acronym", "study_name"
     );
     final Set<String> SURVIVAL_PARAMS = Set.of(
         "age_at_last_known_survival_status",
