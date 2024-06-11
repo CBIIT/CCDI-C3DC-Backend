@@ -52,9 +52,9 @@ type GetParticipantsResult {
     filterParticipantCountByDiseasePhase: [SearchParticipantsReturnObject]
 
     # Studies
-    filterParticipantCountByPhsAccession: [SearchParticipantsReturnObject]
+    filterParticipantCountByDbgapAccession: [SearchParticipantsReturnObject]
     filterParticipantCountByStudyAcronym: [SearchParticipantsReturnObject]
-    filterParticipantCountByStudyShortTitle: [SearchParticipantsReturnObject]
+    filterParticipantCountByStudyName: [SearchParticipantsReturnObject]
 
     # Survivals
     filterParticipantCountByAgeAtLastKnownSurvivalStatus: RangeCount
@@ -90,7 +90,7 @@ type ParticipantOverviewResult {
     sex_at_birth: String
 
     # Study
-    phs_accession: String
+    dbgap_accession: String
 
     # Additional fields for download
     study_id: String
@@ -110,7 +110,7 @@ type DiagnosisOverviewResult {
     tumor_classification: String
 
     # Study
-    phs_accession: String
+    dbgap_accession: String
 
     # Additional fields for download
     diagnosis_id: String
@@ -125,9 +125,9 @@ type DiagnosisOverviewResult {
 
 type StudyOverviewResult {
     # Study
-    phs_accession: String
+    dbgap_accession: String
     study_acronym: String
-    study_short_title: String
+    study_name: String
 
     # Additional fields for download
     acl: String
@@ -143,7 +143,7 @@ type SurvivalOverviewResult {
     participant_id: String
 
     # Study
-    phs_accession: String
+    dbgap_accession: String
 
     # Survival
     age_at_last_known_survival_status: Int
@@ -182,7 +182,7 @@ type TreatmentResponseOverviewResult {
 }
 
 type StudyDetailsResult {
-    phs_accession: String
+    dbgap_accession: String
     study_description: String
     num_participants: Int
     num_diseases: Int
@@ -193,8 +193,8 @@ type StudyDetailsResult {
 type StudiesListingResult {
     num_diseases: Int
     num_participants: Int
-    phs_accession: String
-    study_short_title: String
+    dbgap_accession: String
+    study_name: String
 }
 
 schema {
@@ -230,9 +230,9 @@ type QueryType {
         disease_phase: [String] = [""]
 
         # Studies
-        phs_accession: [String] = [""],
+        dbgap_accession: [String] = [""],
         study_acronym: [String] = [""],
-        study_short_title: [String] = [""],
+        study_name: [String] = [""],
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
@@ -268,9 +268,9 @@ type QueryType {
         disease_phase: [String] = [""]
 
         # Studies
-        phs_accession: [String] = [""],
+        dbgap_accession: [String] = [""],
         study_acronym: [String] = [""],
-        study_short_title: [String] = [""],
+        study_name: [String] = [""],
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
@@ -312,9 +312,9 @@ type QueryType {
         disease_phase: [String] = [""]
 
         # Studies
-        phs_accession: [String] = [""],
+        dbgap_accession: [String] = [""],
         study_acronym: [String] = [""],
-        study_short_title: [String] = [""],
+        study_name: [String] = [""],
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
@@ -356,9 +356,9 @@ type QueryType {
         disease_phase: [String] = [""]
 
         # Studies
-        phs_accession: [String] = [""],
+        dbgap_accession: [String] = [""],
         study_acronym: [String] = [""],
-        study_short_title: [String] = [""],
+        study_name: [String] = [""],
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
@@ -400,9 +400,9 @@ type QueryType {
         disease_phase: [String] = [""]
 
         # Studies
-        phs_accession: [String] = [""],
+        dbgap_accession: [String] = [""],
         study_acronym: [String] = [""],
-        study_short_title: [String] = [""],
+        study_name: [String] = [""],
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
@@ -444,9 +444,9 @@ type QueryType {
         disease_phase: [String] = [""]
 
         # Studies
-        phs_accession: [String] = [""],
+        dbgap_accession: [String] = [""],
         study_acronym: [String] = [""],
-        study_short_title: [String] = [""],
+        study_name: [String] = [""],
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
@@ -488,9 +488,9 @@ type QueryType {
         disease_phase: [String] = [""]
 
         # Studies
-        phs_accession: [String] = [""],
+        dbgap_accession: [String] = [""],
         study_acronym: [String] = [""],
-        study_short_title: [String] = [""],
+        study_name: [String] = [""],
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
