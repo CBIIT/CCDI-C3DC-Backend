@@ -671,7 +671,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private List<Map<String, Object>> diagnosisOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
             // Diagnoses
-            new String[]{"age_at_diagnosis", "age_at_diagnosis"},
+            new String[]{"age_at_diagnosis", "age_at_diagnosis_str"},
             new String[]{"anatomic_site", "anatomic_site"},
             new String[]{"diagnosis_basis", "diagnosis_basis"},
             new String[]{"diagnosis", "diagnosis"},
@@ -700,7 +700,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         Map<String, String> mapping = Map.ofEntries(
             // Diagnoses
-            Map.entry("age_at_diagnosis", "age_at_diagnosis_sort"),
+            Map.entry("age_at_diagnosis", "age_at_diagnosis"),
             Map.entry("anatomic_site", "anatomic_site"),
             Map.entry("diagnosis_basis", "diagnosis_basis"),
             Map.entry("diagnosis", "diagnosis"),
