@@ -700,7 +700,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         Map<String, String> mapping = Map.ofEntries(
             // Diagnoses
-            Map.entry("age_at_diagnosis", "age_at_diagnosis"),
+            Map.entry("age_at_diagnosis", "age_at_diagnosis_sort"),
             Map.entry("anatomic_site", "anatomic_site"),
             Map.entry("diagnosis_basis", "diagnosis_basis"),
             Map.entry("diagnosis", "diagnosis"),
