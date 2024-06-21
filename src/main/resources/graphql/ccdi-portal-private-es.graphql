@@ -101,7 +101,7 @@ type DiagnosisOverviewResult {
     participant_id: String
 
     # Diagnosis
-    age_at_diagnosis: Int
+    age_at_diagnosis: String
     anatomic_site: String
     diagnosis_basis: String
     diagnosis: String
