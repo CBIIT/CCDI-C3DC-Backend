@@ -132,7 +132,7 @@ type StudyOverviewResult {
     # Additional fields for download
     acl: String
     consent: String
-    consent_number: Int
+    consent_number: String
     external_url: String
     study_description: String
     study_id: String
@@ -146,12 +146,12 @@ type SurvivalOverviewResult {
     dbgap_accession: String
 
     # Survival
-    age_at_last_known_survival_status: Int
+    age_at_last_known_survival_status: String
     first_event: String
     last_known_survival_status: String
 
     # Additional fields for download
-    age_at_event_free_survival_status: Int
+    age_at_event_free_survival_status: String
     event_free_survival_status: String
     study_id: String
     survival_id: String
