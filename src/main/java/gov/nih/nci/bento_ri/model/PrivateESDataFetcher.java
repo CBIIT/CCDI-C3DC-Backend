@@ -738,7 +738,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             // Additional fields for download
             new String[]{"acl", "acl"},
             new String[]{"consent", "consent"},
-            new String[]{"consent_number", "consent_number"},
+            new String[]{"consent_number", "consent_number_str"},
             new String[]{"external_url", "external_url"},
             new String[]{"study_description", "study_description"},
             new String[]{"study_id", "study_id"},
@@ -802,12 +802,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"dbgap_accession", "dbgap_accession"},
 
             // Survivals
-            new String[]{"age_at_last_known_survival_status", "age_at_last_known_survival_status"},
+            new String[]{"age_at_last_known_survival_status", "age_at_last_known_survival_status_str"},
             new String[]{"first_event", "first_event"},
             new String[]{"last_known_survival_status", "last_known_survival_status"},
 
             // Additional fields for download
-            new String[]{"age_at_event_free_survival_status", "age_at_event_free_survival_status"},
+            new String[]{"age_at_event_free_survival_status", "age_at_event_free_survival_status_str"},
             new String[]{"event_free_survival_status", "event_free_survival_status"},
             new String[]{"study_id", "study_id"},
             new String[]{"survival_id", "survival_id"},
