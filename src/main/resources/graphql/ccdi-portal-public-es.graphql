@@ -44,7 +44,6 @@ type SearchParticipantsResult {
     filterParticipantCountByGrantID: [SearchParticipantsReturnObject]
     filterParticipantCountByInstitution: [SearchParticipantsReturnObject]
     filterParticipantCountByName: [SearchParticipantsReturnObject]
-    filterParticipantCountByAcronym: [SearchParticipantsReturnObject]
     filterParticipantCountByStudyTitle: [SearchParticipantsReturnObject]
     filterParticipantCountByLibrarySelection: [SearchParticipantsReturnObject]
     filterParticipantCountByLibrarySource: [SearchParticipantsReturnObject]
@@ -73,6 +72,6 @@ type QueryType {
 
     idsLists: IdsListsES
     
-    searchParticipants (participant_ids: [String] = [""], race: [String] = [""], gender: [String] = [""], ethnicity: [String] = [""], age_at_diagnosis: [Int] = [0], diagnosis_anatomic_site: [String] = [""], disease_phase: [String] = [""], diagnosis_icd_o: [String] = [""], vital_status: [String] = [""], sample_anatomic_site: [String] = [""], participant_age_at_collection: [Int] = [0], sample_tumor_status: [String] = [""], tumor_classification: [String] = [""], assay_method: [String] = [""], file_type: [String] = [""], phs_accession: [String] = [""], grant_id: [String] = [""], institution: [String] = [""], study_name: [String] = [""], study_acronym: [String] = [""], study_short_title: [String] = [""], library_selection: [String] = [""], library_source: [String] = [""], library_strategy: [String] = [""]): SearchParticipantsResult
+    searchParticipants (participant_ids: [String] = [""], race: [String] = [""], gender: [String] = [""], ethnicity: [String] = [""], age_at_diagnosis: [Int] = [0], diagnosis_anatomic_site: [String] = [""], disease_phase: [String] = [""], diagnosis_icd_o: [String] = [""], vital_status: [String] = [""], sample_anatomic_site: [String] = [""], participant_age_at_collection: [Int] = [0], sample_tumor_status: [String] = [""], tumor_classification: [String] = [""], assay_method: [String] = [""], file_type: [String] = [""], phs_accession: [String] = [""], grant_id: [String] = [""], institution: [String] = [""], study_name: [String] = [""], study_short_title: [String] = [""], library_selection: [String] = [""], library_source: [String] = [""], library_strategy: [String] = [""]): SearchParticipantsResult
 
 }

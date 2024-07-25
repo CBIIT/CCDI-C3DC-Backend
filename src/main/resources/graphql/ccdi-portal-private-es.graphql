@@ -55,7 +55,6 @@ type GetParticipantsResult {
 
     # Studies
     filterParticipantCountByDbgapAccession: [SearchParticipantsReturnObject]
-    filterParticipantCountByStudyAcronym: [SearchParticipantsReturnObject]
     filterParticipantCountByStudyName: [SearchParticipantsReturnObject]
 
     # Survivals
@@ -128,7 +127,6 @@ type DiagnosisOverviewResult {
 type StudyOverviewResult {
     # Study
     dbgap_accession: String
-    study_acronym: String
     study_name: String
 
     # Additional fields for download
@@ -241,7 +239,6 @@ type QueryType {
 
         # Studies
         dbgap_accession: [String] = [""],
-        study_acronym: [String] = [""],
         study_name: [String] = [""],
 
         # Survivals
@@ -279,7 +276,6 @@ type QueryType {
 
         # Studies
         dbgap_accession: [String] = [""],
-        study_acronym: [String] = [""],
         study_name: [String] = [""],
 
         # Survivals
@@ -323,7 +319,6 @@ type QueryType {
 
         # Studies
         dbgap_accession: [String] = [""],
-        study_acronym: [String] = [""],
         study_name: [String] = [""],
 
         # Survivals
@@ -367,7 +362,6 @@ type QueryType {
 
         # Studies
         dbgap_accession: [String] = [""],
-        study_acronym: [String] = [""],
         study_name: [String] = [""],
 
         # Survivals
@@ -411,7 +405,6 @@ type QueryType {
 
         # Studies
         dbgap_accession: [String] = [""],
-        study_acronym: [String] = [""],
         study_name: [String] = [""],
 
         # Survivals
@@ -455,7 +448,6 @@ type QueryType {
 
         # Studies
         dbgap_accession: [String] = [""],
-        study_acronym: [String] = [""],
         study_name: [String] = [""],
 
         # Survivals
@@ -499,7 +491,6 @@ type QueryType {
 
         # Studies
         dbgap_accession: [String] = [""],
-        study_acronym: [String] = [""],
         study_name: [String] = [""],
 
         # Survivals

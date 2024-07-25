@@ -91,7 +91,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         "disease_phase",
 
         // Studies
-        "dbgap_accession", "study_acronym", "study_name",
+        "dbgap_accession", "study_name",
 
         // Survivals
         "age_at_last_known_survival_status", "first_event", "last_known_survival_status",
@@ -113,7 +113,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         "age_at_diagnosis", "anatomic_site", "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site",
         "vital_status", "sample_anatomic_site", "participant_age_at_collection",
         "sample_tumor_status", "tumor_classification", "assay_method", "file_type",
-        "dbgap_accession", "study_acronym", "study_name", "grant_id", "institution",
+        "dbgap_accession", "study_name", "grant_id", "institution",
         "library_selection", "library_source", "library_strategy"
     );
     final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of(
@@ -125,12 +125,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     );
     final Set<String> SAMPLE_REGULAR_PARAMS = Set.of(
         "participant_id", "ethnicity", "race", "sex_at_birth",
-        "dbgap_accession", "study_acronym", "study_name", "sample_anatomic_site",
+        "dbgap_accession", "study_name", "sample_anatomic_site",
         "participant_age_at_collection", "sample_tumor_status", "tumor_classification"
     );
     final Set<String> STUDY_REGULAR_PARAMS = Set.of(
         "acl", "consent", "consent_number", "external_url", "dbgap_accession",
-        "study_acronym", "study_description", "study_id",
+        "study_description", "study_id",
         "study_name"
     );
     final Set<String> SURVIVAL_REGULAR_PARAMS = Set.of(
@@ -491,11 +491,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NAME, "study_acronym",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByStudyAcronym",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
                     AGG_NAME, "study_name",
                     FILTER_COUNT_QUERY, "filterParticipantCountByStudyName",
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
@@ -767,7 +762,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         final String[][] PROPERTIES = new String[][]{
             // Studies
             new String[]{"dbgap_accession", "dbgap_accession"},
-            new String[]{"study_acronym", "study_acronym"},
             new String[]{"study_name", "study_name"},
 
             // Additional fields for download
@@ -779,12 +773,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"study_id", "study_id"},
         };
 
-        String defaultSort = "study_acronym"; // Default sort order
+        String defaultSort = "dbgap_accession"; // Default sort order
 
         Map<String, String> mapping = Map.ofEntries(
             // Studies
             Map.entry("dbgap_accession", "dbgap_accession"),
-            Map.entry("study_acronym", "study_acronym"),
             Map.entry("study_name", "study_name"),
 
             // Additional fields for download
