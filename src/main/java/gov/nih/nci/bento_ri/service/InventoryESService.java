@@ -40,6 +40,14 @@ public class InventoryESService extends ESService {
         "age_at_last_known_survival_status",
         "first_event", "last_known_survival_status"
     );
+    final Set<String> TREATMENT_PARAMS = Set.of(
+        "age_at_treatment_start", "age_at_treatment_end",
+        "treatment_type", "treatment_agent"
+    );
+    final Set<String> TREATMENT_RESPONSE_PARAMS = Set.of(
+        "response", "age_at_response",
+        "response_category", "response_system"
+    );
 
     static final AWSCredentialsProvider credentialsProvider = new DefaultAWSCredentialsProviderChain();
 
@@ -138,6 +146,8 @@ public class InventoryESService extends ESService {
         List<Object> participant_filters = new ArrayList<>();
         List<Object> diagnosis_filters = new ArrayList<>();
         List<Object> survival_filters = new ArrayList<>();
+        List<Object> treatment_filters = new ArrayList<>();
+        List<Object> treatment_response_filters = new ArrayList<>();
         
         for (String key: params.keySet()) {
             String finalKey = key;
@@ -170,6 +180,14 @@ public class InventoryESService extends ESService {
                         survival_filters.add(Map.of(
                             "range", Map.of("survivals." + key, range)
                         ));
+                    } else if (TREATMENT_PARAMS.contains(key) && !indexType.equals("treatments")) {
+                        treatment_filters.add(Map.of(
+                            "range", Map.of("treatments." + key, range)
+                        ));
+                    } else if (TREATMENT_RESPONSE_PARAMS.contains(key) && !indexType.equals("treatment_responses")) {
+                        treatment_response_filters.add(Map.of(
+                            "range", Map.of("treatment_responses." + key, range)
+                        ));
                     } else {
                         filter.add(Map.of(
                             "range", Map.of(key, range)
@@ -193,6 +211,14 @@ public class InventoryESService extends ESService {
                         survival_filters.add(Map.of(
                             "terms", Map.of("survivals." + key, valueSet)
                         ));
+                    } else if (TREATMENT_PARAMS.contains(key) && !indexType.equals("treatments")) {
+                        treatment_filters.add(Map.of(
+                            "terms", Map.of("treatments." + key, valueSet)
+                        ));
+                    } else if (TREATMENT_RESPONSE_PARAMS.contains(key) && !indexType.equals("treatment_responses")) {
+                        treatment_response_filters.add(Map.of(
+                            "terms", Map.of("treatment_responses." + key, valueSet)
+                        ));
                     } else {
                         filter.add(Map.of(
                             "terms", Map.of(key, valueSet)
@@ -206,7 +232,9 @@ public class InventoryESService extends ESService {
         int participantFilterLen = participant_filters.size();
         int diagnosisFilterLen = diagnosis_filters.size();
         int survivalFilterLen = survival_filters.size();
-        if (FilterLen + participantFilterLen + diagnosisFilterLen + survivalFilterLen == 0) {
+        int treatmentFilterLen = treatment_filters.size();
+        int treatmentResponseFilterLen = treatment_response_filters.size();
+        if (FilterLen + participantFilterLen + diagnosisFilterLen + survivalFilterLen + treatmentFilterLen + treatmentResponseFilterLen == 0) {
             result.put("query", Map.of("match_all", Map.of()));
         } else {
             if (participantFilterLen > 0) {
@@ -217,6 +245,12 @@ public class InventoryESService extends ESService {
             }
             if (survivalFilterLen > 0) {
                 filter.add(Map.of("nested", Map.of("path", "survivals", "query", Map.of("bool", Map.of("filter", survival_filters)), "inner_hits", Map.of())));
+            }
+            if (treatmentFilterLen > 0) {
+                filter.add(Map.of("nested", Map.of("path", "treatments", "query", Map.of("bool", Map.of("filter", treatment_filters)), "inner_hits", Map.of())));
+            }
+            if (treatmentResponseFilterLen > 0) {
+                filter.add(Map.of("nested", Map.of("path", "treatment_responses", "query", Map.of("bool", Map.of("filter", treatment_response_filters)), "inner_hits", Map.of())));
             }
             result.put("query", Map.of("bool", Map.of("filter", filter)));
         }
