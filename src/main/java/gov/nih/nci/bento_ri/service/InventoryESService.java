@@ -139,6 +139,7 @@ public class InventoryESService extends ESService {
         return result;
     }
 
+    // Do we even use the parameter regular_fields?
     public Map<String, Object> buildFacetFilterQuery(Map<String, Object> params, Set<String> rangeParams, Set<String> excludedParams, Set<String> regular_fields, String nestedProperty, String indexType) throws IOException {
         Map<String, Object> result = new HashMap<>();
 

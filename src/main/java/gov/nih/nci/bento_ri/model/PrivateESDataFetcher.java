@@ -53,6 +53,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String STUDIES_COUNT_END_POINT = "/studies/_count";
     final String SURVIVALS_COUNT_END_POINT = "/survivals/_count";
     final String SAMPLES_COUNT_END_POINT = "/samples/_count";
+    final String TREATMENTS_COUNT_END_POINT = "/treatments/_count";
+    final String TREATMENT_RESPONSES_COUNT_END_POINT = "/treatment_responses/_count";
 
     // For slider fields
     final Set<String> RANGE_PARAMS = Set.of(
@@ -78,6 +80,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         "anatomic_site", "diagnosis"
     );
 
+    // Do we even use this?
     final Set<String> REGULAR_PARAMS = Set.of(
         // Demographics
         "participant_id", "ethnicity", "race", "sex_at_birth",
@@ -91,7 +94,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         "dbgap_accession", "study_acronym", "study_name",
 
         // Survivals
-        "age_at_last_known_survival_status", "first_event", "last_known_survival_status"
+        "age_at_last_known_survival_status", "first_event", "last_known_survival_status",
+
+        // Treatments
+        "age_at_treatment_start", "age_at_treatment_end",
+        "treatment_type", "treatment_agent",
+
+        // Treatment Responses
+        "response", "age_at_response",
+        "response_category", "response_system"
     );
     final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of(
         // Demographics
@@ -131,6 +142,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         "age_at_event_free_survival_status", "age_at_last_known_survival_status",
         "event_free_survival_status", "first_event", "last_known_survival_status",
         "survival_id"
+    );
+    final Set<String> TREATMENT_REGULAR_PARAMS = Set.of(
+        // Do we even use this?
+    );
+    final Set<String> TREATMENT_RESPONSE_REGULAR_PARAMS = Set.of(
+        // Do we even use this?
     );
 
     public PrivateESDataFetcher(InventoryESService esService) {
@@ -577,6 +594,22 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             JsonObject survivalsCountResult = inventoryESService.send(survivalsCountRequest);
             int numberOfSurvivals = survivalsCountResult.get("count").getAsInt();
 
+            // Get Treatment counts for Explore page stats bar
+            Map<String, Object> treatmentsQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "treatments");
+            Request treatmentsCountRequest = new Request("GET", TREATMENTS_COUNT_END_POINT);
+            String treatmentsQueryJson = gson.toJson(treatmentsQuery);
+            treatmentsCountRequest.setJsonEntity(treatmentsQueryJson);
+            JsonObject treatmentsCountResult = inventoryESService.send(treatmentsCountRequest);
+            int numberOfTreatments = treatmentsCountResult.get("count").getAsInt();
+
+            // Get Treatment Response counts for Explore page stats bar
+            Map<String, Object> treatmentResponsesQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "treatment_responses");
+            Request treatmentResponsesCountRequest = new Request("GET", TREATMENT_RESPONSES_COUNT_END_POINT);
+            String treatmentResponsesQueryJson = gson.toJson(treatmentResponsesQuery);
+            treatmentResponsesCountRequest.setJsonEntity(treatmentResponsesQueryJson);
+            JsonObject treatmentResponsesCountResult = inventoryESService.send(treatmentResponsesCountRequest);
+            int numberOfTreatmentResponses = treatmentResponsesCountResult.get("count").getAsInt();
+
             Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
             int numberOfStudies = getNodeCount("study_id", query_participants, PARTICIPANTS_END_POINT).size();
             
@@ -596,6 +629,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             data.put("numberOfDiseases", numberOfDiseases);
             data.put("numberOfParticipants", numberOfParticipants);
             data.put("numberOfSurvivals", numberOfSurvivals);
+            data.put("numberOfTreatments", numberOfTreatments);
+            data.put("numberOfTreatmentResponses", numberOfTreatmentResponses);
             
             // widgets data and facet filter counts for projects
             for (var agg: PARTICIPANT_TERM_AGGS) {
