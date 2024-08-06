@@ -163,6 +163,9 @@ type TreatmentOverviewResult {
     # Participant
     participant_id: String
 
+    # Study
+    dbgap_accession: String
+
     # Treatment
     treatment_id: String
     age_at_treatment_start: Int
@@ -174,6 +177,9 @@ type TreatmentOverviewResult {
 type TreatmentResponseOverviewResult {
     # Participant
     participant_id: String
+
+    # Study
+    dbgap_accession: String
 
     # Treatment Response
     treatment_response_id: String

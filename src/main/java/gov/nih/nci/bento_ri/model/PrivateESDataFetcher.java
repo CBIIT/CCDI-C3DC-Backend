@@ -877,6 +877,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             // Participants
             new String[]{"participant_id", "participant_id"},
 
+            // Studies
+            new String[]{"dbgap_accession", "dbgap_accession"},
+
             // Treatments
             new String[]{"treatment_id", "treatment_id"},
             new String[]{"age_at_treatment_start", "age_at_treatment_start"},
@@ -890,6 +893,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map<String, String> mapping = Map.ofEntries(
             // Participants
             Map.entry("participant_id", "participant_id"),
+
+            // Studies
+            Map.entry("dbgap_accession", "dbgap_accession"),
 
             // Treatments
             Map.entry("treatment_id", "treatment_id"),
@@ -907,6 +913,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             // Participants
             new String[]{"participant_id", "participant_id"},
 
+            // Studies
+            new String[]{"dbgap_accession", "dbgap_accession"},
+
             // Treatment Responses
             new String[]{"treatment_response_id", "treatment_response_id"},
             new String[]{"response", "response"},
@@ -920,6 +929,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map<String, String> mapping = Map.ofEntries(
             // Participants
             Map.entry("participant_id", "participant_id"),
+
+            // Studies
+            Map.entry("dbgap_accession", "dbgap_accession"),
 
             // Treatment Responses
             Map.entry("treatment_response_id", "treatment_response_id"),
