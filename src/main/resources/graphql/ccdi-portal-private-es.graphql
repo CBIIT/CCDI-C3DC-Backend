@@ -37,6 +37,8 @@ type GetParticipantsResult {
     numberOfDiseases: Int
     numberOfStudies: Int
     numberOfSurvivals: Int
+    numberOfTreatments: Int
+    numberOfTreatmentResponses: Int
 
     # Demographics
     filterParticipantCountByEthnicity: [SearchParticipantsReturnObject]
@@ -161,6 +163,9 @@ type TreatmentOverviewResult {
     # Participant
     participant_id: String
 
+    # Study
+    dbgap_accession: String
+
     # Treatment
     treatment_id: String
     age_at_treatment_start: Int
@@ -172,6 +177,9 @@ type TreatmentOverviewResult {
 type TreatmentResponseOverviewResult {
     # Participant
     participant_id: String
+
+    # Study
+    dbgap_accession: String
 
     # Treatment Response
     treatment_response_id: String
@@ -213,6 +221,8 @@ type QueryType {
     numberOfReferenceFiles: Int
     numberOfStudies: Int
     numberOfSurvivals: Int
+    numberOfTreatments: Int
+    numberOfTreatmentResponses: Int
 
     getParticipants (
         # Demographics
