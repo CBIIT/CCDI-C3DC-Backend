@@ -41,7 +41,6 @@ type GetParticipantsResult {
     numberOfTreatmentResponses: Int
 
     # Demographics
-    filterParticipantCountByEthnicity: [SearchParticipantsReturnObject]
     filterParticipantCountByRace: [SearchParticipantsReturnObject]
     filterParticipantCountBySexAtBirth: [SearchParticipantsReturnObject]
 
@@ -75,7 +74,6 @@ type GetParticipantsResult {
     filterParticipantCountByResponseSystem: [SearchParticipantsReturnObject]
 
     # Widget counts
-    participantCountByEthnicity: [SearchParticipantsReturnObject]
     participantCountByRace: [SearchParticipantsReturnObject]
     participantCountBySexAtBirth: [SearchParticipantsReturnObject]
     participantCountByAgeAtDiagnosis: [SearchParticipantsReturnObject]
@@ -85,7 +83,6 @@ type GetParticipantsResult {
 
 type ParticipantOverviewResult {
     # Demographics
-    ethnicity: String
     participant_id: String
     race: String
     sex_at_birth: String
@@ -130,7 +127,6 @@ type StudyOverviewResult {
     study_name: String
 
     # Additional fields for download
-    acl: String
     consent: String
     consent_number: String
     external_url: String
@@ -225,7 +221,6 @@ type QueryType {
     getParticipants (
         # Demographics
         participant_ids: [String] = [""],
-        ethnicity: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 
@@ -262,7 +257,6 @@ type QueryType {
     participantOverview (
         # Demographics
         participant_ids: [String] = [""],
-        ethnicity: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 
@@ -305,7 +299,6 @@ type QueryType {
     diagnosisOverview (
         # Demographics
         participant_ids: [String] = [""],
-        ethnicity: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 
@@ -348,7 +341,6 @@ type QueryType {
     studyOverview (
         # Demographics
         participant_ids: [String] = [""],
-        ethnicity: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 
@@ -391,7 +383,6 @@ type QueryType {
     survivalOverview (
         # Demographics
         participant_ids: [String] = [""],
-        ethnicity: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 
@@ -434,7 +425,6 @@ type QueryType {
     treatmentOverview (
         # Demographics
         participant_ids: [String] = [""],
-        ethnicity: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 
@@ -477,7 +467,6 @@ type QueryType {
     treatmentResponseOverview (
         # Demographics
         participant_ids: [String] = [""],
-        ethnicity: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 

@@ -75,7 +75,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     // For multiple selection from a list
     final Set<String> INCLUDE_PARAMS  = Set.of(
         // Demographics
-        "race", "ethnicity",
+        "race",
         // Diagnoses
         "anatomic_site", "diagnosis"
     );
@@ -83,7 +83,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     // Do we even use this?
     final Set<String> REGULAR_PARAMS = Set.of(
         // Demographics
-        "participant_id", "ethnicity", "race", "sex_at_birth",
+        "participant_id", "race", "sex_at_birth",
 
         // Diagnoses
         "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
@@ -106,7 +106,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     );
     final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of(
         // Demographics
-        "ethnicity", "participant_id", "race", "sex_at_birth",
+        "participant_id", "race", "sex_at_birth",
         // Survivals
         "age_at_last_known_survival_status", "first_event", "last_known_survival_status",
         // Diagnoses
@@ -121,15 +121,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         "diagnosis", "diagnosis_classification_system",
         "disease_phase", "tumor_classification",
         // Demographics
-        "ethnicity", "participant_id", "race", "sex_at_birth"
+        "participant_id", "race", "sex_at_birth"
     );
     final Set<String> SAMPLE_REGULAR_PARAMS = Set.of(
-        "participant_id", "ethnicity", "race", "sex_at_birth",
+        "participant_id", "race", "sex_at_birth",
         "dbgap_accession", "study_name", "sample_anatomic_site",
         "participant_age_at_collection", "sample_tumor_status", "tumor_classification"
     );
     final Set<String> STUDY_REGULAR_PARAMS = Set.of(
-        "acl", "consent", "consent_number", "external_url", "dbgap_accession",
+        "consent", "consent_number", "external_url", "dbgap_accession",
         "study_description", "study_id",
         "study_name"
     );
@@ -429,12 +429,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             // Query related values
             final List<Map<String, String>> PARTICIPANT_TERM_AGGS = new ArrayList<>();
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NAME, "ethnicity",
-                    WIDGET_QUERY,"participantCountByEthnicity",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByEthnicity",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
                     AGG_NAME, "race",
                     WIDGET_QUERY,"participantCountByRace",
                     FILTER_COUNT_QUERY, "filterParticipantCountByRace",
@@ -668,7 +662,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         final String[][] PROPERTIES = new String[][]{
             // Demographics
             new String[]{"participant_id", "participant_id"},
-            new String[]{"ethnicity", "ethnicity_str"},
             new String[]{"race", "race_str"},
             new String[]{"sex_at_birth", "sex_at_birth"},
 
@@ -684,7 +677,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map<String, String> mapping = Map.ofEntries(
             // Demographics
             Map.entry("participant_id", "participant_id"),
-            Map.entry("ethnicity", "ethnicity_str"),
             Map.entry("race", "race_str"),
             Map.entry("sex_at_birth", "sex_at_birth"),
 
@@ -765,7 +757,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"study_name", "study_name"},
 
             // Additional fields for download
-            new String[]{"acl", "acl"},
             new String[]{"consent", "consent"},
             new String[]{"consent_number", "consent_number_str"},
             new String[]{"external_url", "external_url"},
@@ -781,7 +772,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("study_name", "study_name"),
 
             // Additional fields for download
-            Map.entry("acl", "acl"),
             Map.entry("consent", "consent"),
             Map.entry("consent_number", "consent_number"),
             Map.entry("external_url", "external_url"),
