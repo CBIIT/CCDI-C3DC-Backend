@@ -58,6 +58,7 @@ type GetParticipantsResult {
 
     # Survivals
     filterParticipantCountByAgeAtLastKnownSurvivalStatus: RangeCount
+    filterParticipantCountByCauseOfDeath: [SearchParticipantsReturnObject]
     filterParticipantCountByFirstEvent: [SearchParticipantsReturnObject]
     filterParticipantCountByLastKnownSurvivalStatus: [SearchParticipantsReturnObject]
 
@@ -238,6 +239,7 @@ type QueryType {
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
@@ -274,6 +276,7 @@ type QueryType {
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
@@ -316,6 +319,7 @@ type QueryType {
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
@@ -358,6 +362,7 @@ type QueryType {
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
@@ -400,6 +405,7 @@ type QueryType {
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
@@ -442,6 +448,7 @@ type QueryType {
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
@@ -484,6 +491,7 @@ type QueryType {
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 

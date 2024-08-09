@@ -94,7 +94,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         "dbgap_accession", "study_name",
 
         // Survivals
-        "age_at_last_known_survival_status", "first_event", "last_known_survival_status",
+        "age_at_last_known_survival_status", "cause_of_death",
+        "first_event", "last_known_survival_status",
 
         // Treatments
         "age_at_treatment_start", "age_at_treatment_end",
@@ -497,6 +498,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "participant_pk",
+                    AGG_NAME, "cause_of_death",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByCauseOfDeath",
+                    AGG_ENDPOINT, SURVIVALS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_pk",
                     AGG_NAME, "first_event",
                     FILTER_COUNT_QUERY, "filterParticipantCountByFirstEvent",
                     AGG_ENDPOINT, SURVIVALS_END_POINT
@@ -821,6 +828,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
             // Survivals
             new String[]{"age_at_last_known_survival_status", "age_at_last_known_survival_status_str"},
+            new String[]{"cause_of_death", "cause_of_death"},
             new String[]{"first_event", "first_event"},
             new String[]{"last_known_survival_status", "last_known_survival_status"},
 
