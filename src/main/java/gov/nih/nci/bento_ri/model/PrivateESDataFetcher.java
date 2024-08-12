@@ -75,7 +75,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     // For multiple selection from a list
     final Set<String> INCLUDE_PARAMS  = Set.of(
         // Demographics
-        "race", "ethnicity",
+        "race",
         // Diagnoses
         "anatomic_site", "diagnosis"
     );
@@ -83,7 +83,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     // Do we even use this?
     final Set<String> REGULAR_PARAMS = Set.of(
         // Demographics
-        "participant_id", "ethnicity", "race", "sex_at_birth",
+        "participant_id", "race", "sex_at_birth",
 
         // Diagnoses
         "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
@@ -91,10 +91,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         "disease_phase",
 
         // Studies
-        "dbgap_accession", "study_acronym", "study_name",
+        "dbgap_accession", "study_name",
 
         // Survivals
-        "age_at_last_known_survival_status", "first_event", "last_known_survival_status",
+        "age_at_last_known_survival_status", "cause_of_death",
+        "first_event", "last_known_survival_status",
 
         // Treatments
         "age_at_treatment_start", "age_at_treatment_end",
@@ -106,14 +107,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     );
     final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of(
         // Demographics
-        "ethnicity", "participant_id", "race", "sex_at_birth",
+        "participant_id", "race", "sex_at_birth",
         // Survivals
         "age_at_last_known_survival_status", "first_event", "last_known_survival_status",
         // Diagnoses
         "age_at_diagnosis", "anatomic_site", "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site",
         "vital_status", "sample_anatomic_site", "participant_age_at_collection",
         "sample_tumor_status", "tumor_classification", "assay_method", "file_type",
-        "dbgap_accession", "study_acronym", "study_name", "grant_id", "institution",
+        "dbgap_accession", "study_name", "grant_id", "institution",
         "library_selection", "library_source", "library_strategy"
     );
     final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of(
@@ -121,16 +122,16 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         "diagnosis", "diagnosis_classification_system",
         "disease_phase", "tumor_classification",
         // Demographics
-        "ethnicity", "participant_id", "race", "sex_at_birth"
+        "participant_id", "race", "sex_at_birth"
     );
     final Set<String> SAMPLE_REGULAR_PARAMS = Set.of(
-        "participant_id", "ethnicity", "race", "sex_at_birth",
-        "dbgap_accession", "study_acronym", "study_name", "sample_anatomic_site",
+        "participant_id", "race", "sex_at_birth",
+        "dbgap_accession", "study_name", "sample_anatomic_site",
         "participant_age_at_collection", "sample_tumor_status", "tumor_classification"
     );
     final Set<String> STUDY_REGULAR_PARAMS = Set.of(
-        "acl", "consent", "consent_number", "external_url", "dbgap_accession",
-        "study_acronym", "study_description", "study_id",
+        "consent", "consent_number", "external_url", "dbgap_accession",
+        "study_description", "study_id",
         "study_name"
     );
     final Set<String> SURVIVAL_REGULAR_PARAMS = Set.of(
@@ -429,12 +430,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             // Query related values
             final List<Map<String, String>> PARTICIPANT_TERM_AGGS = new ArrayList<>();
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NAME, "ethnicity",
-                    WIDGET_QUERY,"participantCountByEthnicity",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByEthnicity",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
                     AGG_NAME, "race",
                     WIDGET_QUERY,"participantCountByRace",
                     FILTER_COUNT_QUERY, "filterParticipantCountByRace",
@@ -491,11 +486,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NAME, "study_acronym",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByStudyAcronym",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
                     AGG_NAME, "study_name",
                     FILTER_COUNT_QUERY, "filterParticipantCountByStudyName",
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
@@ -504,6 +494,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "participant_pk",
                     AGG_NAME, "age_at_last_known_survival_status",
                     FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtLastKnownSurvivalStatus",
+                    AGG_ENDPOINT, SURVIVALS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_pk",
+                    AGG_NAME, "cause_of_death",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByCauseOfDeath",
                     AGG_ENDPOINT, SURVIVALS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -673,7 +669,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         final String[][] PROPERTIES = new String[][]{
             // Demographics
             new String[]{"participant_id", "participant_id"},
-            new String[]{"ethnicity", "ethnicity_str"},
             new String[]{"race", "race_str"},
             new String[]{"sex_at_birth", "sex_at_birth"},
 
@@ -689,7 +684,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map<String, String> mapping = Map.ofEntries(
             // Demographics
             Map.entry("participant_id", "participant_id"),
-            Map.entry("ethnicity", "ethnicity_str"),
             Map.entry("race", "race_str"),
             Map.entry("sex_at_birth", "sex_at_birth"),
 
@@ -767,11 +761,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         final String[][] PROPERTIES = new String[][]{
             // Studies
             new String[]{"dbgap_accession", "dbgap_accession"},
-            new String[]{"study_acronym", "study_acronym"},
             new String[]{"study_name", "study_name"},
 
             // Additional fields for download
-            new String[]{"acl", "acl"},
             new String[]{"consent", "consent"},
             new String[]{"consent_number", "consent_number_str"},
             new String[]{"external_url", "external_url"},
@@ -779,16 +771,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"study_id", "study_id"},
         };
 
-        String defaultSort = "study_acronym"; // Default sort order
+        String defaultSort = "dbgap_accession"; // Default sort order
 
         Map<String, String> mapping = Map.ofEntries(
             // Studies
             Map.entry("dbgap_accession", "dbgap_accession"),
-            Map.entry("study_acronym", "study_acronym"),
             Map.entry("study_name", "study_name"),
 
             // Additional fields for download
-            Map.entry("acl", "acl"),
             Map.entry("consent", "consent"),
             Map.entry("consent_number", "consent_number"),
             Map.entry("external_url", "external_url"),
@@ -838,6 +828,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
             // Survivals
             new String[]{"age_at_last_known_survival_status", "age_at_last_known_survival_status_str"},
+            new String[]{"cause_of_death", "cause_of_death"},
             new String[]{"first_event", "first_event"},
             new String[]{"last_known_survival_status", "last_known_survival_status"},
 

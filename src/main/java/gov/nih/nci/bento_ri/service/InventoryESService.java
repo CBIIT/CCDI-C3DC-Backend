@@ -27,17 +27,17 @@ public class InventoryESService extends ESService {
     public static final String JSON_OBJECT = "jsonObject";
     public static final String AGGS = "aggs";
     public static final int MAX_ES_SIZE = 500000;
-    final Set<String> PARTICIPANT_PARAMS = Set.of("ethnicity", "race", "sex_at_birth");
+    final Set<String> PARTICIPANT_PARAMS = Set.of("race", "sex_at_birth");
     final Set<String> DIAGNOSIS_PARAMS = Set.of(
         "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
         "diagnosis", "diagnosis_classification_system",
         "disease_phase"
     );
     final Set<String> STUDY_PARAMS = Set.of(
-        "dbgap_accession", "study_acronym", "study_name"
+        "dbgap_accession", "study_name"
     );
     final Set<String> SURVIVAL_PARAMS = Set.of(
-        "age_at_last_known_survival_status",
+        "age_at_last_known_survival_status", "cause_of_death",
         "first_event", "last_known_survival_status"
     );
     final Set<String> TREATMENT_PARAMS = Set.of(

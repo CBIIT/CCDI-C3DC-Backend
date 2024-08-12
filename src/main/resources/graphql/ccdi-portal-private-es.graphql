@@ -41,7 +41,6 @@ type GetParticipantsResult {
     numberOfTreatmentResponses: Int
 
     # Demographics
-    filterParticipantCountByEthnicity: [SearchParticipantsReturnObject]
     filterParticipantCountByRace: [SearchParticipantsReturnObject]
     filterParticipantCountBySexAtBirth: [SearchParticipantsReturnObject]
 
@@ -55,11 +54,11 @@ type GetParticipantsResult {
 
     # Studies
     filterParticipantCountByDbgapAccession: [SearchParticipantsReturnObject]
-    filterParticipantCountByStudyAcronym: [SearchParticipantsReturnObject]
     filterParticipantCountByStudyName: [SearchParticipantsReturnObject]
 
     # Survivals
     filterParticipantCountByAgeAtLastKnownSurvivalStatus: RangeCount
+    filterParticipantCountByCauseOfDeath: [SearchParticipantsReturnObject]
     filterParticipantCountByFirstEvent: [SearchParticipantsReturnObject]
     filterParticipantCountByLastKnownSurvivalStatus: [SearchParticipantsReturnObject]
 
@@ -76,7 +75,6 @@ type GetParticipantsResult {
     filterParticipantCountByResponseSystem: [SearchParticipantsReturnObject]
 
     # Widget counts
-    participantCountByEthnicity: [SearchParticipantsReturnObject]
     participantCountByRace: [SearchParticipantsReturnObject]
     participantCountBySexAtBirth: [SearchParticipantsReturnObject]
     participantCountByAgeAtDiagnosis: [SearchParticipantsReturnObject]
@@ -86,7 +84,6 @@ type GetParticipantsResult {
 
 type ParticipantOverviewResult {
     # Demographics
-    ethnicity: String
     participant_id: String
     race: String
     sex_at_birth: String
@@ -128,11 +125,9 @@ type DiagnosisOverviewResult {
 type StudyOverviewResult {
     # Study
     dbgap_accession: String
-    study_acronym: String
     study_name: String
 
     # Additional fields for download
-    acl: String
     consent: String
     consent_number: String
     external_url: String
@@ -227,7 +222,6 @@ type QueryType {
     getParticipants (
         # Demographics
         participant_ids: [String] = [""],
-        ethnicity: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 
@@ -241,11 +235,11 @@ type QueryType {
 
         # Studies
         dbgap_accession: [String] = [""],
-        study_acronym: [String] = [""],
         study_name: [String] = [""],
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
@@ -265,7 +259,6 @@ type QueryType {
     participantOverview (
         # Demographics
         participant_ids: [String] = [""],
-        ethnicity: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 
@@ -279,11 +272,11 @@ type QueryType {
 
         # Studies
         dbgap_accession: [String] = [""],
-        study_acronym: [String] = [""],
         study_name: [String] = [""],
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
@@ -309,7 +302,6 @@ type QueryType {
     diagnosisOverview (
         # Demographics
         participant_ids: [String] = [""],
-        ethnicity: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 
@@ -323,11 +315,11 @@ type QueryType {
 
         # Studies
         dbgap_accession: [String] = [""],
-        study_acronym: [String] = [""],
         study_name: [String] = [""],
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
@@ -353,7 +345,6 @@ type QueryType {
     studyOverview (
         # Demographics
         participant_ids: [String] = [""],
-        ethnicity: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 
@@ -367,11 +358,11 @@ type QueryType {
 
         # Studies
         dbgap_accession: [String] = [""],
-        study_acronym: [String] = [""],
         study_name: [String] = [""],
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
@@ -397,7 +388,6 @@ type QueryType {
     survivalOverview (
         # Demographics
         participant_ids: [String] = [""],
-        ethnicity: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 
@@ -411,11 +401,11 @@ type QueryType {
 
         # Studies
         dbgap_accession: [String] = [""],
-        study_acronym: [String] = [""],
         study_name: [String] = [""],
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
@@ -441,7 +431,6 @@ type QueryType {
     treatmentOverview (
         # Demographics
         participant_ids: [String] = [""],
-        ethnicity: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 
@@ -455,11 +444,11 @@ type QueryType {
 
         # Studies
         dbgap_accession: [String] = [""],
-        study_acronym: [String] = [""],
         study_name: [String] = [""],
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
@@ -485,7 +474,6 @@ type QueryType {
     treatmentResponseOverview (
         # Demographics
         participant_ids: [String] = [""],
-        ethnicity: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 
@@ -499,11 +487,11 @@ type QueryType {
 
         # Studies
         dbgap_accession: [String] = [""],
-        study_acronym: [String] = [""],
         study_name: [String] = [""],
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
