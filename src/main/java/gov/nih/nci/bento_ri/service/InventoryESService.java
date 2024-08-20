@@ -27,6 +27,7 @@ public class InventoryESService extends ESService {
     public static final String JSON_OBJECT = "jsonObject";
     public static final String AGGS = "aggs";
     public static final int MAX_ES_SIZE = 500000;
+    public static final int SCROLL_THRESHOLD = 10000;
     final Set<String> PARTICIPANT_PARAMS = Set.of("race", "sex_at_birth");
     final Set<String> DIAGNOSIS_PARAMS = Set.of(
         "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
@@ -465,7 +466,7 @@ public class InventoryESService extends ESService {
         if (pageSize > MAX_ES_SIZE) {
             throw new IOException("Parameter 'first' must not exceeded " + MAX_ES_SIZE);
         }
-        if (pageSize + offset > MAX_ES_SIZE) {
+        if (pageSize + offset > SCROLL_THRESHOLD) {
             return collectPageWithScroll(request, query, properties, pageSize, offset);
         }
 
@@ -482,7 +483,7 @@ public class InventoryESService extends ESService {
     // offset MUST be multiple of pageSize, otherwise the page won't be complete
     private List<Map<String, Object>> collectPageWithScroll(
             Request request, Map<String, Object> query, String[][] properties, int pageSize, int offset) throws IOException {
-        final int optimumSize = ( MAX_ES_SIZE / pageSize ) * pageSize;
+        final int optimumSize = ( SCROLL_THRESHOLD / pageSize ) * pageSize;
         if (offset % pageSize != 0) {
             throw new IOException("'offset' must be multiple of 'first'!");
         }
