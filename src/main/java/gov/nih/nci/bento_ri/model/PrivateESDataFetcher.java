@@ -464,6 +464,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "participant_pk",
+                    WIDGET_QUERY,"participantCountByTreatmentType",
+                    AGG_NAME, "treatment_type",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByTreatmentType",
+                    AGG_ENDPOINT, TREATMENTS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "participant_pk",
                     AGG_NAME, "diagnosis_classification_system",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisClassificationSystem",
                     AGG_ENDPOINT, DIAGNOSES_END_POINT
@@ -524,12 +531,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "participant_pk",
                     AGG_NAME, "age_at_treatment_end",
                     FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtTreatmentEnd",
-                    AGG_ENDPOINT, TREATMENTS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_pk",
-                    AGG_NAME, "treatment_type",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByTreatmentType",
                     AGG_ENDPOINT, TREATMENTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(

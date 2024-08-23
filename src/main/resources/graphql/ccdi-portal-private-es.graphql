@@ -80,6 +80,7 @@ type GetParticipantsResult {
     participantCountByAgeAtDiagnosis: [SearchParticipantsReturnObject]
     participantCountByAnatomicSite: [SearchParticipantsReturnObject]
     participantCountByDiagnosis: [SearchParticipantsReturnObject]
+    participantCountByTreatmentType: [SearchParticipantsReturnObject]
 }
 
 type ParticipantOverviewResult {
