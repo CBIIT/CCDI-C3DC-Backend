@@ -162,6 +162,7 @@ type TreatmentOverviewResult {
 
     # Study
     dbgap_accession: String
+    study_id: String
 
     # Treatment
     treatment_id: String
@@ -177,6 +178,7 @@ type TreatmentResponseOverviewResult {
 
     # Study
     dbgap_accession: String
+    study_id: String
 
     # Treatment Response
     treatment_response_id: String
