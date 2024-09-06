@@ -767,6 +767,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private List<Map<String, Object>> studyOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
             // Studies
+            new String[]{"study_pk", "study_pk"},
             new String[]{"dbgap_accession", "dbgap_accession"},
             new String[]{"study_name", "study_name"},
 
