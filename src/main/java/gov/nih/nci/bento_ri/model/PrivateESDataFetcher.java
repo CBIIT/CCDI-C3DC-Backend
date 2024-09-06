@@ -669,6 +669,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
             // Demographics
+            new String[]{"participant_pk", "participant_pk"},
             new String[]{"participant_id", "participant_id"},
             new String[]{"race", "race_str"},
             new String[]{"sex_at_birth", "sex_at_birth"},
@@ -684,6 +685,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         Map<String, String> mapping = Map.ofEntries(
             // Demographics
+            Map.entry("participant_pk", "participant_pk"),
             Map.entry("participant_id", "participant_id"),
             Map.entry("race", "race_str"),
             Map.entry("sex_at_birth", "sex_at_birth"),
@@ -701,6 +703,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private List<Map<String, Object>> diagnosisOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
             // Diagnoses
+            new String[]{"diagnosis_pk", "diagnosis_pk"},
             new String[]{"age_at_diagnosis", "age_at_diagnosis_str"},
             new String[]{"anatomic_site", "anatomic_site"},
             new String[]{"diagnosis_basis", "diagnosis_basis"},
@@ -710,6 +713,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"tumor_classification", "tumor_classification"},
 
             // Demographics
+            new String[]{"participant_pk", "participant_pk"},
             new String[]{"participant_id", "participant_id"},
 
             // Studies
@@ -730,6 +734,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         Map<String, String> mapping = Map.ofEntries(
             // Diagnoses
+            Map.entry("diagnosis_pk", "diagnosis_pk"),
             Map.entry("age_at_diagnosis", "age_at_diagnosis"),
             Map.entry("anatomic_site", "anatomic_site"),
             Map.entry("diagnosis_basis", "diagnosis_basis"),
@@ -739,6 +744,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("tumor_classification", "tumor_classification"),
 
             // Demographics
+            Map.entry("participant_pk", "participant_pk"),
             Map.entry("participant_id", "participant_id"),
 
             // Studies
@@ -822,12 +828,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private List<Map<String, Object>> survivalOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
             // Participants
+            new String[]{"participant_pk", "participant_pk"},
             new String[]{"participant_id", "participant_id"},
 
             // Studies
             new String[]{"dbgap_accession", "dbgap_accession"},
 
             // Survivals
+            new String[]{"survival_pk", "survival_pk"},
             new String[]{"age_at_last_known_survival_status", "age_at_last_known_survival_status_str"},
             new String[]{"cause_of_death", "cause_of_death"},
             new String[]{"first_event", "first_event"},
@@ -844,12 +852,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         Map<String, String> mapping = Map.ofEntries(
             // Participants
+            Map.entry("participant_pk", "participant_pk"),
             Map.entry("participant_id", "participant_id"),
 
             // Studies
             Map.entry("dbgap_accession", "dbgap_accession"),
 
             // Survivals
+            Map.entry("survival_pk", "survival_pk"),
             Map.entry("age_at_last_known_survival_status", "age_at_last_known_survival_status"),
             Map.entry("first_event", "first_event"),
             Map.entry("last_known_survival_status", "last_known_survival_status"),
@@ -867,6 +877,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private List<Map<String, Object>> treatmentOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
             // Participants
+            new String[]{"participant_pk", "participant_pk"},
             new String[]{"participant_id", "participant_id"},
 
             // Studies
@@ -874,6 +885,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"study_id", "study_id"},
 
             // Treatments
+            new String[]{"treatment_pk", "treatment_pk"},
             new String[]{"treatment_id", "treatment_id"},
             new String[]{"age_at_treatment_start", "age_at_treatment_start"},
             new String[]{"age_at_treatment_end", "age_at_treatment_end"},
@@ -885,6 +897,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         Map<String, String> mapping = Map.ofEntries(
             // Participants
+            Map.entry("participant_pk", "participant_pk"),
             Map.entry("participant_id", "participant_id"),
 
             // Studies
@@ -892,6 +905,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("study_id", "study_id"),
 
             // Treatments
+            Map.entry("treatment_pk", "treatment_pk"),
             Map.entry("treatment_id", "treatment_id"),
             Map.entry("age_at_treatment_start", "age_at_treatment_start"),
             Map.entry("age_at_treatment_end", "age_at_treatment_end"),
@@ -905,6 +919,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private List<Map<String, Object>> treatmentResponseOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
             // Participants
+            new String[]{"participant_pk", "participant_pk"},
             new String[]{"participant_id", "participant_id"},
 
             // Studies
@@ -912,6 +927,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"study_id", "study_id"},
 
             // Treatment Responses
+            new String[]{"treatment_response_pk", "treatment_response_pk"},
             new String[]{"treatment_response_id", "treatment_response_id"},
             new String[]{"response", "response"},
             new String[]{"age_at_response", "age_at_response"},
@@ -923,6 +939,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         Map<String, String> mapping = Map.ofEntries(
             // Participants
+            Map.entry("participant_pk", "participant_pk"),
             Map.entry("participant_id", "participant_id"),
 
             // Studies
@@ -930,6 +947,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("study_id", "study_id"),
 
             // Treatment Responses
+            Map.entry("treatment_response_pk", "treatment_response_pk"),
             Map.entry("treatment_response_id", "treatment_response_id"),
             Map.entry("response", "response"),
             Map.entry("age_at_response", "age_at_response"),
