@@ -85,7 +85,8 @@ type GetParticipantsResult {
 
 type ParticipantOverviewResult {
     # Demographics
-    participant_id: String
+    participant_pk: String # For adding to cohort
+    participant_id: String # For display
     race: String
     sex_at_birth: String
 
@@ -98,9 +99,11 @@ type ParticipantOverviewResult {
 
 type DiagnosisOverviewResult {
     # Demographics
-    participant_id: String
+    participant_pk: String # For adding to cohort
+    participant_id: String # For display
 
     # Diagnosis
+    diagnosis_pk: String # For selecting record
     age_at_diagnosis: String
     anatomic_site: String
     diagnosis_basis: String
@@ -125,6 +128,7 @@ type DiagnosisOverviewResult {
 
 type StudyOverviewResult {
     # Study
+    study_pk: String # For selecting record
     dbgap_accession: String
     study_name: String
 
@@ -138,12 +142,14 @@ type StudyOverviewResult {
 
 type SurvivalOverviewResult {
     # Participant
-    participant_id: String
+    participant_pk: String # For adding to cohort
+    participant_id: String # For display
 
     # Study
     dbgap_accession: String
 
     # Survival
+    survival_pk: String # For selecting record
     age_at_last_known_survival_status: String
     cause_of_death: String
     first_event: String
@@ -158,13 +164,15 @@ type SurvivalOverviewResult {
 
 type TreatmentOverviewResult {
     # Participant
-    participant_id: String
+    participant_pk: String # For adding to cohort
+    participant_id: String # For display
 
     # Study
     dbgap_accession: String
     study_id: String
 
     # Treatment
+    treatment_pk: String # For selecting record
     treatment_id: String
     age_at_treatment_start: Int
     age_at_treatment_end: Int
@@ -174,13 +182,15 @@ type TreatmentOverviewResult {
 
 type TreatmentResponseOverviewResult {
     # Participant
-    participant_id: String
+    participant_pk: String # For adding to cohort
+    participant_id: String # For display
 
     # Study
     dbgap_accession: String
     study_id: String
 
     # Treatment Response
+    treatment_response_pk: String # For selecting record
     treatment_response_id: String
     response: String
     age_at_response: Int
