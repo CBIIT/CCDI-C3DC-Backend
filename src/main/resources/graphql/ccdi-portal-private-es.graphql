@@ -24,6 +24,18 @@ type SearchParticipantsReturnObject {
     subjects: Int
 }
 
+type CohortMetadataReturnObject {
+    participant_pk: String
+    participant_id: String
+    race: String
+    sex_at_birth: String
+
+    diagnoses: [DiagnosisOverviewResult]
+    survivals: [SurvivalOverviewResult]
+    treatments: [TreatmentOverviewResult]
+    treatment_responses: [TreatmentResponseOverviewResult]
+}
+
 type RangeCount {
     lowerBound: Int
     upperBound: Int
@@ -84,6 +96,27 @@ type GetParticipantsResult {
 }
 
 type ParticipantOverviewResult {
+    # Demographics
+    participant_pk: String # For adding to cohort
+    participant_id: String # For display
+    race: String
+    sex_at_birth: String
+
+    # Study
+    dbgap_accession: String
+
+    # Additional fields for download
+    study_id: String
+}
+
+type CohortMetadataResult {
+    # Study
+    dbgap_accession: String
+
+    participants: [CohortMetadataReturnObject]
+}
+
+type CohortManifestResult {
     # Demographics
     participant_pk: String # For adding to cohort
     participant_id: String # For display
@@ -232,6 +265,27 @@ type QueryType {
     numberOfSurvivals: Int
     numberOfTreatments: Int
     numberOfTreatmentResponses: Int
+
+    cohortMetadata(
+        # Demographics
+        participant_pks: [String]
+
+        # Table config
+        first: Int = 10,
+        offset: Int = 0,
+        order_by: String = "",
+        sort_direction: String = ""
+    ): [CohortMetadataResult]
+    cohortManifest(
+        # Demographics
+        participant_pks: [String]
+
+        # Table config
+        first: Int = 10,
+        offset: Int = 0,
+        order_by: String = "",
+        sort_direction: String = ""
+): [CohortManifestResult]
 
     getParticipants (
         # Demographics
