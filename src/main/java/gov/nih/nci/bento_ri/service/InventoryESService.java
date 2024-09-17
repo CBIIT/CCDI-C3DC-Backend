@@ -28,7 +28,7 @@ public class InventoryESService extends ESService {
     public static final String AGGS = "aggs";
     public static final int MAX_ES_SIZE = 500000;
     public static final int SCROLL_THRESHOLD = 10000;
-    final Set<String> PARTICIPANT_PARAMS = Set.of("race", "sex_at_birth");
+    final Set<String> PARTICIPANT_PARAMS = Set.of("participant_pk", "race", "sex_at_birth");
     final Set<String> DIAGNOSIS_PARAMS = Set.of(
         "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
         "diagnosis", "diagnosis_classification_system",
@@ -202,6 +202,8 @@ public class InventoryESService extends ESService {
                 
                 if (key.equals("participant_ids")) {
                     key = "participant_id";
+                } else if (key.equals("participant_pks")) {
+                    key = "participant_pk";
                 }
                 // list with only one empty string [""] means return all records
                 if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
@@ -488,8 +490,9 @@ public class InventoryESService extends ESService {
             throw new IOException("'offset' must be multiple of 'first'!");
         }
         query.put("size", optimumSize);
-        request.setJsonEntity(gson.toJson(query));
-        request.addParameter("scroll", "10S");
+        String jsonizedQuery = gson.toJson(query);
+        request.setJsonEntity(jsonizedQuery);
+        request.addParameter("scroll", "10S"); // 10S means scroll deleted if idle 10 seconds
         JsonObject page = rollToPage(request, offset);
         return collectPage(page, properties, pageSize, offset % optimumSize);
     }

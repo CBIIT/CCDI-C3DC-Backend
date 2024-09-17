@@ -39,6 +39,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String SORT_DIRECTION = "sort_direction";
 
     final String STUDIES_FACET_END_POINT = "/study_participants/_search";
+    final String COHORTS_END_POINT = "/cohorts/_search";
     final String PARTICIPANTS_END_POINT = "/participants/_search";
     final String SURVIVALS_END_POINT = "/survivals/_search";
     final String TREATMENTS_END_POINT = "/treatments/_search";
@@ -83,7 +84,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     // Do we even use this?
     final Set<String> REGULAR_PARAMS = Set.of(
         // Demographics
-        "participant_id", "race", "sex_at_birth",
+        "participant_pk", "participant_id", "race", "sex_at_birth",
 
         // Diagnoses
         "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
@@ -166,6 +167,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         .dataFetcher("getParticipants", env -> {
                             Map<String, Object> args = env.getArguments();
                             return getParticipants(args);
+                        })
+                        .dataFetcher("cohortMetadata", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return cohortMetadata(args);
                         })
                         .dataFetcher("participantOverview", env -> {
                             Map<String, Object> args = env.getArguments();
@@ -664,6 +669,73 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
             return data;
         }
+    }
+
+    private List<Map<String, Object>> cohortMetadata(Map<String, Object> params) throws IOException {
+        List<Map<String, Object>> participants;
+        Map<String, List<Map<String, Object>>> participantsByStudy = new HashMap<String, List<Map<String, Object>>>();
+        List<Map<String, Object>> listOfParticipantsByStudy = new ArrayList<Map<String, Object>>();
+
+        final String[][] PROPERTIES = new String[][]{
+            // Studies
+            new String[]{"dbgap_accession", "dbgap_accession"},
+
+            // Demographics
+            new String[]{"participant_pk", "participant_pk"},
+            new String[]{"participant_id", "participant_id"},
+            new String[]{"race", "race"},
+            new String[]{"sex_at_birth", "sex_at_birth"},
+
+            // Diagnoses
+            new String[]{"diagnoses", "diagnoses"},
+
+            // Survivals
+            new String[]{"survivals", "survivals"},
+
+            // Treatments
+            new String[]{"treatments", "treatments"},
+
+            // Treatment Responses
+            new String[]{"treatment_responses", "treatment_responses"},
+        };
+
+        String defaultSort = "dbgap_accession"; // Default sort order
+
+        Map<String, String> mapping = Map.ofEntries(
+            // Studies
+            Map.entry("dbgap_accession", "dbgap_accession"),
+
+            // Demographics
+            Map.entry("participant_pk", "participant_pk"),
+            Map.entry("participant_id", "participant_id"),
+            Map.entry("race", "race"),
+            Map.entry("sex_at_birth", "sex_at_birth")
+        );
+
+        participants = overview(COHORTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "participants");
+
+        // Restructure the data to a map, keyed by dbgap_accession
+        participants.forEach((Map<String, Object> participant) -> {
+            String dbgapAccession = (String) participant.get("dbgap_accession");
+
+            if (participantsByStudy.containsKey(dbgapAccession)) {
+                participantsByStudy.get(dbgapAccession).add(participant);
+            } else {
+                participantsByStudy.put(dbgapAccession, new ArrayList<Map<String, Object>>(
+                    List.of(participant)
+                ));
+            }
+        });
+
+        // Restructure the map to a list
+        participantsByStudy.forEach((accession, people) -> {
+            listOfParticipantsByStudy.add(Map.ofEntries(
+                Map.entry("dbgap_accession", accession),
+                Map.entry("participants", people)
+            ));
+        });
+
+        return listOfParticipantsByStudy;
     }
 
     private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
