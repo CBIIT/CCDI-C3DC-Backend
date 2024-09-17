@@ -116,20 +116,6 @@ type CohortMetadataResult {
     participants: [CohortMetadataReturnObject]
 }
 
-type CohortManifestResult {
-    # Demographics
-    participant_pk: String # For adding to cohort
-    participant_id: String # For display
-    race: String
-    sex_at_birth: String
-
-    # Study
-    dbgap_accession: String
-
-    # Additional fields for download
-    study_id: String
-}
-
 type DiagnosisOverviewResult {
     # Demographics
     participant_pk: String # For adding to cohort
@@ -276,19 +262,10 @@ type QueryType {
         order_by: String = "",
         sort_direction: String = ""
     ): [CohortMetadataResult]
-    cohortManifest(
-        # Demographics
-        participant_pks: [String]
-
-        # Table config
-        first: Int = 10,
-        offset: Int = 0,
-        order_by: String = "",
-        sort_direction: String = ""
-): [CohortManifestResult]
 
     getParticipants (
         # Demographics
+        participant_pks: [String]
         participant_ids: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
@@ -326,6 +303,7 @@ type QueryType {
 
     participantOverview (
         # Demographics
+        participant_pks: [String]
         participant_ids: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
@@ -369,6 +347,7 @@ type QueryType {
 
     diagnosisOverview (
         # Demographics
+        participant_pks: [String]
         participant_ids: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
@@ -412,6 +391,7 @@ type QueryType {
     
     studyOverview (
         # Demographics
+        participant_pks: [String]
         participant_ids: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
@@ -455,6 +435,7 @@ type QueryType {
 
     survivalOverview (
         # Demographics
+        participant_pks: [String]
         participant_ids: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
@@ -498,6 +479,7 @@ type QueryType {
 
     treatmentOverview (
         # Demographics
+        participant_pks: [String]
         participant_ids: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
@@ -541,6 +523,7 @@ type QueryType {
 
     treatmentResponseOverview (
         # Demographics
+        participant_pks: [String]
         participant_ids: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],

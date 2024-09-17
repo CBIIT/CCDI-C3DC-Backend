@@ -172,10 +172,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return cohortMetadata(args);
                         })
-                        .dataFetcher("cohortManifest", env -> {
-                            Map<String, Object> args = env.getArguments();
-                            return cohortManifest(args);
-                        })
                         .dataFetcher("participantOverview", env -> {
                             Map<String, Object> args = env.getArguments();
                             return participantOverview(args);
@@ -740,11 +736,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         });
 
         return listOfParticipantsByStudy;
-    }
-
-    private List<Map<String, Object>> cohortManifest(Map<String, Object> params) throws IOException {
-        // stub
-        return new ArrayList<Map<String, Object>>();
     }
 
     private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
