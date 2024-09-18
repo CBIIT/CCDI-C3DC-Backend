@@ -27,7 +27,7 @@ type SearchParticipantsReturnObject {
 type CohortMetadataReturnObject {
     participant_pk: String
     participant_id: String
-    race: String
+    race: [String]
     sex_at_birth: String
 
     diagnoses: [DiagnosisOverviewResult]
@@ -196,7 +196,8 @@ type TreatmentOverviewResult {
     age_at_treatment_start: Int
     age_at_treatment_end: Int
     treatment_type: String
-    treatment_agent: String
+    treatment_agent: [String]
+    treatment_agent_str: String
 }
 
 type TreatmentResponseOverviewResult {
