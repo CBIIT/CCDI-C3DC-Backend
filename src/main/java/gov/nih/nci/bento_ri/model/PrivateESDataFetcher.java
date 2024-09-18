@@ -800,6 +800,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"tumor_stage_clinical_m", "tumor_stage_clinical_m"},
             new String[]{"tumor_stage_clinical_n", "tumor_stage_clinical_n"},
             new String[]{"tumor_stage_clinical_t", "tumor_stage_clinical_t"},
+
+            // Additional fields for Cohort manifest download
+            new String[]{"race", "race_str"},
+            new String[]{"sex_at_birth", "sex_at_birth"},
         };
 
         String defaultSort = "diagnosis_id"; // Default sort order

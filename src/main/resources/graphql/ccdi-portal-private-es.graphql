@@ -134,7 +134,7 @@ type DiagnosisOverviewResult {
     # Study
     dbgap_accession: String
 
-    # Additional fields for download
+    # Additional fields for Explore page download
     diagnosis_id: String
     diagnosis_comment: String
     study_id: String
@@ -143,6 +143,10 @@ type DiagnosisOverviewResult {
     tumor_stage_clinical_m: String
     tumor_stage_clinical_n: String
     tumor_stage_clinical_t: String
+
+    # Additional fields for Cohort manifest download
+    race: String
+    sex_at_birth: String
 }
 
 type StudyOverviewResult {
