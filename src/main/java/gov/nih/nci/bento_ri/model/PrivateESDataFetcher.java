@@ -423,252 +423,253 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         if (data != null) {
             logger.info("hit cache!");
             return data;
-        } else {
-            // logger.info("cache miss... querying for data.");
-            data = new HashMap<>();
+        }
 
-            final String CARDINALITY_AGG_NAME = "cardinality_agg_name";
-            final String AGG_NAME = "agg_name";
-            final String AGG_ENDPOINT = "agg_endpoint";
-            final String WIDGET_QUERY = "widgetQueryName";
-            final String FILTER_COUNT_QUERY = "filterCountQueryName";
-            // Query related values
-            final List<Map<String, String>> PARTICIPANT_TERM_AGGS = new ArrayList<>();
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NAME, "race",
-                    WIDGET_QUERY,"participantCountByRace",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByRace",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NAME, "sex_at_birth",
-                    WIDGET_QUERY,"participantCountBySexAtBirth",
-                    FILTER_COUNT_QUERY, "filterParticipantCountBySexAtBirth",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_pk",
-                    WIDGET_QUERY,"participantCountByAgeAtDiagnosis",
-                    AGG_NAME, "age_at_diagnosis",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtDiagnosis",
-                    AGG_ENDPOINT, DIAGNOSES_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_pk",
-                    WIDGET_QUERY,"participantCountByAnatomicSite",
-                    AGG_NAME, "anatomic_site",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByAnatomicSite",
-                    AGG_ENDPOINT, DIAGNOSES_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_pk",
-                    WIDGET_QUERY,"participantCountByDiagnosis",
-                    AGG_NAME, "diagnosis",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosis",
-                    AGG_ENDPOINT, DIAGNOSES_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_pk",
-                    WIDGET_QUERY,"participantCountByTreatmentType",
-                    AGG_NAME, "treatment_type",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByTreatmentType",
-                    AGG_ENDPOINT, TREATMENTS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_pk",
-                    AGG_NAME, "diagnosis_classification_system",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisClassificationSystem",
-                    AGG_ENDPOINT, DIAGNOSES_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_pk",
-                    AGG_NAME, "diagnosis_basis",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisBasis",
-                    AGG_ENDPOINT, DIAGNOSES_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_pk",
-                    AGG_NAME, "disease_phase",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByDiseasePhase",
-                    AGG_ENDPOINT, DIAGNOSES_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NAME, "dbgap_accession",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByDbgapAccession",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NAME, "study_name",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByStudyName",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_pk",
-                    AGG_NAME, "age_at_last_known_survival_status",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtLastKnownSurvivalStatus",
-                    AGG_ENDPOINT, SURVIVALS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_pk",
-                    AGG_NAME, "cause_of_death",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByCauseOfDeath",
-                    AGG_ENDPOINT, SURVIVALS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_pk",
-                    AGG_NAME, "first_event",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByFirstEvent",
-                    AGG_ENDPOINT, SURVIVALS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_pk",
-                    AGG_NAME, "last_known_survival_status",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByLastKnownSurvivalStatus",
-                    AGG_ENDPOINT, SURVIVALS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_pk",
-                    AGG_NAME, "age_at_treatment_start",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtTreatmentStart",
-                    AGG_ENDPOINT, TREATMENTS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_pk",
-                    AGG_NAME, "age_at_treatment_end",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtTreatmentEnd",
-                    AGG_ENDPOINT, TREATMENTS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_pk",
-                    AGG_NAME, "treatment_agent",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByTreatmentAgent",
-                    AGG_ENDPOINT, TREATMENTS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_pk",
-                    AGG_NAME, "response",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByResponse",
-                    AGG_ENDPOINT, TREATMENT_RESPONSES_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_pk",
-                    AGG_NAME, "age_at_response",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtResponse",
-                    AGG_ENDPOINT, TREATMENT_RESPONSES_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_pk",
-                    AGG_NAME, "response_category",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByResponseCategory",
-                    AGG_ENDPOINT, TREATMENT_RESPONSES_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "participant_pk",
-                    AGG_NAME, "response_system",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByResponseSystem",
-                    AGG_ENDPOINT, TREATMENT_RESPONSES_END_POINT
-            ));
+        // logger.info("cache miss... querying for data.");
+        data = new HashMap<>();
 
-            // Get disease counts for Explore page stats bar
-            Map<String, Object> diseaseQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnoses");
-            String[] diseaseField = new String[]{"diagnosis"};
-            diseaseQuery = inventoryESService.countValues(diseaseQuery, diseaseField);
-            Request diseaseCountRequest = new Request("GET", DIAGNOSES_END_POINT);
-            String diseaseQueryJson = gson.toJson(diseaseQuery);
-            diseaseCountRequest.setJsonEntity(diseaseQueryJson);
-            JsonObject diseaseCountResult = inventoryESService.send(diseaseCountRequest);
-            int numberOfDiseases = diseaseCountResult.getAsJsonObject("aggregations")
-                .getAsJsonObject("num_values_of_diagnosis").get("value").getAsInt();
+        final String CARDINALITY_AGG_NAME = "cardinality_agg_name";
+        final String AGG_NAME = "agg_name";
+        final String AGG_ENDPOINT = "agg_endpoint";
+        final String WIDGET_QUERY = "widgetQueryName";
+        final String FILTER_COUNT_QUERY = "filterCountQueryName";
+        // Query related values
+        final List<Map<String, String>> PARTICIPANT_TERM_AGGS = new ArrayList<>();
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NAME, "race",
+                WIDGET_QUERY,"participantCountByRace",
+                FILTER_COUNT_QUERY, "filterParticipantCountByRace",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NAME, "sex_at_birth",
+                WIDGET_QUERY,"participantCountBySexAtBirth",
+                FILTER_COUNT_QUERY, "filterParticipantCountBySexAtBirth",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "participant_pk",
+                WIDGET_QUERY,"participantCountByAgeAtDiagnosis",
+                AGG_NAME, "age_at_diagnosis",
+                FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtDiagnosis",
+                AGG_ENDPOINT, DIAGNOSES_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "participant_pk",
+                WIDGET_QUERY,"participantCountByAnatomicSite",
+                AGG_NAME, "anatomic_site",
+                FILTER_COUNT_QUERY, "filterParticipantCountByAnatomicSite",
+                AGG_ENDPOINT, DIAGNOSES_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "participant_pk",
+                WIDGET_QUERY,"participantCountByDiagnosis",
+                AGG_NAME, "diagnosis",
+                FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosis",
+                AGG_ENDPOINT, DIAGNOSES_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "participant_pk",
+                WIDGET_QUERY,"participantCountByTreatmentType",
+                AGG_NAME, "treatment_type",
+                FILTER_COUNT_QUERY, "filterParticipantCountByTreatmentType",
+                AGG_ENDPOINT, TREATMENTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "participant_pk",
+                AGG_NAME, "diagnosis_classification_system",
+                FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisClassificationSystem",
+                AGG_ENDPOINT, DIAGNOSES_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "participant_pk",
+                AGG_NAME, "diagnosis_basis",
+                FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisBasis",
+                AGG_ENDPOINT, DIAGNOSES_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "participant_pk",
+                AGG_NAME, "disease_phase",
+                FILTER_COUNT_QUERY, "filterParticipantCountByDiseasePhase",
+                AGG_ENDPOINT, DIAGNOSES_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NAME, "dbgap_accession",
+                FILTER_COUNT_QUERY, "filterParticipantCountByDbgapAccession",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NAME, "study_name",
+                FILTER_COUNT_QUERY, "filterParticipantCountByStudyName",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "participant_pk",
+                AGG_NAME, "age_at_last_known_survival_status",
+                FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtLastKnownSurvivalStatus",
+                AGG_ENDPOINT, SURVIVALS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "participant_pk",
+                AGG_NAME, "cause_of_death",
+                FILTER_COUNT_QUERY, "filterParticipantCountByCauseOfDeath",
+                AGG_ENDPOINT, SURVIVALS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "participant_pk",
+                AGG_NAME, "first_event",
+                FILTER_COUNT_QUERY, "filterParticipantCountByFirstEvent",
+                AGG_ENDPOINT, SURVIVALS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "participant_pk",
+                AGG_NAME, "last_known_survival_status",
+                FILTER_COUNT_QUERY, "filterParticipantCountByLastKnownSurvivalStatus",
+                AGG_ENDPOINT, SURVIVALS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "participant_pk",
+                AGG_NAME, "age_at_treatment_start",
+                FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtTreatmentStart",
+                AGG_ENDPOINT, TREATMENTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "participant_pk",
+                AGG_NAME, "age_at_treatment_end",
+                FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtTreatmentEnd",
+                AGG_ENDPOINT, TREATMENTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "participant_pk",
+                AGG_NAME, "treatment_agent",
+                FILTER_COUNT_QUERY, "filterParticipantCountByTreatmentAgent",
+                AGG_ENDPOINT, TREATMENTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "participant_pk",
+                AGG_NAME, "response",
+                FILTER_COUNT_QUERY, "filterParticipantCountByResponse",
+                AGG_ENDPOINT, TREATMENT_RESPONSES_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "participant_pk",
+                AGG_NAME, "age_at_response",
+                FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtResponse",
+                AGG_ENDPOINT, TREATMENT_RESPONSES_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "participant_pk",
+                AGG_NAME, "response_category",
+                FILTER_COUNT_QUERY, "filterParticipantCountByResponseCategory",
+                AGG_ENDPOINT, TREATMENT_RESPONSES_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "participant_pk",
+                AGG_NAME, "response_system",
+                FILTER_COUNT_QUERY, "filterParticipantCountByResponseSystem",
+                AGG_ENDPOINT, TREATMENT_RESPONSES_END_POINT
+        ));
 
-            // Get Diagnosis counts for Explore page stats bar
-            Map<String, Object> diagnosesQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnoses");
-            Request diagnosesCountRequest = new Request("GET", DIAGNOSES_COUNT_END_POINT);
-            String diagnosesQueryJson = gson.toJson(diagnosesQuery);
-            diagnosesCountRequest.setJsonEntity(diagnosesQueryJson);
-            JsonObject diagnosesCountResult = inventoryESService.send(diagnosesCountRequest);
-            int numberOfDiagnoses = diagnosesCountResult.get("count").getAsInt();
+        // Get disease counts for Explore page stats bar
+        Map<String, Object> diseaseQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnoses");
+        String[] diseaseField = new String[]{"diagnosis"};
+        diseaseQuery = inventoryESService.countValues(diseaseQuery, diseaseField);
+        Request diseaseCountRequest = new Request("GET", DIAGNOSES_END_POINT);
+        String diseaseQueryJson = gson.toJson(diseaseQuery);
+        diseaseCountRequest.setJsonEntity(diseaseQueryJson);
+        JsonObject diseaseCountResult = inventoryESService.send(diseaseCountRequest);
+        int numberOfDiseases = diseaseCountResult.getAsJsonObject("aggregations")
+            .getAsJsonObject("num_values_of_diagnosis").get("value").getAsInt();
 
-            // Get Survival counts for Explore page stats bar
-            Map<String, Object> survivalsQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "survivals");
-            Request survivalsCountRequest = new Request("GET", SURVIVALS_COUNT_END_POINT);
-            String survivalsQueryJson = gson.toJson(survivalsQuery);
-            survivalsCountRequest.setJsonEntity(survivalsQueryJson);
-            JsonObject survivalsCountResult = inventoryESService.send(survivalsCountRequest);
-            int numberOfSurvivals = survivalsCountResult.get("count").getAsInt();
+        // Get Diagnosis counts for Explore page stats bar
+        Map<String, Object> diagnosesQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnoses");
+        Request diagnosesCountRequest = new Request("GET", DIAGNOSES_COUNT_END_POINT);
+        String diagnosesQueryJson = gson.toJson(diagnosesQuery);
+        diagnosesCountRequest.setJsonEntity(diagnosesQueryJson);
+        JsonObject diagnosesCountResult = inventoryESService.send(diagnosesCountRequest);
+        int numberOfDiagnoses = diagnosesCountResult.get("count").getAsInt();
 
-            // Get Treatment counts for Explore page stats bar
-            Map<String, Object> treatmentsQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "treatments");
-            Request treatmentsCountRequest = new Request("GET", TREATMENTS_COUNT_END_POINT);
-            String treatmentsQueryJson = gson.toJson(treatmentsQuery);
-            treatmentsCountRequest.setJsonEntity(treatmentsQueryJson);
-            JsonObject treatmentsCountResult = inventoryESService.send(treatmentsCountRequest);
-            int numberOfTreatments = treatmentsCountResult.get("count").getAsInt();
+        // Get Survival counts for Explore page stats bar
+        Map<String, Object> survivalsQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "survivals");
+        Request survivalsCountRequest = new Request("GET", SURVIVALS_COUNT_END_POINT);
+        String survivalsQueryJson = gson.toJson(survivalsQuery);
+        survivalsCountRequest.setJsonEntity(survivalsQueryJson);
+        JsonObject survivalsCountResult = inventoryESService.send(survivalsCountRequest);
+        int numberOfSurvivals = survivalsCountResult.get("count").getAsInt();
 
-            // Get Treatment Response counts for Explore page stats bar
-            Map<String, Object> treatmentResponsesQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "treatment_responses");
-            Request treatmentResponsesCountRequest = new Request("GET", TREATMENT_RESPONSES_COUNT_END_POINT);
-            String treatmentResponsesQueryJson = gson.toJson(treatmentResponsesQuery);
-            treatmentResponsesCountRequest.setJsonEntity(treatmentResponsesQueryJson);
-            JsonObject treatmentResponsesCountResult = inventoryESService.send(treatmentResponsesCountRequest);
-            int numberOfTreatmentResponses = treatmentResponsesCountResult.get("count").getAsInt();
+        // Get Treatment counts for Explore page stats bar
+        Map<String, Object> treatmentsQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "treatments");
+        Request treatmentsCountRequest = new Request("GET", TREATMENTS_COUNT_END_POINT);
+        String treatmentsQueryJson = gson.toJson(treatmentsQuery);
+        treatmentsCountRequest.setJsonEntity(treatmentsQueryJson);
+        JsonObject treatmentsCountResult = inventoryESService.send(treatmentsCountRequest);
+        int numberOfTreatments = treatmentsCountResult.get("count").getAsInt();
 
-            Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
-            int numberOfStudies = getNodeCount("study_id", query_participants, PARTICIPANTS_END_POINT).size();
-            
-            Map<String, Object> newQuery_participants = new HashMap<>(query_participants);
-            newQuery_participants.put("size", 0);
-            newQuery_participants.put("track_total_hits", 10000000);
-            Map<String, Object> fields = new HashMap<String, Object>();
-            newQuery_participants.put("aggs", fields);
-            Request participantsCountRequest = new Request("GET", PARTICIPANTS_END_POINT);
-            String jsonizedQuery = gson.toJson(newQuery_participants);
-            participantsCountRequest.setJsonEntity(jsonizedQuery);
-            JsonObject participantsCountResult = inventoryESService.send(participantsCountRequest);
-            int numberOfParticipants = participantsCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
+        // Get Treatment Response counts for Explore page stats bar
+        Map<String, Object> treatmentResponsesQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "treatment_responses");
+        Request treatmentResponsesCountRequest = new Request("GET", TREATMENT_RESPONSES_COUNT_END_POINT);
+        String treatmentResponsesQueryJson = gson.toJson(treatmentResponsesQuery);
+        treatmentResponsesCountRequest.setJsonEntity(treatmentResponsesQueryJson);
+        JsonObject treatmentResponsesCountResult = inventoryESService.send(treatmentResponsesCountRequest);
+        int numberOfTreatmentResponses = treatmentResponsesCountResult.get("count").getAsInt();
 
-            data.put("numberOfStudies", numberOfStudies);
-            data.put("numberOfDiagnoses", numberOfDiagnoses);
-            data.put("numberOfDiseases", numberOfDiseases);
-            data.put("numberOfParticipants", numberOfParticipants);
-            data.put("numberOfSurvivals", numberOfSurvivals);
-            data.put("numberOfTreatments", numberOfTreatments);
-            data.put("numberOfTreatmentResponses", numberOfTreatmentResponses);
-            
-            // widgets data and facet filter counts for projects
-            for (var agg: PARTICIPANT_TERM_AGGS) {
-                String field = agg.get(AGG_NAME);
-                String widgetQueryName = agg.get(WIDGET_QUERY);
-                String filterCountQueryName = agg.get(FILTER_COUNT_QUERY);
-                String endpoint = agg.get(AGG_ENDPOINT);
-                String indexType = endpoint.replace("/", "").replace("_search", "");
-                String cardinalityAggName = agg.get(CARDINALITY_AGG_NAME);
-                List<Map<String, Object>> filterCount = filterSubjectCountBy(field, params, endpoint, cardinalityAggName, indexType);
-                if(RANGE_PARAMS.contains(field)) {
-                    data.put(filterCountQueryName, filterCount.get(0));
-                } else {
-                    data.put(filterCountQueryName, filterCount);
-                }
-                
-                if (widgetQueryName != null) {
-                    if (RANGE_PARAMS.contains(field)) {
-                        List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, endpoint, cardinalityAggName, indexType);
-                        data.put(widgetQueryName, subjectCount);
-                    } else {
-                        if (params.containsKey(field) && ((List<String>)params.get(field)).size() > 0) {
-                            List<Map<String, Object>> subjectCount = subjectCountBy(field, params, endpoint, cardinalityAggName, indexType);
-                            data.put(widgetQueryName, subjectCount);
-                        } else {
-                            data.put(widgetQueryName, filterCount);
-                        }
-                    }
-                    
-                }
+        Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
+        int numberOfStudies = getNodeCount("study_id", query_participants, PARTICIPANTS_END_POINT).size();
+        
+        Map<String, Object> newQuery_participants = new HashMap<>(query_participants);
+        newQuery_participants.put("size", 0);
+        newQuery_participants.put("track_total_hits", 10000000);
+        Map<String, Object> fields = new HashMap<String, Object>();
+        newQuery_participants.put("aggs", fields);
+        Request participantsCountRequest = new Request("GET", PARTICIPANTS_END_POINT);
+        String jsonizedQuery = gson.toJson(newQuery_participants);
+        participantsCountRequest.setJsonEntity(jsonizedQuery);
+        JsonObject participantsCountResult = inventoryESService.send(participantsCountRequest);
+        int numberOfParticipants = participantsCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
+
+        data.put("numberOfStudies", numberOfStudies);
+        data.put("numberOfDiagnoses", numberOfDiagnoses);
+        data.put("numberOfDiseases", numberOfDiseases);
+        data.put("numberOfParticipants", numberOfParticipants);
+        data.put("numberOfSurvivals", numberOfSurvivals);
+        data.put("numberOfTreatments", numberOfTreatments);
+        data.put("numberOfTreatmentResponses", numberOfTreatmentResponses);
+        
+        // widgets data and facet filter counts for projects
+        for (var agg: PARTICIPANT_TERM_AGGS) {
+            String field = agg.get(AGG_NAME);
+            String widgetQueryName = agg.get(WIDGET_QUERY);
+            String filterCountQueryName = agg.get(FILTER_COUNT_QUERY);
+            String endpoint = agg.get(AGG_ENDPOINT);
+            String indexType = endpoint.replace("/", "").replace("_search", "");
+            String cardinalityAggName = agg.get(CARDINALITY_AGG_NAME);
+            List<Map<String, Object>> filterCount = filterSubjectCountBy(field, params, endpoint, cardinalityAggName, indexType);
+            if(RANGE_PARAMS.contains(field)) {
+                data.put(filterCountQueryName, filterCount.get(0));
+            } else {
+                data.put(filterCountQueryName, filterCount);
             }
 
-            caffeineCache.put(cacheKey, data);
+            // Move on if no widgets needed
+            if (widgetQueryName != null) {
+                continue;
+            }
 
-            return data;
+            // Fetch data for widgets
+            if (RANGE_PARAMS.contains(field)) {
+                List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, endpoint, cardinalityAggName, indexType);
+                data.put(widgetQueryName, subjectCount);
+            } else if (params.containsKey(field) && ((List<String>)params.get(field)).size() > 0) {
+                List<Map<String, Object>> subjectCount = subjectCountBy(field, params, endpoint, cardinalityAggName, indexType);
+                data.put(widgetQueryName, subjectCount);
+            } else {
+                data.put(widgetQueryName, filterCount);
+            }
         }
+
+        caffeineCache.put(cacheKey, data);
+
+        return data;
     }
 
     private List<Map<String, Object>> cohortMetadata(Map<String, Object> params) throws IOException {
