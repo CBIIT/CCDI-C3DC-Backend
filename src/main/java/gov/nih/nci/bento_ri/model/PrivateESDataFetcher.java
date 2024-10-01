@@ -13,12 +13,16 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Request;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.yaml.snakeyaml.Yaml;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.IOException;
 import java.util.*;
 
@@ -48,6 +52,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String HOME_STATS_END_POINT = "/home_stats/_search";
     final String STUDIES_END_POINT = "/studies/_search";
     final String SAMPLES_END_POINT = "/samples/_search";
+    final Map<String, String> ENDPOINTS = Map.ofEntries(
+        Map.entry("diagnoses", DIAGNOSES_END_POINT),
+        Map.entry("participants", PARTICIPANTS_END_POINT),
+        Map.entry("studies", STUDIES_END_POINT),
+        Map.entry("survivals", SURVIVALS_END_POINT),
+        Map.entry("treatments", TREATMENTS_END_POINT),
+        Map.entry("treatment_responses", TREATMENT_RESPONSES_END_POINT)
+    );
 
     final String PARTICIPANTS_COUNT_END_POINT = "/participants/_count";
     final String DIAGNOSES_COUNT_END_POINT = "/diagnoses/_count";
@@ -420,6 +432,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private Map<String, Object> getParticipants(Map<String, Object> params) throws IOException {
         String cacheKey = generateCacheKey(params);
         Map<String, Object> data = (Map<String, Object>)caffeineCache.asMap().get(cacheKey);
+
         if (data != null) {
             logger.info("hit cache!");
             return data;
@@ -428,147 +441,20 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         // logger.info("cache miss... querying for data.");
         data = new HashMap<>();
 
+        // Read facet filter details from YAML
+        InputStream facetFilterFileStream = new FileInputStream(new File("src/main/resources/facet_filters.yaml"));
+        Yaml facetFilterYaml = new Yaml();
+        final Map<String, List<Map<String, String>>> FACET_FILTERS = facetFilterYaml.load(facetFilterFileStream);
+
+        // Read facet filter thresholds from YAML
+        final InputStream facetFilterThresholdFileStream = new FileInputStream(new File("src/main/resources/facet_filter_thresholds.yaml"));
+        final Yaml facetFilterThresholdYaml = new Yaml();
+        final Map<String, Map<String, Map<String, Integer>>> FACET_FILTER_THRESHOLDS = facetFilterThresholdYaml.load(facetFilterThresholdFileStream);
+
         final String CARDINALITY_AGG_NAME = "cardinality_agg_name";
         final String AGG_NAME = "agg_name";
-        final String AGG_ENDPOINT = "agg_endpoint";
-        final String WIDGET_QUERY = "widgetQueryName";
-        final String FILTER_COUNT_QUERY = "filterCountQueryName";
-        // Query related values
-        final List<Map<String, String>> PARTICIPANT_TERM_AGGS = new ArrayList<>();
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NAME, "race",
-                WIDGET_QUERY,"participantCountByRace",
-                FILTER_COUNT_QUERY, "filterParticipantCountByRace",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NAME, "sex_at_birth",
-                WIDGET_QUERY,"participantCountBySexAtBirth",
-                FILTER_COUNT_QUERY, "filterParticipantCountBySexAtBirth",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                CARDINALITY_AGG_NAME, "participant_pk",
-                WIDGET_QUERY,"participantCountByAgeAtDiagnosis",
-                AGG_NAME, "age_at_diagnosis",
-                FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtDiagnosis",
-                AGG_ENDPOINT, DIAGNOSES_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                CARDINALITY_AGG_NAME, "participant_pk",
-                WIDGET_QUERY,"participantCountByAnatomicSite",
-                AGG_NAME, "anatomic_site",
-                FILTER_COUNT_QUERY, "filterParticipantCountByAnatomicSite",
-                AGG_ENDPOINT, DIAGNOSES_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                CARDINALITY_AGG_NAME, "participant_pk",
-                WIDGET_QUERY,"participantCountByDiagnosis",
-                AGG_NAME, "diagnosis",
-                FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosis",
-                AGG_ENDPOINT, DIAGNOSES_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                CARDINALITY_AGG_NAME, "participant_pk",
-                WIDGET_QUERY,"participantCountByTreatmentType",
-                AGG_NAME, "treatment_type",
-                FILTER_COUNT_QUERY, "filterParticipantCountByTreatmentType",
-                AGG_ENDPOINT, TREATMENTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                CARDINALITY_AGG_NAME, "participant_pk",
-                AGG_NAME, "diagnosis_classification_system",
-                FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisClassificationSystem",
-                AGG_ENDPOINT, DIAGNOSES_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                CARDINALITY_AGG_NAME, "participant_pk",
-                AGG_NAME, "diagnosis_basis",
-                FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisBasis",
-                AGG_ENDPOINT, DIAGNOSES_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                CARDINALITY_AGG_NAME, "participant_pk",
-                AGG_NAME, "disease_phase",
-                FILTER_COUNT_QUERY, "filterParticipantCountByDiseasePhase",
-                AGG_ENDPOINT, DIAGNOSES_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NAME, "dbgap_accession",
-                FILTER_COUNT_QUERY, "filterParticipantCountByDbgapAccession",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                AGG_NAME, "study_name",
-                FILTER_COUNT_QUERY, "filterParticipantCountByStudyName",
-                AGG_ENDPOINT, PARTICIPANTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                CARDINALITY_AGG_NAME, "participant_pk",
-                AGG_NAME, "age_at_last_known_survival_status",
-                FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtLastKnownSurvivalStatus",
-                AGG_ENDPOINT, SURVIVALS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                CARDINALITY_AGG_NAME, "participant_pk",
-                AGG_NAME, "cause_of_death",
-                FILTER_COUNT_QUERY, "filterParticipantCountByCauseOfDeath",
-                AGG_ENDPOINT, SURVIVALS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                CARDINALITY_AGG_NAME, "participant_pk",
-                AGG_NAME, "first_event",
-                FILTER_COUNT_QUERY, "filterParticipantCountByFirstEvent",
-                AGG_ENDPOINT, SURVIVALS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                CARDINALITY_AGG_NAME, "participant_pk",
-                AGG_NAME, "last_known_survival_status",
-                FILTER_COUNT_QUERY, "filterParticipantCountByLastKnownSurvivalStatus",
-                AGG_ENDPOINT, SURVIVALS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                CARDINALITY_AGG_NAME, "participant_pk",
-                AGG_NAME, "age_at_treatment_start",
-                FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtTreatmentStart",
-                AGG_ENDPOINT, TREATMENTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                CARDINALITY_AGG_NAME, "participant_pk",
-                AGG_NAME, "age_at_treatment_end",
-                FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtTreatmentEnd",
-                AGG_ENDPOINT, TREATMENTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                CARDINALITY_AGG_NAME, "participant_pk",
-                AGG_NAME, "treatment_agent",
-                FILTER_COUNT_QUERY, "filterParticipantCountByTreatmentAgent",
-                AGG_ENDPOINT, TREATMENTS_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                CARDINALITY_AGG_NAME, "participant_pk",
-                AGG_NAME, "response",
-                FILTER_COUNT_QUERY, "filterParticipantCountByResponse",
-                AGG_ENDPOINT, TREATMENT_RESPONSES_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                CARDINALITY_AGG_NAME, "participant_pk",
-                AGG_NAME, "age_at_response",
-                FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtResponse",
-                AGG_ENDPOINT, TREATMENT_RESPONSES_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                CARDINALITY_AGG_NAME, "participant_pk",
-                AGG_NAME, "response_category",
-                FILTER_COUNT_QUERY, "filterParticipantCountByResponseCategory",
-                AGG_ENDPOINT, TREATMENT_RESPONSES_END_POINT
-        ));
-        PARTICIPANT_TERM_AGGS.add(Map.of(
-                CARDINALITY_AGG_NAME, "participant_pk",
-                AGG_NAME, "response_system",
-                FILTER_COUNT_QUERY, "filterParticipantCountByResponseSystem",
-                AGG_ENDPOINT, TREATMENT_RESPONSES_END_POINT
-        ));
+        final String WIDGET_QUERY = "widget_count_name";
+        final String FILTER_COUNT_QUERY = "filter_count_name";
 
         // Get disease counts for Explore page stats bar
         Map<String, Object> diseaseQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnoses");
@@ -634,36 +520,47 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         data.put("numberOfSurvivals", numberOfSurvivals);
         data.put("numberOfTreatments", numberOfTreatments);
         data.put("numberOfTreatmentResponses", numberOfTreatmentResponses);
-        
+
         // widgets data and facet filter counts for projects
-        for (var agg: PARTICIPANT_TERM_AGGS) {
-            String field = agg.get(AGG_NAME);
-            String widgetQueryName = agg.get(WIDGET_QUERY);
-            String filterCountQueryName = agg.get(FILTER_COUNT_QUERY);
-            String endpoint = agg.get(AGG_ENDPOINT);
-            String indexType = endpoint.replace("/", "").replace("_search", "");
-            String cardinalityAggName = agg.get(CARDINALITY_AGG_NAME);
-            List<Map<String, Object>> filterCount = filterSubjectCountBy(field, params, endpoint, cardinalityAggName, indexType);
-            if(RANGE_PARAMS.contains(field)) {
-                data.put(filterCountQueryName, filterCount.get(0));
-            } else {
-                data.put(filterCountQueryName, filterCount);
-            }
+        for (Map.Entry<String, List<Map<String, String>>> entry : FACET_FILTERS.entrySet()) {
+        // FACET_FILTERS.forEach((index, filters) -> {
+            String index = entry.getKey();
+            List<Map<String, String>> filters = entry.getValue();
+            String endpoint = ENDPOINTS.get(index);
 
-            // Move on if no widgets needed
-            if (widgetQueryName != null) {
-                continue;
-            }
+            for (Map<String, String> filter : filters) {
+            // filters.forEach((filter) -> {
+                String cardinalityAggName = filter.get(CARDINALITY_AGG_NAME);
+                String field = filter.get(AGG_NAME);
+                String filterCountQueryName = filter.get(FILTER_COUNT_QUERY);
+                String widgetQueryName = filter.get(WIDGET_QUERY);
+                boolean shouldCheckThreshold = FACET_FILTER_THRESHOLDS.get(index).containsKey(field);
+                List<Map<String, Object>> filterCount;
+                List<Map<String, Object>> subjectCount;
 
-            // Fetch data for widgets
-            if (RANGE_PARAMS.contains(field)) {
-                List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, endpoint, cardinalityAggName, indexType);
-                data.put(widgetQueryName, subjectCount);
-            } else if (params.containsKey(field) && ((List<String>)params.get(field)).size() > 0) {
-                List<Map<String, Object>> subjectCount = subjectCountBy(field, params, endpoint, cardinalityAggName, indexType);
-                data.put(widgetQueryName, subjectCount);
-            } else {
-                data.put(widgetQueryName, filterCount);
+                filterCount = filterSubjectCountBy(field, params, endpoint, cardinalityAggName, index);
+
+                if (RANGE_PARAMS.contains(field)) {
+                    data.put(filterCountQueryName, filterCount.get(0));
+                } else {
+                    data.put(filterCountQueryName, filterCount);
+                }
+
+                // Move on if no widgets needed
+                if (widgetQueryName != null) {
+                    continue;
+                }
+
+                // Fetch data for widgets
+                if (RANGE_PARAMS.contains(field)) {
+                    subjectCount = subjectCountByRange(field, params, endpoint, cardinalityAggName, index);
+                    data.put(widgetQueryName, subjectCount);
+                } else if (params.containsKey(field) && ((List<String>) params.get(field)).size() > 0) {
+                    subjectCount = subjectCountBy(field, params, endpoint, cardinalityAggName, index);
+                    data.put(widgetQueryName, subjectCount);
+                } else {
+                    data.put(widgetQueryName, filterCount);
+                }
             }
         }
 
