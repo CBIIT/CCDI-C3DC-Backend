@@ -547,7 +547,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 }
 
                 // Move on if no widgets needed
-                if (widgetQueryName != null) {
+                if (widgetQueryName == null) {
                     continue;
                 }
 
