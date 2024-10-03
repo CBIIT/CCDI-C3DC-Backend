@@ -140,8 +140,16 @@ public class InventoryESService extends ESService {
         return result;
     }
 
-    // Do we even use the parameter regular_fields?
-    public Map<String, Object> buildFacetFilterQuery(Map<String, Object> params, Set<String> rangeParams, Set<String> excludedParams, Set<String> regular_fields, String nestedProperty, String indexType) throws IOException {
+    /**
+     * Builds the Opensearch request body for facet filtering
+     * @param params GraphQL variables
+     * @param rangeParams GraphQL variables that are numeric
+     * @param excludedParams GraphQL variables to skip
+     * @param indexType The Opensearch index that the request is for
+     * @return
+     * @throws IOException
+     */
+    public Map<String, Object> buildFacetFilterQuery(Map<String, Object> params, Set<String> rangeParams, Set<String> excludedParams, String indexType) throws IOException {
         Map<String, Object> result = new HashMap<>();
 
         List<Object> filter = new ArrayList<>();

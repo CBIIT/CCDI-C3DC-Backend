@@ -85,77 +85,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         "anatomic_site", "diagnosis"
     );
 
-    // Do we even use this?
-    final Set<String> REGULAR_PARAMS = Set.of(
-        // Demographics
-        "participant_pk", "participant_id", "race", "sex_at_birth",
-
-        // Diagnoses
-        "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
-        "diagnosis", "diagnosis_classification_system",
-        "disease_phase",
-
-        // Studies
-        "dbgap_accession", "study_name",
-
-        // Survivals
-        "age_at_last_known_survival_status", "cause_of_death",
-        "first_event", "last_known_survival_status",
-
-        // Treatments
-        "age_at_treatment_start", "age_at_treatment_end",
-        "treatment_type", "treatment_agent",
-
-        // Treatment Responses
-        "response", "age_at_response",
-        "response_category", "response_system"
-    );
-    final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of(
-        // Demographics
-        "participant_id", "race", "sex_at_birth",
-        // Survivals
-        "age_at_last_known_survival_status", "first_event", "last_known_survival_status",
-        // Diagnoses
-        "age_at_diagnosis", "anatomic_site", "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site",
-        "vital_status", "sample_anatomic_site", "participant_age_at_collection",
-        "sample_tumor_status", "tumor_classification", "assay_method", "file_type",
-        "dbgap_accession", "study_name", "grant_id", "institution",
-        "library_selection", "library_source", "library_strategy"
-    );
-    final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of(
-        "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
-        "diagnosis", "diagnosis_classification_system",
-        "disease_phase", "tumor_classification",
-        // Demographics
-        "participant_id", "race", "sex_at_birth"
-    );
-    final Set<String> SAMPLE_REGULAR_PARAMS = Set.of(
-        "participant_id", "race", "sex_at_birth",
-        "dbgap_accession", "study_name", "sample_anatomic_site",
-        "participant_age_at_collection", "sample_tumor_status", "tumor_classification"
-    );
-    final Set<String> STUDY_REGULAR_PARAMS = Set.of(
-        "consent", "consent_number", "external_url", "dbgap_accession",
-        "study_description", "study_id",
-        "study_name"
-    );
-    final Set<String> SURVIVAL_REGULAR_PARAMS = Set.of(
-        // Participants
-        "participant_id",
-        // Studies
-        "dbgap_accession",
-        // Survivals
-        "age_at_event_free_survival_status", "age_at_last_known_survival_status",
-        "event_free_survival_status", "first_event", "last_known_survival_status",
-        "survival_id"
-    );
-    final Set<String> TREATMENT_REGULAR_PARAMS = Set.of(
-        // Do we even use this?
-    );
-    final Set<String> TREATMENT_RESPONSE_REGULAR_PARAMS = Set.of(
-        // Do we even use this?
-    );
-
     public PrivateESDataFetcher(InventoryESService esService) {
         super(esService);
         inventoryESService = esService;
@@ -238,7 +167,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private List<Map<String, Object>> subjectCountBy(String category, Map<String, Object> params, String endpoint, Map<String, Object> additionalParams, String cardinalityAggName, String indexType) throws IOException {
-        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE), REGULAR_PARAMS, "nested_filters", indexType);
+        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE), indexType);
         List<String> only_includes;
         List<String> valueSet = INCLUDE_PARAMS.contains(category) ? (List<String>)params.get(category) : List.of();
         if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))){
@@ -254,7 +183,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private List<Map<String, Object>> subjectCountByRange(String category, Map<String, Object> params, String endpoint, Map<String, Object> additionalParams, String cardinalityAggName, String indexType) throws IOException {
-        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE), REGULAR_PARAMS, "nested_filters", indexType);
+        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE), indexType);
         return getGroupCountByRange(category, query, endpoint, cardinalityAggName);
     }
 
@@ -263,7 +192,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private List<Map<String, Object>> filterSubjectCountBy(String category, Map<String, Object> params, String endpoint, Map<String, Object> additionalParams, String cardinalityAggName, String indexType) throws IOException {
-        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, category), REGULAR_PARAMS, "nested_filters", indexType);
+        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, category), indexType);
         return getGroupCount(category, query, endpoint, cardinalityAggName, List.of());
     }
 
@@ -449,7 +378,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         final String FILTER_COUNT_QUERY = "filter_count_name";
 
         // Get disease counts for Explore page stats bar
-        Map<String, Object> diseaseQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnoses");
+        Map<String, Object> diseaseQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), "diagnoses");
         String[] diseaseField = new String[]{"diagnosis"};
         diseaseQuery = inventoryESService.countValues(diseaseQuery, diseaseField);
         Request diseaseCountRequest = new Request("GET", DIAGNOSES_END_POINT);
@@ -460,25 +389,25 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             .getAsJsonObject("num_values_of_diagnosis").get("value").getAsInt();
 
         // Get Diagnosis counts for Explore page stats bar
-        Map<String, Object> diagnosesQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnoses");
+        Map<String, Object> diagnosesQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), "diagnoses");
         int numberOfDiagnoses = inventoryESService.getCount(diagnosesQuery, "diagnoses");
 
         // Get Survival counts for Explore page stats bar
-        Map<String, Object> survivalsQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "survivals");
+        Map<String, Object> survivalsQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), "survivals");
         int numberOfSurvivals = inventoryESService.getCount(survivalsQuery, "survivals");
 
         // Get Treatment counts for Explore page stats bar
-        Map<String, Object> treatmentsQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "treatments");
+        Map<String, Object> treatmentsQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), "treatments");
         int numberOfTreatments = inventoryESService.getCount(treatmentsQuery, "treatments");
 
         // Get Treatment Response counts for Explore page stats bar
-        Map<String, Object> treatmentResponsesQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "treatment_responses");
+        Map<String, Object> treatmentResponsesQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), "treatment_responses");
         int numberOfTreatmentResponses = inventoryESService.getCount(treatmentResponsesQuery, "treatment_responses");
 
-        Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
+        Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), "participants");
         int numberOfStudies = getNodeCount("study_id", query_participants, PARTICIPANTS_END_POINT).size();
         
-        Map<String, Object> participantsQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
+        Map<String, Object> participantsQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), "participants");
         int numberOfParticipants = inventoryESService.getCount(participantsQuery, "participants");
 
         data.put("numberOfStudies", numberOfStudies);
@@ -526,7 +455,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         }
 
                         // Recalculate the count
-                        Map<String, Object> recountQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(field), REGULAR_PARAMS, "nested_filters", index);
+                        Map<String, Object> recountQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(field), index);
+
+                        // if (recountQuery.get(recountQuery).containsKey("match_all")) {
+
+                        // }
+
                         int newCount = inventoryESService.getCount(recountQuery, index);
                         System.out.printf("%s: %d\n", value, newCount);
                     }
@@ -602,7 +536,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("sex_at_birth", "sex_at_birth")
         );
 
-        participants = overview(COHORTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "participants");
+        participants = overview(COHORTS_END_POINT, params, PROPERTIES, defaultSort, mapping, "participants");
 
         // Restructure the data to a map, keyed by dbgap_accession
         participants.forEach((Map<String, Object> participant) -> {
@@ -659,7 +593,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("study_id", "study_id")
         );
 
-        return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "participants");
+        return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, "participants");
     }
 
     private List<Map<String, Object>> diagnosisOverview(Map<String, Object> params) throws IOException {
@@ -727,7 +661,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("tumor_stage_clinical_t", "tumor_stage_clinical_t")
         );
 
-        return overview(DIAGNOSES_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "diagnoses");
+        return overview(DIAGNOSES_END_POINT, params, PROPERTIES, defaultSort, mapping, "diagnoses");
     }
 
     private List<Map<String, Object>> studyOverview(Map<String, Object> params) throws IOException {
@@ -762,7 +696,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         );
         
         Request request = new Request("GET", PARTICIPANTS_END_POINT);
-        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), REGULAR_PARAMS, "nested_filters", "participants");
+        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), "participants");
         String[] AGG_NAMES = new String[] {"study_id"};
         query = inventoryESService.addAggregations(query, AGG_NAMES);
         String queryJson = gson.toJson(query);
@@ -790,7 +724,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         study_params.put(PAGE_SIZE, pageSize);
         study_params.put(OFFSET, offset);
 
-        return overview(STUDIES_END_POINT, study_params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "studies");
+        return overview(STUDIES_END_POINT, study_params, PROPERTIES, defaultSort, mapping, "studies");
     }
 
     private List<Map<String, Object>> survivalOverview(Map<String, Object> params) throws IOException {
@@ -839,7 +773,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("survival_id", "survival_id")
         );
 
-        return overview(SURVIVALS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "survivals");
+        return overview(SURVIVALS_END_POINT, params, PROPERTIES, defaultSort, mapping, "survivals");
     }
 
     private List<Map<String, Object>> treatmentOverview(Map<String, Object> params) throws IOException {
@@ -883,7 +817,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("treatment_agent_str", "treatment_agent_str")
         );
 
-        return overview(TREATMENTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "treatments");
+        return overview(TREATMENTS_END_POINT, params, PROPERTIES, defaultSort, mapping, "treatments");
     }
 
     private List<Map<String, Object>> treatmentResponseOverview(Map<String, Object> params) throws IOException {
@@ -925,14 +859,23 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("response_system", "response_system")
         );
 
-        return overview(TREATMENT_RESPONSES_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "treatment_responses");
+        return overview(TREATMENT_RESPONSES_END_POINT, params, PROPERTIES, defaultSort, mapping, "treatment_responses");
     }
 
-    // if the nestedProperty is set, this will filter based upon the params against the nested property for the endpoint's index.
-    // otherwise, this will filter based upon the params against the top level properties for the index
-    private List<Map<String, Object>> overview(String endpoint, Map<String, Object> params, String[][] properties, String defaultSort, Map<String, String> mapping, Set<String> regular_fields, String nestedProperty, String overviewType) throws IOException {
+    /**
+     * Returns a list of records that match the given filters
+     * @param endpoint The Opensearch endpoint to query
+     * @param params The GraphQL variables to filter by
+     * @param properties The properties to retrieve
+     * @param defaultSort The default sort
+     * @param mapping Map of how to sort each field
+     * @param overviewType The type of records retrieved
+     * @return
+     * @throws IOException
+     */
+    private List<Map<String, Object>> overview(String endpoint, Map<String, Object> params, String[][] properties, String defaultSort, Map<String, String> mapping, String overviewType) throws IOException {
         Request request = new Request("GET", endpoint);
-        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), regular_fields, nestedProperty, overviewType);
+        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), overviewType);
         String order_by = (String)params.get(ORDER_BY);
         String direction = ((String)params.get(SORT_DIRECTION)).toLowerCase();
         query.put("sort", mapSortOrder(order_by, direction, defaultSort, mapping));
@@ -973,7 +916,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry(OFFSET, 0)
         );
 
-        studies = overview(STUDIES_END_POINT, study_params, PROPERTIES, "dbgap_accession", mapping, REGULAR_PARAMS, "nested_filters", "studies");
+        studies = overview(STUDIES_END_POINT, study_params, PROPERTIES, "dbgap_accession", mapping, "studies");
 
         try {
             study = studies.get(0);
