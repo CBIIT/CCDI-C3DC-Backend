@@ -445,23 +445,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         int count = (int) filterCount.get("subjects");
 
                         // Skip if we don't want to recalculate its count
-                        if (!thresholds.containsKey(value)) {
-                            continue;
-                        }
-
-                        // Skip if its count doesn't cross the threshold
-                        if (count < thresholds.get(value)) {
+                        if (!thresholds.containsKey(value) || count < thresholds.get(value)) {
                             continue;
                         }
 
                         // Recalculate the count
-                        Map<String, Object> recountQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(field), index);
-
-                        // if (recountQuery.get(recountQuery).containsKey("match_all")) {
-
-                        // }
-
-                        int newCount = inventoryESService.getCount(recountQuery, index);
+                        int newCount = inventoryESService.recountFacetFilterValue(params, RANGE_PARAMS, index, field, value);
                         System.out.printf("%s: %d\n", value, newCount);
                     }
                 }

@@ -141,6 +141,32 @@ public class InventoryESService extends ESService {
     }
 
     /**
+     * Counts how many results there are for a facet filter value
+     * @param params GraphQL variables
+     * @param rangeParams GraphQL variables that are numeric
+     * @param index The Opensearch index that the request is for
+     * @param field The facet filter to recount
+     * @param value The value of the facet filter to recount
+     * @return
+     * @throws IOException
+     */
+    public int recountFacetFilterValue(Map<String, Object> params, Set<String> rangeParams, String index, String field, String value) throws IOException {
+        ArrayList<String> filterValues = new ArrayList<String>(); // Will only have one value
+        HashMap<String, Object> recountParams = new HashMap<String, Object>(params);
+        Map<String, Object> recountQuery;
+        
+        if (recountParams.containsKey(field)) {
+            recountParams.remove(field);
+        }
+
+        filterValues.add(value);
+        recountParams.put(field, filterValues);
+        recountQuery = buildFacetFilterQuery(recountParams, rangeParams, Collections.emptySet(), index);
+
+        return getCount(recountQuery, index);
+    }
+
+    /**
      * Builds the Opensearch request body for facet filtering
      * @param params GraphQL variables
      * @param rangeParams GraphQL variables that are numeric
