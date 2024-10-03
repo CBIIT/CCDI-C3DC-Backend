@@ -61,14 +61,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map.entry("treatment_responses", TREATMENT_RESPONSES_END_POINT)
     );
 
-    final String PARTICIPANTS_COUNT_END_POINT = "/participants/_count";
-    final String DIAGNOSES_COUNT_END_POINT = "/diagnoses/_count";
-    final String STUDIES_COUNT_END_POINT = "/studies/_count";
-    final String SURVIVALS_COUNT_END_POINT = "/survivals/_count";
-    final String SAMPLES_COUNT_END_POINT = "/samples/_count";
-    final String TREATMENTS_COUNT_END_POINT = "/treatments/_count";
-    final String TREATMENT_RESPONSES_COUNT_END_POINT = "/treatment_responses/_count";
-
     // For slider fields
     final Set<String> RANGE_PARAMS = Set.of(
         // Diagnoses
@@ -469,49 +461,25 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         // Get Diagnosis counts for Explore page stats bar
         Map<String, Object> diagnosesQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnoses");
-        Request diagnosesCountRequest = new Request("GET", DIAGNOSES_COUNT_END_POINT);
-        String diagnosesQueryJson = gson.toJson(diagnosesQuery);
-        diagnosesCountRequest.setJsonEntity(diagnosesQueryJson);
-        JsonObject diagnosesCountResult = inventoryESService.send(diagnosesCountRequest);
-        int numberOfDiagnoses = diagnosesCountResult.get("count").getAsInt();
+        int numberOfDiagnoses = inventoryESService.getCount(diagnosesQuery, "diagnoses");
 
         // Get Survival counts for Explore page stats bar
         Map<String, Object> survivalsQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "survivals");
-        Request survivalsCountRequest = new Request("GET", SURVIVALS_COUNT_END_POINT);
-        String survivalsQueryJson = gson.toJson(survivalsQuery);
-        survivalsCountRequest.setJsonEntity(survivalsQueryJson);
-        JsonObject survivalsCountResult = inventoryESService.send(survivalsCountRequest);
-        int numberOfSurvivals = survivalsCountResult.get("count").getAsInt();
+        int numberOfSurvivals = inventoryESService.getCount(survivalsQuery, "survivals");
 
         // Get Treatment counts for Explore page stats bar
         Map<String, Object> treatmentsQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "treatments");
-        Request treatmentsCountRequest = new Request("GET", TREATMENTS_COUNT_END_POINT);
-        String treatmentsQueryJson = gson.toJson(treatmentsQuery);
-        treatmentsCountRequest.setJsonEntity(treatmentsQueryJson);
-        JsonObject treatmentsCountResult = inventoryESService.send(treatmentsCountRequest);
-        int numberOfTreatments = treatmentsCountResult.get("count").getAsInt();
+        int numberOfTreatments = inventoryESService.getCount(treatmentsQuery, "treatments");
 
         // Get Treatment Response counts for Explore page stats bar
         Map<String, Object> treatmentResponsesQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "treatment_responses");
-        Request treatmentResponsesCountRequest = new Request("GET", TREATMENT_RESPONSES_COUNT_END_POINT);
-        String treatmentResponsesQueryJson = gson.toJson(treatmentResponsesQuery);
-        treatmentResponsesCountRequest.setJsonEntity(treatmentResponsesQueryJson);
-        JsonObject treatmentResponsesCountResult = inventoryESService.send(treatmentResponsesCountRequest);
-        int numberOfTreatmentResponses = treatmentResponsesCountResult.get("count").getAsInt();
+        int numberOfTreatmentResponses = inventoryESService.getCount(treatmentResponsesQuery, "treatment_responses");
 
         Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
         int numberOfStudies = getNodeCount("study_id", query_participants, PARTICIPANTS_END_POINT).size();
         
-        Map<String, Object> newQuery_participants = new HashMap<>(query_participants);
-        newQuery_participants.put("size", 0);
-        newQuery_participants.put("track_total_hits", 10000000);
-        Map<String, Object> fields = new HashMap<String, Object>();
-        newQuery_participants.put("aggs", fields);
-        Request participantsCountRequest = new Request("GET", PARTICIPANTS_END_POINT);
-        String jsonizedQuery = gson.toJson(newQuery_participants);
-        participantsCountRequest.setJsonEntity(jsonizedQuery);
-        JsonObject participantsCountResult = inventoryESService.send(participantsCountRequest);
-        int numberOfParticipants = participantsCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
+        Map<String, Object> participantsQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
+        int numberOfParticipants = inventoryESService.getCount(participantsQuery, "participants");
 
         data.put("numberOfStudies", numberOfStudies);
         data.put("numberOfDiagnoses", numberOfDiagnoses);
@@ -521,29 +489,53 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         data.put("numberOfTreatments", numberOfTreatments);
         data.put("numberOfTreatmentResponses", numberOfTreatmentResponses);
 
-        // widgets data and facet filter counts for projects
+        // Iterate through facet filters to query their counts
         for (Map.Entry<String, List<Map<String, String>>> entry : FACET_FILTERS.entrySet()) {
-        // FACET_FILTERS.forEach((index, filters) -> {
             String index = entry.getKey();
             List<Map<String, String>> filters = entry.getValue();
             String endpoint = ENDPOINTS.get(index);
 
+            // Query this index for counts of each relevant facet filter
             for (Map<String, String> filter : filters) {
-            // filters.forEach((filter) -> {
                 String cardinalityAggName = filter.get(CARDINALITY_AGG_NAME);
                 String field = filter.get(AGG_NAME);
                 String filterCountQueryName = filter.get(FILTER_COUNT_QUERY);
                 String widgetQueryName = filter.get(WIDGET_QUERY);
                 boolean shouldCheckThreshold = FACET_FILTER_THRESHOLDS.get(index).containsKey(field);
-                List<Map<String, Object>> filterCount;
+                List<Map<String, Object>> filterCounts;
                 List<Map<String, Object>> subjectCount;
+                Map<String, Integer> thresholds;
 
-                filterCount = filterSubjectCountBy(field, params, endpoint, cardinalityAggName, index);
+                filterCounts = filterSubjectCountBy(field, params, endpoint, cardinalityAggName, index);
+
+                if (shouldCheckThreshold) {
+                    thresholds = FACET_FILTER_THRESHOLDS.get(index).get(field);
+
+                    for (Map<String, Object> filterCount : filterCounts) {
+                        String value = (String) filterCount.get("group");
+                        int count = (int) filterCount.get("subjects");
+
+                        // Skip if we don't want to recalculate its count
+                        if (!thresholds.containsKey(value)) {
+                            continue;
+                        }
+
+                        // Skip if its count doesn't cross the threshold
+                        if (count < thresholds.get(value)) {
+                            continue;
+                        }
+
+                        // Recalculate the count
+                        Map<String, Object> recountQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(field), REGULAR_PARAMS, "nested_filters", index);
+                        int newCount = inventoryESService.getCount(recountQuery, index);
+                        System.out.printf("%s: %d\n", value, newCount);
+                    }
+                }
 
                 if (RANGE_PARAMS.contains(field)) {
-                    data.put(filterCountQueryName, filterCount.get(0));
+                    data.put(filterCountQueryName, filterCounts.get(0));
                 } else {
-                    data.put(filterCountQueryName, filterCount);
+                    data.put(filterCountQueryName, filterCounts);
                 }
 
                 // Move on if no widgets needed
@@ -559,7 +551,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     subjectCount = subjectCountBy(field, params, endpoint, cardinalityAggName, index);
                     data.put(widgetQueryName, subjectCount);
                 } else {
-                    data.put(widgetQueryName, filterCount);
+                    data.put(widgetQueryName, filterCounts);
                 }
             }
         }

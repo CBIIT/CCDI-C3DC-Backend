@@ -263,6 +263,26 @@ public class InventoryESService extends ESService {
     }
 
     /**
+     * Queries the /_count Opensearch endpoint and returns the number of hits
+     * @param query Opensearch query
+     * @param index Name of the index to query
+     * @return
+     * @throws IOException
+     */
+    public int getCount(Map<String, Object> query, String index) throws IOException {
+        Request request = new Request("GET", String.format("%s/_count", index));
+        String queryJson = gson.toJson(query);
+        JsonObject recountResult;
+        int newCount;
+
+        request.setJsonEntity(queryJson);
+        recountResult = send(request);
+        newCount = recountResult.get("count").getAsInt();
+
+        return newCount;
+    }
+
+    /**
      * Count unique values of the given fields
      * @param query The base Opensearch query map to modify
      * @param termAggNames The fields whose values to count
