@@ -12,8 +12,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Request;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.gson.JsonArray;
@@ -61,8 +63,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map.entry("treatment_responses", TREATMENT_RESPONSES_END_POINT)
     );
 
-    final String FACET_FILTER_THRESHOLDS_PATH = "src/main/resources/yaml/facet_filter_thresholds.yaml";
-    final String FACET_FILTERS_PATH = "src/main/resources/yaml/facet_filters.yaml";
+    final String FACET_FILTER_THRESHOLDS_PATH = Const.YAML_QUERY.SUB_FOLDER + "facet_filter_thresholds.yaml";
+    final String FACET_FILTERS_PATH = Const.YAML_QUERY.SUB_FOLDER + "facet_filters.yaml";
+    final ClassPathResource FACET_FILTER_THRESHOLDS_RESOURCE = new ClassPathResource(FACET_FILTER_THRESHOLDS_PATH);
+    final ClassPathResource FACET_FILTERS_RESOURCE = new ClassPathResource(FACET_FILTERS_PATH);
 
     // For slider fields
     final Set<String> RANGE_PARAMS = Set.of(
@@ -373,12 +377,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         data = new HashMap<>();
 
         // Read facet filter details from YAML
-        InputStream facetFilterFileStream = new FileInputStream(new File(FACET_FILTERS_PATH));
+        InputStream facetFilterFileStream = FACET_FILTERS_RESOURCE.getInputStream();
         Yaml facetFilterYaml = new Yaml();
         final Map<String, List<Map<String, String>>> FACET_FILTERS = facetFilterYaml.load(facetFilterFileStream);
 
         // Read facet filter thresholds from YAML
-        final InputStream facetFilterThresholdFileStream = new FileInputStream(new File(FACET_FILTER_THRESHOLDS_PATH));
+        final InputStream facetFilterThresholdFileStream = FACET_FILTER_THRESHOLDS_RESOURCE.getInputStream();
         final Yaml facetFilterThresholdYaml = new Yaml();
         final Map<String, Map<String, Map<String, Integer>>> FACET_FILTER_THRESHOLDS = facetFilterThresholdYaml.load(facetFilterThresholdFileStream);
 
