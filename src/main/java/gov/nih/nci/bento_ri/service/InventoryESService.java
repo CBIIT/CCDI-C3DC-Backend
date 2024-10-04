@@ -155,11 +155,10 @@ public class InventoryESService extends ESService {
         Map<String, Integer> updated_values;
         Request request = new Request("GET", "/participants/_search");
         JsonObject jsonObject;
-        String prop = field.equals("file_category") ? "assay_method" : field;
         String query_4_update_json;
 
         // Create reverse_nested aggregation
-        query_4_update = addCustomAggregations(query_4_update, "facetAgg", prop, index);
+        query_4_update = addCustomAggregations(query_4_update, "facetAgg", field, index);
         query_4_update_json = gson.toJson(query_4_update);
         request.setJsonEntity(query_4_update_json);
         jsonObject = send(request);
