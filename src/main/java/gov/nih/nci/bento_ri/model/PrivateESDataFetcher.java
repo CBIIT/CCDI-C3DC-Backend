@@ -470,6 +470,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 thresholds = FACET_FILTER_THRESHOLDS.get(index).get(field);
                 newFilterCounts = new ArrayList<Map<String, Object>>();
 
+                // Do we have to replace the entire list?
                 for (int i = 0; i < filterCounts.size(); i++) {
                     Map<String, Object> filterCount = filterCounts.get(i);
                     String value = (String) filterCount.get("group");
