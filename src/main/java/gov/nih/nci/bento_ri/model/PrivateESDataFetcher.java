@@ -431,28 +431,31 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 String filterCountQueryName = filter.get(FILTER_COUNT_QUERY);
                 String widgetQueryName = filter.get(WIDGET_QUERY);
                 boolean shouldCheckThreshold = FACET_FILTER_THRESHOLDS.get(index).containsKey(field);
-                List<Map<String, Object>> filterCounts;
-                List<Map<String, Object>> subjectCount;
-                Map<String, Integer> thresholds;
-
-                filterCounts = filterSubjectCountBy(field, params, endpoint, cardinalityAggName, index);
+                List<Map<String, Object>> filterCounts = filterSubjectCountBy(field, params, endpoint, cardinalityAggName, index);
 
                 if (shouldCheckThreshold) {
-                    thresholds = FACET_FILTER_THRESHOLDS.get(index).get(field);
+                    Map<String, Integer> thresholds = FACET_FILTER_THRESHOLDS.get(index).get(field);
+                    List<Map<String, Object>> newFilterCounts = new ArrayList<Map<String, Object>>();
 
-                    for (Map<String, Object> filterCount : filterCounts) {
+                    for (int i = 0; i < filterCounts.size(); i++) {
+                        Map<String, Object> filterCount = filterCounts.get(i);
                         String value = (String) filterCount.get("group");
-                        int count = (int) filterCount.get("subjects");
-
-                        // Skip if we don't want to recalculate its count
-                        if (!thresholds.containsKey(value) || count < thresholds.get(value)) {
-                            continue;
-                        }
+                        Integer count = (Integer) filterCount.get("subjects");
 
                         // Recalculate the count
-                        int newCount = inventoryESService.recountFacetFilterValue(params, RANGE_PARAMS, index, field, value);
-                        System.out.printf("%s: %d\n", value, newCount);
+                        if (thresholds.containsKey(value) && count > thresholds.get(value)) {
+                            count = inventoryESService.recountFacetFilterValue(params, RANGE_PARAMS, index, field, value);
+                        }
+
+                        // Save the new count
+                        newFilterCounts.add(Map.ofEntries(
+                            Map.entry("group", value),
+                            Map.entry("subjects", count)
+                        ));
                     }
+
+                    // Replace old counts with new counts
+                    filterCounts = newFilterCounts;
                 }
 
                 if (RANGE_PARAMS.contains(field)) {
@@ -468,10 +471,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
                 // Fetch data for widgets
                 if (RANGE_PARAMS.contains(field)) {
-                    subjectCount = subjectCountByRange(field, params, endpoint, cardinalityAggName, index);
+                    List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, endpoint, cardinalityAggName, index);
                     data.put(widgetQueryName, subjectCount);
                 } else if (params.containsKey(field) && ((List<String>) params.get(field)).size() > 0) {
-                    subjectCount = subjectCountBy(field, params, endpoint, cardinalityAggName, index);
+                    List<Map<String, Object>> subjectCount = subjectCountBy(field, params, endpoint, cardinalityAggName, index);
                     data.put(widgetQueryName, subjectCount);
                 } else {
                     data.put(widgetQueryName, filterCounts);

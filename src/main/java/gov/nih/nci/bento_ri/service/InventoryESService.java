@@ -150,20 +150,24 @@ public class InventoryESService extends ESService {
      * @return
      * @throws IOException
      */
-    public int recountFacetFilterValue(Map<String, Object> params, Set<String> rangeParams, String index, String field, String value) throws IOException {
-        ArrayList<String> filterValues = new ArrayList<String>(); // Will only have one value
-        HashMap<String, Object> recountParams = new HashMap<String, Object>(params);
-        Map<String, Object> recountQuery;
-        
-        if (recountParams.containsKey(field)) {
-            recountParams.remove(field);
-        }
+    public Integer recountFacetFilterValue(Map<String, Object> params, Set<String> rangeParams, String index, String field, String value) throws IOException {
+        Map<String, Object> query_4_update = buildFacetFilterQuery(params, rangeParams, Set.of(field), "participants");
+        Map<String, Integer> updated_values;
+        Request request = new Request("GET", "/participants/_search");
+        JsonObject jsonObject;
+        String prop = field.equals("file_category") ? "assay_method" : field;
+        String query_4_update_json;
 
-        filterValues.add(value);
-        recountParams.put(field, filterValues);
-        recountQuery = buildFacetFilterQuery(recountParams, rangeParams, Collections.emptySet(), index);
+        // Create reverse_nested aggregation
+        query_4_update = addCustomAggregations(query_4_update, "facetAgg", prop, index);
+        query_4_update_json = gson.toJson(query_4_update);
+        request.setJsonEntity(query_4_update_json);
+        jsonObject = send(request);
 
-        return getCount(recountQuery, index);
+        // Retrieve new counts
+        updated_values = collectCustomTerms(jsonObject, "facetAgg");
+
+        return updated_values.get(value);
     }
 
     /**
@@ -469,6 +473,18 @@ public class InventoryESService extends ESService {
         return newQuery;
     }
 
+    // Builds a reverse_nested Opensearch query for redoing facet filter counts
+    public Map<String, Object> addCustomAggregations(Map<String, Object> query, String aggName, String field, String nestedProperty) {
+        Map<String, Object> newQuery = new HashMap<>(query);
+        newQuery.put("size", 0);
+        Map<String, Object> aggSection = new HashMap<String, Object>();
+        Map<String, Object> aggSubSection = new HashMap<String, Object>();
+        aggSubSection.put("agg_buckets", Map.of("terms", Map.of("field", nestedProperty + "." + field, "size", 1000), "aggs", Map.of("top_reverse_nested", Map.of("reverse_nested", Map.of()))));
+        aggSection.put(aggName, Map.of("nested", Map.of("path", nestedProperty), "aggs", aggSubSection));
+        newQuery.put("aggs", aggSection);
+        return newQuery;
+    }
+
     public Map<String, Object> addCardinalityHelper(String cardinalityAggName) {
         return Map.of("cardinality_count", Map.of("cardinality", Map.of("field", cardinalityAggName, "precision_threshold", 40000)));
     }
@@ -503,6 +519,17 @@ public class InventoryESService extends ESService {
         JsonArray buckets = aggs.getAsJsonObject(aggName).getAsJsonArray("buckets");
         for (var bucket: buckets) {
             data.add(bucket.getAsJsonObject().get("key").getAsString());
+        }
+        return data;
+    }
+
+    // Retrieves recalculated facet filter counts
+    public Map<String, Integer> collectCustomTerms(JsonObject jsonObject, String aggName) {
+        Map<String, Integer> data = new HashMap<>();
+        JsonObject aggs = jsonObject.getAsJsonObject("aggregations").getAsJsonObject(aggName);
+        JsonArray buckets = aggs.getAsJsonObject("agg_buckets").getAsJsonArray("buckets");
+        for (var bucket: buckets) {
+            data.put(bucket.getAsJsonObject().get("key").getAsString(), bucket.getAsJsonObject().getAsJsonObject("top_reverse_nested").get("doc_count").getAsInt());
         }
         return data;
     }
