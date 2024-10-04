@@ -140,8 +140,45 @@ public class InventoryESService extends ESService {
         return result;
     }
 
-    // Do we even use the parameter regular_fields?
-    public Map<String, Object> buildFacetFilterQuery(Map<String, Object> params, Set<String> rangeParams, Set<String> excludedParams, Set<String> regular_fields, String nestedProperty, String indexType) throws IOException {
+    /**
+     * Counts how many results there are for a facet filter value
+     * @param params GraphQL variables
+     * @param rangeParams GraphQL variables that are numeric
+     * @param index The Opensearch index that the request is for
+     * @param field The facet filter to recount
+     * @param value The value of the facet filter to recount
+     * @return
+     * @throws IOException
+     */
+    public Integer recountFacetFilterValue(Map<String, Object> params, Set<String> rangeParams, String index, String field, String value) throws IOException {
+        Map<String, Object> query_4_update = buildFacetFilterQuery(params, rangeParams, Set.of(field), "participants");
+        Map<String, Integer> updated_values;
+        Request request = new Request("GET", "/participants/_search");
+        JsonObject jsonObject;
+        String query_4_update_json;
+
+        // Create reverse_nested aggregation
+        query_4_update = addCustomAggregations(query_4_update, "facetAgg", field, index);
+        query_4_update_json = gson.toJson(query_4_update);
+        request.setJsonEntity(query_4_update_json);
+        jsonObject = send(request);
+
+        // Retrieve new counts
+        updated_values = collectCustomTerms(jsonObject, "facetAgg");
+
+        return updated_values.get(value);
+    }
+
+    /**
+     * Builds the Opensearch request body for facet filtering
+     * @param params GraphQL variables
+     * @param rangeParams GraphQL variables that are numeric
+     * @param excludedParams GraphQL variables to skip
+     * @param indexType The Opensearch index that the request is for
+     * @return
+     * @throws IOException
+     */
+    public Map<String, Object> buildFacetFilterQuery(Map<String, Object> params, Set<String> rangeParams, Set<String> excludedParams, String indexType) throws IOException {
         Map<String, Object> result = new HashMap<>();
 
         List<Object> filter = new ArrayList<>();
@@ -260,6 +297,26 @@ public class InventoryESService extends ESService {
         }
         
         return result;
+    }
+
+    /**
+     * Queries the /_count Opensearch endpoint and returns the number of hits
+     * @param query Opensearch query
+     * @param index Name of the index to query
+     * @return
+     * @throws IOException
+     */
+    public int getCount(Map<String, Object> query, String index) throws IOException {
+        Request request = new Request("GET", String.format("%s/_count", index));
+        String queryJson = gson.toJson(query);
+        JsonObject recountResult;
+        int newCount;
+
+        request.setJsonEntity(queryJson);
+        recountResult = send(request);
+        newCount = recountResult.get("count").getAsInt();
+
+        return newCount;
     }
 
     /**
@@ -415,6 +472,18 @@ public class InventoryESService extends ESService {
         return newQuery;
     }
 
+    // Builds a reverse_nested Opensearch query for redoing facet filter counts
+    public Map<String, Object> addCustomAggregations(Map<String, Object> query, String aggName, String field, String nestedProperty) {
+        Map<String, Object> newQuery = new HashMap<>(query);
+        newQuery.put("size", 0);
+        Map<String, Object> aggSection = new HashMap<String, Object>();
+        Map<String, Object> aggSubSection = new HashMap<String, Object>();
+        aggSubSection.put("agg_buckets", Map.of("terms", Map.of("field", nestedProperty + "." + field, "size", 1000), "aggs", Map.of("top_reverse_nested", Map.of("reverse_nested", Map.of()))));
+        aggSection.put(aggName, Map.of("nested", Map.of("path", nestedProperty), "aggs", aggSubSection));
+        newQuery.put("aggs", aggSection);
+        return newQuery;
+    }
+
     public Map<String, Object> addCardinalityHelper(String cardinalityAggName) {
         return Map.of("cardinality_count", Map.of("cardinality", Map.of("field", cardinalityAggName, "precision_threshold", 40000)));
     }
@@ -449,6 +518,17 @@ public class InventoryESService extends ESService {
         JsonArray buckets = aggs.getAsJsonObject(aggName).getAsJsonArray("buckets");
         for (var bucket: buckets) {
             data.add(bucket.getAsJsonObject().get("key").getAsString());
+        }
+        return data;
+    }
+
+    // Retrieves recalculated facet filter counts
+    public Map<String, Integer> collectCustomTerms(JsonObject jsonObject, String aggName) {
+        Map<String, Integer> data = new HashMap<>();
+        JsonObject aggs = jsonObject.getAsJsonObject("aggregations").getAsJsonObject(aggName);
+        JsonArray buckets = aggs.getAsJsonObject("agg_buckets").getAsJsonArray("buckets");
+        for (var bucket: buckets) {
+            data.put(bucket.getAsJsonObject().get("key").getAsString(), bucket.getAsJsonObject().getAsJsonObject("top_reverse_nested").get("doc_count").getAsInt());
         }
         return data;
     }
