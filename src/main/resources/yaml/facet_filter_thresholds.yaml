@@ -1,0 +1,16 @@
+# Opensearch bucket aggregation counts are approximate, not exact
+# They're more likely to be inaccurate for higher counts
+# Beyond curated thresholds, count results with /_count instead
+
+diagnoses:
+  diagnosis_classification_system:
+    ICD-O-3.2: 5000
+  diagnosis_basis:
+    Clinical: 5700
+  disease_phase:
+    Initial Diagnosis: 5700
+participants: {}
+studies: {}
+survivals: {}
+treatments: {}
+treatment_responses: {}

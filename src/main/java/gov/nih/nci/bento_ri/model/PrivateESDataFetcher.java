@@ -61,8 +61,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map.entry("treatment_responses", TREATMENT_RESPONSES_END_POINT)
     );
 
-    final String FACET_FILTER_THRESHOLDS_PATH = "src/main/java/gov/nih/nci/bento_ri/model/facet_filter_thresholds.yaml";
-    final String FACET_FILTERS_PATH = "src/main/java/gov/nih/nci/bento_ri/model/facet_filters.yaml";
+    final String FACET_FILTER_THRESHOLDS_PATH = "src/main/resources/yaml/facet_filter_thresholds.yaml";
+    final String FACET_FILTERS_PATH = "src/main/resources/yaml/facet_filters.yaml";
 
     // For slider fields
     final Set<String> RANGE_PARAMS = Set.of(
