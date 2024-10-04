@@ -61,6 +61,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map.entry("treatment_responses", TREATMENT_RESPONSES_END_POINT)
     );
 
+    final String FACET_FILTER_THRESHOLDS_PATH = "src/main/java/gov/nih/nci/bento_ri/model/facet_filter_thresholds.yaml";
+    final String FACET_FILTERS_PATH = "src/main/java/gov/nih/nci/bento_ri/model/facet_filters.yaml";
+
     // For slider fields
     final Set<String> RANGE_PARAMS = Set.of(
         // Diagnoses
@@ -370,12 +373,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         data = new HashMap<>();
 
         // Read facet filter details from YAML
-        InputStream facetFilterFileStream = new FileInputStream(new File("src/main/resources/facet_filters.yaml"));
+        InputStream facetFilterFileStream = new FileInputStream(new File(FACET_FILTERS_PATH));
         Yaml facetFilterYaml = new Yaml();
         final Map<String, List<Map<String, String>>> FACET_FILTERS = facetFilterYaml.load(facetFilterFileStream);
 
         // Read facet filter thresholds from YAML
-        final InputStream facetFilterThresholdFileStream = new FileInputStream(new File("src/main/resources/facet_filter_thresholds.yaml"));
+        final InputStream facetFilterThresholdFileStream = new FileInputStream(new File(FACET_FILTER_THRESHOLDS_PATH));
         final Yaml facetFilterThresholdYaml = new Yaml();
         final Map<String, Map<String, Map<String, Integer>>> FACET_FILTER_THRESHOLDS = facetFilterThresholdYaml.load(facetFilterThresholdFileStream);
 
