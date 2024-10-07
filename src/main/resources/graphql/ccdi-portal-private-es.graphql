@@ -197,8 +197,8 @@ type TreatmentOverviewResult {
     # Treatment
     treatment_pk: String # For selecting record
     treatment_id: String
-    age_at_treatment_start: Int
-    age_at_treatment_end: Int
+    age_at_treatment_start: String
+    age_at_treatment_end: String
     treatment_type: String
     treatment_agent: [String]
     treatment_agent_str: String
@@ -217,7 +217,7 @@ type TreatmentResponseOverviewResult {
     treatment_response_pk: String # For selecting record
     treatment_response_id: String
     response: String
-    age_at_response: Int
+    age_at_response: String
     response_category: String
     response_system: String
 }
