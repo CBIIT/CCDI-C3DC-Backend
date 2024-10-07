@@ -307,7 +307,7 @@ public class InventoryESService extends ESService {
      * @throws IOException
      */
     public int getCount(Map<String, Object> query, String index) throws IOException {
-        Request request = new Request("GET", String.format("%s/_count", index));
+        Request request = new Request("GET", String.format("/%s/_count", index));
         String queryJson = gson.toJson(query);
         JsonObject recountResult;
         int newCount;
