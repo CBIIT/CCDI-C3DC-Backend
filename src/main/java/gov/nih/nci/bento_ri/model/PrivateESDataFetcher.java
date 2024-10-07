@@ -778,6 +778,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             // Survivals
             Map.entry("survival_pk", "survival_pk"),
             Map.entry("age_at_last_known_survival_status", "age_at_last_known_survival_status"),
+            Map.entry("cause_of_death", "cause_of_death"),
             Map.entry("first_event", "first_event"),
             Map.entry("last_known_survival_status", "last_known_survival_status"),
 
@@ -804,8 +805,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             // Treatments
             new String[]{"treatment_pk", "treatment_pk"},
             new String[]{"treatment_id", "treatment_id"},
-            new String[]{"age_at_treatment_start", "age_at_treatment_start"},
-            new String[]{"age_at_treatment_end", "age_at_treatment_end"},
+            new String[]{"age_at_treatment_start", "age_at_treatment_start_str"},
+            new String[]{"age_at_treatment_end", "age_at_treatment_end_str"},
             new String[]{"treatment_type", "treatment_type"},
             new String[]{"treatment_agent_str", "treatment_agent_str"},
             new String[]{"treatment_agent", "treatment_agent"},
@@ -849,7 +850,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"treatment_response_pk", "treatment_response_pk"},
             new String[]{"treatment_response_id", "treatment_response_id"},
             new String[]{"response", "response"},
-            new String[]{"age_at_response", "age_at_response"},
+            new String[]{"age_at_response", "age_at_response_str"},
             new String[]{"response_category", "response_category"},
             new String[]{"response_system", "response_system"},
         };
