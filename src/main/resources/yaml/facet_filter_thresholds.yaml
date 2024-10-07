@@ -11,6 +11,8 @@ diagnoses:
     Initial Diagnosis: 5700
 participants: {}
 studies: {}
-survivals: {}
+survivals: 
+  cause_of_death:
+    Not Reported: 5700
 treatments: {}
 treatment_responses: {}
