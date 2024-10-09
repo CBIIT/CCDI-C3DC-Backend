@@ -14,5 +14,7 @@ studies: {}
 survivals: 
   cause_of_death:
     Not Reported: 5700
+  first_event:
+    Not Reported: 5700
 treatments: {}
 treatment_responses: {}
