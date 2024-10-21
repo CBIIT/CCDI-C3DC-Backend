@@ -1,6 +1,7 @@
 package gov.nih.nci.bento_ri.service;
 
 import com.google.gson.*;
+
 import gov.nih.nci.bento.model.ConfigurationDAO;
 import gov.nih.nci.bento.service.ESService;
 import gov.nih.nci.bento.service.RedisService;
@@ -8,7 +9,6 @@ import gov.nih.nci.bento.service.connector.AWSClient;
 import gov.nih.nci.bento.service.connector.AbstractClient;
 import gov.nih.nci.bento.service.connector.DefaultClient;
 
-import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.*;
@@ -17,7 +17,6 @@ import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.util.*;
 
@@ -26,8 +25,8 @@ public class InventoryESService extends ESService {
     public static final String SCROLL_ENDPOINT = "/_search/scroll";
     public static final String JSON_OBJECT = "jsonObject";
     public static final String AGGS = "aggs";
-    public static final int MAX_ES_SIZE = 500000;
-    public static final int SCROLL_THRESHOLD = 60000;
+    public static final int MAX_ES_SIZE = 60000;
+    public static final int SCROLL_THRESHOLD = 10000;
     final Set<String> PARTICIPANT_PARAMS = Set.of("participant_pk", "race", "sex_at_birth");
     final Set<String> DIAGNOSIS_PARAMS = Set.of(
         "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
@@ -68,76 +67,6 @@ public class InventoryESService extends ESService {
         // Base on host name to use signed request (AWS) or not (local)
         AbstractClient abstractClient = config.isEsSignRequests() ? new AWSClient(config) : new DefaultClient(config);
         client = abstractClient.getLowLevelElasticClient();
-    }
-
-    @PreDestroy
-    private void close() throws IOException {
-        client.close();
-    }
-
-    public JsonObject send(Request request) throws IOException{
-        Response response = client.performRequest(request);
-        int statusCode = response.getStatusLine().getStatusCode();
-        if (statusCode != 200) {
-            String msg = "Elasticsearch returned code: " + statusCode;
-            logger.error(msg);
-            throw new IOException(msg);
-        }
-        return getJSonFromResponse(response);
-    }
-
-    public JsonObject getJSonFromResponse(Response response) throws IOException {
-        String responseBody = EntityUtils.toString(response.getEntity());
-        JsonObject jsonObject = gson.fromJson(responseBody, JsonObject.class);
-        return jsonObject;
-    }
-
-    // This function build queries with following rules:
-    //  - If a list is empty, query will return empty dataset
-    //  - If a list has only one element which is empty string, query will return all data available
-    //  - If a list is null, query will return all data available
-    public Map<String, Object> buildListQuery(Map<String, Object> params, Set<String> excludedParams) {
-        return buildListQuery(params, excludedParams, false);
-    }
-
-    public Map<String, Object> buildListQuery(Map<String, Object> params, Set<String> excludedParams, boolean ignoreCase) {
-        Map<String, Object> result = new HashMap<>();
-
-        List<Object> filter = new ArrayList<>();
-        for (var key: params.keySet()) {
-            if (excludedParams.contains(key)) {
-                continue;
-            }
-            Object obj = params.get(key);
-
-            List<String> valueSet;
-            if (obj instanceof List) {
-                valueSet = (List<String>) obj;
-            } else {
-                String value = (String)obj;
-                valueSet = List.of(value);
-            }
-
-            if (ignoreCase) {
-                List<String> lowerCaseValueSet = new ArrayList<>();
-                for (String value: valueSet) {
-                    lowerCaseValueSet.add(value.toLowerCase());
-                }
-                valueSet = lowerCaseValueSet;
-            }
-            // list with only one empty string [""] means return all records
-            if (valueSet.size() == 1) {
-                if (valueSet.get(0).equals("")) {
-                    continue;
-                }
-            }
-            filter.add(Map.of(
-                "terms", Map.of( key, valueSet)
-            ));
-        }
-
-        result.put("query", Map.of("bool", Map.of("filter", filter)));
-        return result;
     }
 
     /**
@@ -512,16 +441,6 @@ public class InventoryESService extends ESService {
         return data;
     }
 
-    public List<String> collectTerms(JsonObject jsonObject, String aggName) {
-        List<String> data = new ArrayList<>();
-        JsonObject aggs = jsonObject.getAsJsonObject("aggregations");
-        JsonArray buckets = aggs.getAsJsonObject(aggName).getAsJsonArray("buckets");
-        for (var bucket: buckets) {
-            data.add(bucket.getAsJsonObject().get("key").getAsString());
-        }
-        return data;
-    }
-
     // Retrieves recalculated facet filter counts
     public Map<String, Integer> collectCustomTerms(JsonObject jsonObject, String aggName) {
         Map<String, Integer> data = new HashMap<>();
@@ -533,21 +452,13 @@ public class InventoryESService extends ESService {
         return data;
     }
 
-    public Map<String, JsonObject> collectRangeAggs(JsonObject jsonObject, String[] rangeAggNames) {
-        Map<String, JsonObject> data = new HashMap<>();
-        JsonObject aggs = jsonObject.getAsJsonObject("aggregations");
-        for (String aggName: rangeAggNames) {
-            // Range/stats
-            data.put(aggName, aggs.getAsJsonObject(aggName));
-        }
-        return data;
-    }
-
     public List<Map<String, Object>> collectPage(Request request, Map<String, Object> query, String[][] properties, int pageSize, int offset) throws IOException {
-        // data over limit of Elasticsearch, have to use roll API
+        // Make sure page size is less than max allowed size
         if (pageSize > MAX_ES_SIZE) {
             throw new IOException("Parameter 'first' must not exceeded " + MAX_ES_SIZE);
         }
+
+        // Check whether to use scroll
         if (pageSize + offset > SCROLL_THRESHOLD) {
             return collectPageWithScroll(request, query, properties, pageSize, offset);
         }
@@ -606,60 +517,4 @@ public class InventoryESService extends ESService {
         send(clearScrollRequest);
         return jsonObject;
     }
-
-    // Collect a page of data, result will be of pageSize or less if not enough data remains
-    public List<Map<String, Object>> collectPage(JsonObject jsonObject, String[][] properties, int pageSize) throws IOException {
-        return collectPage(jsonObject, properties, pageSize, 0);
-    }
-
-    private List<Map<String, Object>> collectPage(JsonObject jsonObject, String[][] properties, int pageSize, int offset) throws IOException {
-        return collectPage(jsonObject, properties, null, pageSize, offset);
-    }
-
-    public List<Map<String, Object>> collectPage(JsonObject jsonObject, String[][] properties, String[][] highlights, int pageSize, int offset) throws IOException {
-        List<Map<String, Object>> data = new ArrayList<>();
-
-        JsonArray searchHits = jsonObject.getAsJsonObject("hits").getAsJsonArray("hits");
-        for (int i = 0; i < searchHits.size(); i++) {
-            // skip offset number of documents
-            if (i + 1 <= offset) {
-                continue;
-            }
-            Map<String, Object> row = new HashMap<>();
-            for (String[] prop: properties) {
-                String propName = prop[0];
-                String dataField = prop[1];
-                JsonElement element = searchHits.get(i).getAsJsonObject().get("_source").getAsJsonObject().get(dataField);
-                row.put(propName, getValue(element));
-            }
-            data.add(row);
-            if (data.size() >= pageSize) {
-                break;
-            }
-        }
-        return data;
-    }
-
-    // Convert JsonElement into Java collections and primitives
-    private Object getValue(JsonElement element) {
-        Object value = null;
-        if (element == null || element.isJsonNull()) {
-            return null;
-        } else if (element.isJsonObject()) {
-            value = new HashMap<String, Object>();
-            JsonObject object = element.getAsJsonObject();
-            for (String key: object.keySet()) {
-                ((Map<String, Object>) value).put(key, getValue(object.get(key)));
-            }
-        } else if (element.isJsonArray()) {
-            value = new ArrayList<>();
-            for (JsonElement entry: element.getAsJsonArray()) {
-                ((List<Object>)value).add(getValue(entry));
-            }
-        } else {
-            value = element.getAsString();
-        }
-        return value;
-    }
-
 }
