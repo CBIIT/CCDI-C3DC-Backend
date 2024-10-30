@@ -33,8 +33,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     @Autowired
     private Cache<String, Object> caffeineCache;
 
-    Map<String, Map<String, Map<String, Integer>>> facetFilterThresholds;
-    Map<String, List<Map<String, String>>> facetFilters;
+    private Map<String, Map<String, Map<String, Integer>>> facetFilterThresholds;
+    private Map<String, List<Map<String, String>>> facetFilters;
 
     // parameters used in queries
     final String PAGE_SIZE = "first";
