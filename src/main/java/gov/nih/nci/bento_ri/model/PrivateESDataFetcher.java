@@ -2,8 +2,6 @@ package gov.nih.nci.bento_ri.model;
 
 import gov.nih.nci.bento.constants.Const;
 import gov.nih.nci.bento.model.AbstractPrivateESDataFetcher;
-import gov.nih.nci.bento.model.search.mapper.TypeMapperImpl;
-import gov.nih.nci.bento.model.search.mapper.TypeMapperService;
 import gov.nih.nci.bento.model.search.yaml.YamlQueryFactory;
 import gov.nih.nci.bento.service.ESService;
 import gov.nih.nci.bento_ri.service.InventoryESService;
@@ -15,15 +13,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.util.*;
@@ -37,6 +32,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private InventoryESService inventoryESService;
     @Autowired
     private Cache<String, Object> caffeineCache;
+
+    private Map<String, Map<String, Map<String, Integer>>> facetFilterThresholds;
+    private Map<String, List<Map<String, String>>> facetFilters;
 
     // parameters used in queries
     final String PAGE_SIZE = "first";
@@ -63,11 +61,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map.entry("treatment_responses", TREATMENT_RESPONSES_END_POINT)
     );
 
-    final String FACET_FILTER_THRESHOLDS_PATH = Const.YAML_QUERY.SUB_FOLDER + "facet_filter_thresholds.yaml";
-    final String FACET_FILTERS_PATH = Const.YAML_QUERY.SUB_FOLDER + "facet_filters.yaml";
-    final ClassPathResource FACET_FILTER_THRESHOLDS_RESOURCE = new ClassPathResource(FACET_FILTER_THRESHOLDS_PATH);
-    final ClassPathResource FACET_FILTERS_RESOURCE = new ClassPathResource(FACET_FILTERS_PATH);
-
     // For slider fields
     final Set<String> RANGE_PARAMS = Set.of(
         // Diagnoses
@@ -92,10 +85,34 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         "anatomic_site", "diagnosis"
     );
 
-    public PrivateESDataFetcher(InventoryESService esService) {
+    public PrivateESDataFetcher(InventoryESService esService) throws IOException {
         super(esService);
         inventoryESService = esService;
         yamlQueryFactory = new YamlQueryFactory(esService);
+
+        // Load facet filters
+        try {
+            String facetFiltersPath = Const.YAML_QUERY.SUB_FOLDER + "facet_filters.yaml";
+            ClassPathResource facetFiltersResource = new ClassPathResource(facetFiltersPath);
+            InputStream facetFilterFileStream = facetFiltersResource.getInputStream();
+            Yaml facetFilterYaml = new Yaml();
+            this.facetFilters = facetFilterYaml.load(facetFilterFileStream);
+        } catch (IOException e) {
+            logger.error("Error reading facet filters: "+ e.toString());
+            throw new IOException(e.toString());
+        }
+
+        // Load facet filter recount thresholds
+        try {
+            String facetFilterThresholdsPath = Const.YAML_QUERY.SUB_FOLDER + "facet_filter_thresholds.yaml";
+            ClassPathResource facetFilterThresholdsResource = new ClassPathResource(facetFilterThresholdsPath);
+            InputStream facetFilterThresholdFileStream = facetFilterThresholdsResource.getInputStream();
+            Yaml facetFilterThresholdYaml = new Yaml();
+            this.facetFilterThresholds = facetFilterThresholdYaml.load(facetFilterThresholdFileStream);
+        } catch (IOException e) {
+            logger.error("Error reading facet filter recount thresholds: " + e.toString());
+            throw new IOException(e.toString());
+        }
     }
 
     @Override
@@ -376,16 +393,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         // logger.info("cache miss... querying for data.");
         data = new HashMap<>();
 
-        // Read facet filter details from YAML
-        InputStream facetFilterFileStream = FACET_FILTERS_RESOURCE.getInputStream();
-        Yaml facetFilterYaml = new Yaml();
-        final Map<String, List<Map<String, String>>> FACET_FILTERS = facetFilterYaml.load(facetFilterFileStream);
-
-        // Read facet filter thresholds from YAML
-        final InputStream facetFilterThresholdFileStream = FACET_FILTER_THRESHOLDS_RESOURCE.getInputStream();
-        final Yaml facetFilterThresholdYaml = new Yaml();
-        final Map<String, Map<String, Map<String, Integer>>> FACET_FILTER_THRESHOLDS = facetFilterThresholdYaml.load(facetFilterThresholdFileStream);
-
         final String CARDINALITY_AGG_NAME = "cardinality_agg_name";
         final String AGG_NAME = "agg_name";
         final String WIDGET_QUERY = "widget_count_name";
@@ -433,7 +440,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         data.put("numberOfTreatmentResponses", numberOfTreatmentResponses);
 
         // Iterate through facet filters to query their counts
-        for (Map.Entry<String, List<Map<String, String>>> entry : FACET_FILTERS.entrySet()) {
+        for (Map.Entry<String, List<Map<String, String>>> entry : facetFilters.entrySet()) {
             String index = entry.getKey();
             List<Map<String, String>> filters = entry.getValue();
             String endpoint = ENDPOINTS.get(index);
@@ -444,7 +451,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 String field = filter.get(AGG_NAME);
                 String filterCountQueryName = filter.get(FILTER_COUNT_QUERY);
                 String widgetQueryName = filter.get(WIDGET_QUERY);
-                boolean shouldCheckThreshold = FACET_FILTER_THRESHOLDS.get(index).containsKey(field);
+                boolean shouldCheckThreshold = facetFilterThresholds.get(index).containsKey(field);
                 List<Map<String, Object>> filterCounts = filterSubjectCountBy(field, params, endpoint, cardinalityAggName, index);
                 Map<String, Integer> thresholds;
                 List<Map<String, Object>> newFilterCounts;
@@ -474,7 +481,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     continue;
                 }
 
-                thresholds = FACET_FILTER_THRESHOLDS.get(index).get(field);
+                thresholds = facetFilterThresholds.get(index).get(field);
                 newFilterCounts = new ArrayList<Map<String, Object>>();
 
                 // Do we have to replace the entire list?
