@@ -268,8 +268,9 @@ public class InventoryESService extends ESService {
             ));
         }
 
-        newQuery.put("aggs", counts);
         newQuery.put("size", 0);
+        newQuery.put("aggs", counts);
+
         return newQuery;
     }
 
@@ -279,19 +280,13 @@ public class InventoryESService extends ESService {
 
     public Map<String, Object> addNodeCountAggregations(Map<String, Object> query, String nodeName) {
         Map<String, Object> newQuery = new HashMap<>(query);
-        newQuery.put("size", 0);
-
-        // "aggs" : {
-        //     "langs" : {
-        //         "terms" : { "field" : "language",  "size" : 500 }
-        //     }
-        // }
-
         Map<String, Object> fields = new HashMap<String, Object>();
+
         fields.put(nodeName, Map.of("terms", Map.ofEntries(
             Map.entry("field", nodeName),
             Map.entry("size", 10000)
         )));
+        newQuery.put("size", 0);
         newQuery.put("aggs", fields);
         
         return newQuery;
@@ -299,19 +294,20 @@ public class InventoryESService extends ESService {
 
     public Map<String, Object> addRangeCountAggregations(Map<String, Object> query, String rangeAggName, String cardinalityAggName) {
         Map<String, Object> newQuery = new HashMap<>(query);
-        newQuery.put("size", 0);
-
         Map<String, Object> fields = new HashMap<String, Object>();
         Map<String, Object> subField = new HashMap<String, Object>();
         Map<String, Object> subField_ranges = new HashMap<String, Object>();
+
         subField_ranges.put("field", rangeAggName);
         subField_ranges.put("ranges", Set.of(Map.of("key", "0 - 4", "from", 0, "to", 4 * 365), Map.of("key", "5 - 9", "from", 4 * 365, "to", 9 * 365), Map.of("key", "10 - 14", "from", 9 * 365, "to", 14 * 365), Map.of("key", "15 - 19", "from", 14 * 365, "to", 19 * 365), Map.of("key", "20 - 29", "from", 19 * 365, "to", 29 * 365), Map.of("key", "> 29", "from", 29 * 365)));
-        
         subField.put("range", subField_ranges);
+
         if (! (cardinalityAggName == null)) {
             subField.put("aggs", Map.of("cardinality_count", Map.of("cardinality", Map.of("field", cardinalityAggName, "precision_threshold", 40000))));
         }
+
         fields.put(rangeAggName, subField);
+        newQuery.put("size", 0);
         newQuery.put("aggs", fields);
         
         return newQuery;
