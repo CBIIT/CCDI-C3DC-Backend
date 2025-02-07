@@ -190,6 +190,24 @@ public class InventoryESService extends ESService {
                         treatment_response_filters.add(Map.of(
                             "terms", Map.of("treatment_responses." + key, valueSet)
                         ));
+                    } else if (key.equals("participant_pk") && !indexType.equals("participants")) {// Filter by nested Participant primary key
+                        filter.add(Map.of(
+                            "nested", Map.of(
+                                "path", "participant",
+                                "query", Map.of(
+                                    "bool", Map.of(
+                                        "filter", List.of(Map.of(
+                                            "terms", Map.of("participant.id", valueSet)
+                                        ))
+                                    )
+                                ),
+                                "inner_hits", Map.of()
+                            )
+                        ));
+                    } else if (key.equals("participant_pk")) {// Filter Participant document by Participant primary key
+                        filter.add(Map.of(
+                            "terms", Map.of("id", valueSet)
+                        ));
                     } else {
                         filter.add(Map.of(
                             "terms", Map.of(key, valueSet)
