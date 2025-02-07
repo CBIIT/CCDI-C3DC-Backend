@@ -27,7 +27,9 @@ public class InventoryESService extends ESService {
     public static final String AGGS = "aggs";
     public static final int MAX_ES_SIZE = 60000;
     public static final int SCROLL_THRESHOLD = 10000;
-    final Set<String> PARTICIPANT_PARAMS = Set.of("participant_pk", "race", "sex_at_birth");
+    final Set<String> PARTICIPANT_PARAMS = Set.of(
+        "id", "participant_id", "race", "sex_at_birth"
+    );
     final Set<String> DIAGNOSIS_PARAMS = Set.of(
         "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
         "diagnosis", "diagnosis_classification_system",
@@ -166,10 +168,8 @@ public class InventoryESService extends ESService {
                 // Term parameters (default)
                 List<String> valueSet = (List<String>) params.get(key);
                 
-                if (key.equals("participant_ids")) {
-                    key = "participant_id";
-                } else if (key.equals("participant_pks")) {
-                    key = "participant_pk";
+                if (key.equals("participant_pk")) {
+                    key = "id";
                 }
 
                 // list with only one empty string [""] means return all records
@@ -190,23 +190,19 @@ public class InventoryESService extends ESService {
                         treatment_response_filters.add(Map.of(
                             "terms", Map.of("treatment_responses." + key, valueSet)
                         ));
-                    } else if (key.equals("participant_pk") && !indexType.equals("participants")) {// Filter by nested Participant primary key
+                    } else if (PARTICIPANT_PARAMS.contains(key) && !indexType.equals("participants")) {// Filter by nested Participant property
                         filter.add(Map.of(
                             "nested", Map.of(
                                 "path", "participant",
                                 "query", Map.of(
                                     "bool", Map.of(
                                         "filter", List.of(Map.of(
-                                            "terms", Map.of("participant.id", valueSet)
+                                            "terms", Map.of("participant." + key, valueSet)
                                         ))
                                     )
                                 ),
                                 "inner_hits", Map.of()
                             )
-                        ));
-                    } else if (key.equals("participant_pk")) {// Filter Participant document by Participant primary key
-                        filter.add(Map.of(
-                            "terms", Map.of("id", valueSet)
                         ));
                     } else {
                         filter.add(Map.of(
