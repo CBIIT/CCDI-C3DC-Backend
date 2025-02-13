@@ -24,8 +24,15 @@ type SearchParticipantsReturnObject {
     subjects: Int
 }
 
+type NestedParticipant {
+    id: String
+    participant_id: String
+    race: String
+    sex_at_birth: String
+}
+
 type CohortMetadataReturnObject {
-    participant_pk: String
+    id: String
     participant_id: String
     race: [String]
     sex_at_birth: String
@@ -97,7 +104,7 @@ type GetParticipantsResult {
 
 type ParticipantOverviewResult {
     # Demographics
-    participant_pk: String # For adding to cohort
+    id: String # For adding to cohort
     participant_id: String # For display
     race: String
     sex_at_birth: String
@@ -118,11 +125,10 @@ type CohortMetadataResult {
 
 type DiagnosisOverviewResult {
     # Demographics
-    participant_pk: String # For adding to cohort
-    participant_id: String # For display
+    participant: NestedParticipant
 
     # Diagnosis
-    diagnosis_pk: String # For selecting record
+    id: String # For selecting record
     age_at_diagnosis: String
     anatomic_site: String
     diagnosis_basis: String
@@ -143,15 +149,11 @@ type DiagnosisOverviewResult {
     tumor_stage_clinical_m: String
     tumor_stage_clinical_n: String
     tumor_stage_clinical_t: String
-
-    # Additional fields for Cohort manifest download
-    race: String
-    sex_at_birth: String
 }
 
 type StudyOverviewResult {
     # Study
-    study_pk: String # For selecting record
+    id: String # For selecting record
     dbgap_accession: String
     study_name: String
 
@@ -164,15 +166,14 @@ type StudyOverviewResult {
 }
 
 type SurvivalOverviewResult {
-    # Participant
-    participant_pk: String # For adding to cohort
-    participant_id: String # For display
+    # Demographics
+    participant: NestedParticipant
 
     # Study
     dbgap_accession: String
 
     # Survival
-    survival_pk: String # For selecting record
+    id: String # For selecting record
     age_at_last_known_survival_status: String
     cause_of_death: String
     first_event: String
@@ -186,16 +187,15 @@ type SurvivalOverviewResult {
 }
 
 type TreatmentOverviewResult {
-    # Participant
-    participant_pk: String # For adding to cohort
-    participant_id: String # For display
+    # Demographics
+    participant: NestedParticipant
 
     # Study
     dbgap_accession: String
     study_id: String
 
     # Treatment
-    treatment_pk: String # For selecting record
+    id: String # For selecting record
     treatment_id: String
     age_at_treatment_start: String
     age_at_treatment_end: String
@@ -205,16 +205,15 @@ type TreatmentOverviewResult {
 }
 
 type TreatmentResponseOverviewResult {
-    # Participant
-    participant_pk: String # For adding to cohort
-    participant_id: String # For display
+    # Demographics
+    participant: NestedParticipant
 
     # Study
     dbgap_accession: String
     study_id: String
 
     # Treatment Response
-    treatment_response_pk: String # For selecting record
+    id: String # For selecting record
     treatment_response_id: String
     response: String
     age_at_response: String
@@ -259,7 +258,7 @@ type QueryType {
 
     cohortMetadata(
         # Demographics
-        participant_pks: [String]
+        participant_pk: [String]
 
         # Table config
         first: Int = 10,
@@ -270,8 +269,8 @@ type QueryType {
 
     getParticipants (
         # Demographics
-        participant_pks: [String]
-        participant_ids: [String] = [""],
+        participant_pk: [String]
+        participant_id: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 
@@ -308,8 +307,8 @@ type QueryType {
 
     participantOverview (
         # Demographics
-        participant_pks: [String]
-        participant_ids: [String] = [""],
+        participant_pk: [String]
+        participant_id: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 
@@ -352,8 +351,8 @@ type QueryType {
 
     diagnosisOverview (
         # Demographics
-        participant_pks: [String]
-        participant_ids: [String] = [""],
+        participant_pk: [String]
+        participant_id: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 
@@ -396,8 +395,8 @@ type QueryType {
     
     studyOverview (
         # Demographics
-        participant_pks: [String]
-        participant_ids: [String] = [""],
+        participant_pk: [String]
+        participant_id: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 
@@ -440,8 +439,8 @@ type QueryType {
 
     survivalOverview (
         # Demographics
-        participant_pks: [String]
-        participant_ids: [String] = [""],
+        participant_pk: [String]
+        participant_id: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 
@@ -484,8 +483,8 @@ type QueryType {
 
     treatmentOverview (
         # Demographics
-        participant_pks: [String]
-        participant_ids: [String] = [""],
+        participant_pk: [String]
+        participant_id: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 
@@ -528,8 +527,8 @@ type QueryType {
 
     treatmentResponseOverview (
         # Demographics
-        participant_pks: [String]
-        participant_ids: [String] = [""],
+        participant_pk: [String]
+        participant_id: [String] = [""],
         race: [String] = [""],
         sex_at_birth: [String] = [""],
 

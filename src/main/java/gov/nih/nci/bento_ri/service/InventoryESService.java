@@ -27,7 +27,9 @@ public class InventoryESService extends ESService {
     public static final String AGGS = "aggs";
     public static final int MAX_ES_SIZE = 60000;
     public static final int SCROLL_THRESHOLD = 10000;
-    final Set<String> PARTICIPANT_PARAMS = Set.of("participant_pk", "race", "sex_at_birth");
+    final Set<String> PARTICIPANT_PARAMS = Set.of(
+        "id", "participant_id", "race", "sex_at_birth"
+    );
     final Set<String> DIAGNOSIS_PARAMS = Set.of(
         "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
         "diagnosis", "diagnosis_classification_system",
@@ -166,11 +168,10 @@ public class InventoryESService extends ESService {
                 // Term parameters (default)
                 List<String> valueSet = (List<String>) params.get(key);
                 
-                if (key.equals("participant_ids")) {
-                    key = "participant_id";
-                } else if (key.equals("participant_pks")) {
-                    key = "participant_pk";
+                if (key.equals("participant_pk")) {
+                    key = "id";
                 }
+
                 // list with only one empty string [""] means return all records
                 if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
                     if (DIAGNOSIS_PARAMS.contains(key) && !indexType.equals("diagnoses")) {
@@ -188,6 +189,20 @@ public class InventoryESService extends ESService {
                     } else if (TREATMENT_RESPONSE_PARAMS.contains(key) && !indexType.equals("treatment_responses")) {
                         treatment_response_filters.add(Map.of(
                             "terms", Map.of("treatment_responses." + key, valueSet)
+                        ));
+                    } else if (PARTICIPANT_PARAMS.contains(key) && !indexType.equals("participants")) {// Filter by nested Participant property
+                        filter.add(Map.of(
+                            "nested", Map.of(
+                                "path", "participant",
+                                "query", Map.of(
+                                    "bool", Map.of(
+                                        "filter", List.of(Map.of(
+                                            "terms", Map.of("participant." + key, valueSet)
+                                        ))
+                                    )
+                                ),
+                                "inner_hits", Map.of()
+                            )
                         ));
                     } else {
                         filter.add(Map.of(
@@ -267,8 +282,9 @@ public class InventoryESService extends ESService {
             ));
         }
 
-        newQuery.put("aggs", counts);
         newQuery.put("size", 0);
+        newQuery.put("aggs", counts);
+
         return newQuery;
     }
 
@@ -278,19 +294,13 @@ public class InventoryESService extends ESService {
 
     public Map<String, Object> addNodeCountAggregations(Map<String, Object> query, String nodeName) {
         Map<String, Object> newQuery = new HashMap<>(query);
-        newQuery.put("size", 0);
-
-        // "aggs" : {
-        //     "langs" : {
-        //         "terms" : { "field" : "language",  "size" : 500 }
-        //     }
-        // }
-
         Map<String, Object> fields = new HashMap<String, Object>();
+
         fields.put(nodeName, Map.of("terms", Map.ofEntries(
             Map.entry("field", nodeName),
             Map.entry("size", 10000)
         )));
+        newQuery.put("size", 0);
         newQuery.put("aggs", fields);
         
         return newQuery;
@@ -298,52 +308,20 @@ public class InventoryESService extends ESService {
 
     public Map<String, Object> addRangeCountAggregations(Map<String, Object> query, String rangeAggName, String cardinalityAggName) {
         Map<String, Object> newQuery = new HashMap<>(query);
-        newQuery.put("size", 0);
-
-            //   "aggs": {
-            //     "age_at_diagnosis": {
-            //        "range": {
-            //           "field": "age_at_diagnosis",
-            //           "ranges": [
-            //              {
-            //                 "from": 0,
-            //                 "to": 1000
-            //              },
-            //              {
-            //                 "from": 1000,
-            //                 "to": 10000
-            //              },
-            //              {
-            //                 "from": 10000,
-            //                 "to": 25000
-            //              },
-            //              {
-            //                 "from": 25000
-            //              }
-            //           ]
-            //        },
-            //        "aggs": {
-            //           "unique_count": {
-            //            "cardinality": {
-            //                "field": "participant_id",
-            //                "precision_threshold": 40000
-            //            }
-            //          }
-            //        }
-            //      }
-            //    }
-
         Map<String, Object> fields = new HashMap<String, Object>();
         Map<String, Object> subField = new HashMap<String, Object>();
         Map<String, Object> subField_ranges = new HashMap<String, Object>();
+
         subField_ranges.put("field", rangeAggName);
         subField_ranges.put("ranges", Set.of(Map.of("key", "0 - 4", "from", 0, "to", 4 * 365), Map.of("key", "5 - 9", "from", 4 * 365, "to", 9 * 365), Map.of("key", "10 - 14", "from", 9 * 365, "to", 14 * 365), Map.of("key", "15 - 19", "from", 14 * 365, "to", 19 * 365), Map.of("key", "20 - 29", "from", 19 * 365, "to", 29 * 365), Map.of("key", "> 29", "from", 29 * 365)));
-        
         subField.put("range", subField_ranges);
+
         if (! (cardinalityAggName == null)) {
             subField.put("aggs", Map.of("cardinality_count", Map.of("cardinality", Map.of("field", cardinalityAggName, "precision_threshold", 40000))));
         }
+
         fields.put(rangeAggName, subField);
+        newQuery.put("size", 0);
         newQuery.put("aggs", fields);
         
         return newQuery;
@@ -351,30 +329,13 @@ public class InventoryESService extends ESService {
 
     public Map<String, Object> addRangeAggregations(Map<String, Object> query, String rangeAggName, List<String> only_includes) {
         Map<String, Object> newQuery = new HashMap<>(query);
-        newQuery.put("size", 0);
-
-        //       "aggs": {
-        //         "inner": {
-        //           "filter":{  
-        //             "range":{  
-        //              "age_at_diagnosis":{  
-        //               "gt":0
-        //              }
-        //             }
-        //            },
-        //            "aggs": {
-        //              "age_stats": { 
-        //               "stats": { 
-        //                 "field": "age_at_diagnosis"
-        //               }
-        //             }
-        //           }
-
         Map<String, Object> fields = new HashMap<String, Object>();
         Map<String, Object> subField = new HashMap<String, Object>();
+
         subField.put("filter", Map.of("range", Map.of(rangeAggName, Map.of("gt", -1))));
         subField.put("aggs", Map.of("range_stats", Map.of("stats", Map.of("field", rangeAggName))));
         fields.put("inner", subField);
+        newQuery.put("size", 0);
         newQuery.put("aggs", fields);
         
         return newQuery;
@@ -382,8 +343,8 @@ public class InventoryESService extends ESService {
 
     public Map<String, Object> addAggregations(Map<String, Object> query, String[] termAggNames, String subCardinalityAggName, String[] rangeAggNames, List<String> only_includes) {
         Map<String, Object> newQuery = new HashMap<>(query);
-        newQuery.put("size", 0);
         Map<String, Object> fields = new HashMap<String, Object>();
+
         for (String field: termAggNames) {
             Map<String, Object> subField = new HashMap<String, Object>();
             subField.put("field", field);
@@ -397,19 +358,24 @@ public class InventoryESService extends ESService {
                 fields.put(field, Map.of("terms", subField));
             }
         }
+
+        newQuery.put("size", 0);
         newQuery.put("aggs", fields);
+
         return newQuery;
     }
 
     // Builds a reverse_nested Opensearch query for redoing facet filter counts
     public Map<String, Object> addCustomAggregations(Map<String, Object> query, String aggName, String field, String nestedProperty) {
         Map<String, Object> newQuery = new HashMap<>(query);
-        newQuery.put("size", 0);
         Map<String, Object> aggSection = new HashMap<String, Object>();
         Map<String, Object> aggSubSection = new HashMap<String, Object>();
+
         aggSubSection.put("agg_buckets", Map.of("terms", Map.of("field", nestedProperty + "." + field, "size", 1000), "aggs", Map.of("top_reverse_nested", Map.of("reverse_nested", Map.of()))));
         aggSection.put(aggName, Map.of("nested", Map.of("path", nestedProperty), "aggs", aggSubSection));
+        newQuery.put("size", 0);
         newQuery.put("aggs", aggSection);
+
         return newQuery;
     }
 
@@ -420,24 +386,27 @@ public class InventoryESService extends ESService {
     public Map<String, JsonArray> collectNodeCountAggs(JsonObject jsonObject, String nodeName) {
         Map<String, JsonArray> data = new HashMap<>();
         JsonObject aggs = jsonObject.getAsJsonObject("aggregations");
+
         data.put(nodeName, aggs.getAsJsonObject(nodeName).getAsJsonArray("buckets"));
-        
+
         return data;
     }
 
     public Map<String, JsonArray> collectRangCountAggs(JsonObject jsonObject, String rangeAggName) {
         Map<String, JsonArray> data = new HashMap<>();
         JsonObject aggs = jsonObject.getAsJsonObject("aggregations");
+
         data.put(rangeAggName, aggs.getAsJsonObject(rangeAggName).getAsJsonArray("buckets"));
-        
+
         return data;
     }
 
     public Map<String, JsonObject> collectRangAggs(JsonObject jsonObject, String rangeAggName) {
         Map<String, JsonObject> data = new HashMap<>();
         JsonObject aggs = jsonObject.getAsJsonObject("aggregations");
+
         data.put(rangeAggName, aggs.getAsJsonObject("inner").getAsJsonObject("range_stats"));
-        
+
         return data;
     }
 
@@ -446,9 +415,11 @@ public class InventoryESService extends ESService {
         Map<String, Integer> data = new HashMap<>();
         JsonObject aggs = jsonObject.getAsJsonObject("aggregations").getAsJsonObject(aggName);
         JsonArray buckets = aggs.getAsJsonObject("agg_buckets").getAsJsonArray("buckets");
+
         for (var bucket: buckets) {
             data.put(bucket.getAsJsonObject().get("key").getAsString(), bucket.getAsJsonObject().getAsJsonObject("top_reverse_nested").get("doc_count").getAsInt());
         }
+
         return data;
     }
 }

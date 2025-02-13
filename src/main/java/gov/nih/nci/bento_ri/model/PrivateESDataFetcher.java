@@ -310,10 +310,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private Map<String, String[]> idsLists() throws IOException {
         // Specify which Opensearch fields to obtain GraphQL return values from
-        Map<String, String[][]> indexProperties = Map.ofEntries(
-            Map.entry(PARTICIPANTS_END_POINT, new String[][]{
-                new String[]{"participantIds", "participant_id"}
-            })
+        Map<String, List<Map<String, Object>>> indexProperties = Map.ofEntries(
+            Map.entry(PARTICIPANTS_END_POINT, List.of(
+                Map.ofEntries(
+                    Map.entry("gqlName", "participantIds"),
+                    Map.entry("osName", "participant_id")
+                )
+            ))
         );
         // Define sort priorty, from highest to lowest
         Map<String, String[]> sortPriority = Map.ofEntries(
@@ -336,13 +339,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         for (String endpoint: indexProperties.keySet()){
             Request request = new Request("GET", endpoint);
-            String[][] properties = indexProperties.get(endpoint);
+            List<Map<String, Object>> properties = indexProperties.get(endpoint);
             String[] sortOrder = sortPriority.get(endpoint);
             ArrayList<Map<String, String>> sortParams = new ArrayList<Map<String, String>>();
             List<String> fields = new ArrayList<>();
 
-            for (String[] prop: properties) {
-                fields.add(prop[1]);
+            for (Map<String, Object> prop: properties) {
+                fields.add((String) prop.get("osName"));
             }
 
             for (String sortField: sortOrder) {
@@ -355,7 +358,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             List<Map<String, Object>> result = esService.collectPage(request, query, properties, ESService.MAX_ES_SIZE,
                     0);
             Map<String, List<String>> indexResults = new HashMap<>();
-            Arrays.asList(properties).forEach(x -> indexResults.put(x[0], new ArrayList<>()));
+            properties.forEach(x -> indexResults.put((String) x.get("gqlName"), new ArrayList<>()));
             for(Map<String, Object> resultElement: result){
                 for(String key: indexResults.keySet()){
                     List<String> tmp = indexResults.get(key);
@@ -522,28 +525,55 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map<String, List<Map<String, Object>>> participantsByStudy = new HashMap<String, List<Map<String, Object>>>();
         List<Map<String, Object>> listOfParticipantsByStudy = new ArrayList<Map<String, Object>>();
 
-        final String[][] PROPERTIES = new String[][]{
+        final List<Map<String, Object>> PROPERTIES = List.of(
             // Studies
-            new String[]{"dbgap_accession", "dbgap_accession"},
+            Map.ofEntries(
+                Map.entry("gqlName", "dbgap_accession"),
+                Map.entry("osName", "dbgap_accession")
+            ),
 
             // Demographics
-            new String[]{"participant_pk", "participant_pk"},
-            new String[]{"participant_id", "participant_id"},
-            new String[]{"race", "race"},
-            new String[]{"sex_at_birth", "sex_at_birth"},
+            Map.ofEntries(
+                Map.entry("gqlName", "id"),
+                Map.entry("osName", "id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "participant_id"),
+                Map.entry("osName", "participant_id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "race"),
+                Map.entry("osName", "race")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "sex_at_birth"),
+                Map.entry("osName", "sex_at_birth")
+            ),
 
             // Diagnoses
-            new String[]{"diagnoses", "diagnoses"},
+            Map.ofEntries(
+                Map.entry("gqlName", "diagnoses"),
+                Map.entry("osName", "diagnoses")
+            ),
 
             // Survivals
-            new String[]{"survivals", "survivals"},
+            Map.ofEntries(
+                Map.entry("gqlName", "survivals"),
+                Map.entry("osName", "survivals")
+            ),
 
             // Treatments
-            new String[]{"treatments", "treatments"},
+            Map.ofEntries(
+                Map.entry("gqlName", "treatments"),
+                Map.entry("osName", "treatments")
+            ),
 
             // Treatment Responses
-            new String[]{"treatment_responses", "treatment_responses"},
-        };
+            Map.ofEntries(
+                Map.entry("gqlName", "treatment_responses"),
+                Map.entry("osName", "treatment_responses")
+            )
+        );
 
         String defaultSort = "dbgap_accession"; // Default sort order
 
@@ -552,7 +582,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("dbgap_accession", "dbgap_accession"),
 
             // Demographics
-            Map.entry("participant_pk", "participant_pk"),
+            Map.entry("participant_pk", "id"),
             Map.entry("participant_id", "participant_id"),
             Map.entry("race", "race"),
             Map.entry("sex_at_birth", "sex_at_birth")
@@ -585,25 +615,44 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
-        final String[][] PROPERTIES = new String[][]{
+        final List<Map<String, Object>> PROPERTIES = List.of(
             // Demographics
-            new String[]{"participant_pk", "participant_pk"},
-            new String[]{"participant_id", "participant_id"},
-            new String[]{"race", "race_str"},
-            new String[]{"sex_at_birth", "sex_at_birth"},
+            Map.ofEntries(
+                Map.entry("gqlName", "id"),
+                Map.entry("osName", "id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "participant_id"),
+                Map.entry("osName", "participant_id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "race"),
+                Map.entry("osName", "race_str")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "sex_at_birth"),
+                Map.entry("osName", "sex_at_birth")
+            ),
 
             // Studies
-            new String[]{"dbgap_accession", "dbgap_accession"},
+            Map.ofEntries(
+                Map.entry("gqlName", "dbgap_accession"),
+                Map.entry("osName", "dbgap_accession")
+            ),
+
 
             // Additional fields for download
-            new String[]{"study_id", "study_id"},
-        };
+            Map.ofEntries(
+                Map.entry("gqlName", "study_id"),
+                Map.entry("osName", "study_id")
+            )
+        );
 
         String defaultSort = "participant_id"; // Default sort order
 
-        Map<String, String> mapping = Map.ofEntries(
+        Map<String, String> mapping = Map.ofEntries(// field -> sort field
             // Demographics
-            Map.entry("participant_pk", "participant_pk"),
+            Map.entry("id", "id"),
             Map.entry("participant_id", "participant_id"),
             Map.entry("race", "race_str"),
             Map.entry("sex_at_birth", "sex_at_birth"),
@@ -619,44 +668,114 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private List<Map<String, Object>> diagnosisOverview(Map<String, Object> params) throws IOException {
-        final String[][] PROPERTIES = new String[][]{
-            // Diagnoses
-            new String[]{"diagnosis_pk", "diagnosis_pk"},
-            new String[]{"age_at_diagnosis", "age_at_diagnosis_str"},
-            new String[]{"anatomic_site", "anatomic_site"},
-            new String[]{"diagnosis_basis", "diagnosis_basis"},
-            new String[]{"diagnosis", "diagnosis"},
-            new String[]{"diagnosis_classification_system", "diagnosis_classification_system"},
-            new String[]{"disease_phase", "disease_phase"},
-            new String[]{"tumor_classification", "tumor_classification"},
-
+        final List<Map<String, Object>> PROPERTIES = List.of(
             // Demographics
-            new String[]{"participant_pk", "participant_pk"},
-            new String[]{"participant_id", "participant_id"},
+            Map.ofEntries(
+                Map.entry("gqlName", "participant"),
+                Map.entry("osName", "participant"),
+                Map.entry("nested", List.of(
+                    Map.ofEntries(
+                        Map.entry("gqlName", "id"),
+                        Map.entry("osName", "id")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "participant_id"),
+                        Map.entry("osName", "participant_id")
+                    ),
+
+                    // Additional fields for Cohort manifest download
+                    Map.ofEntries(
+                        Map.entry("gqlName", "race"),
+                        Map.entry("osName", "race_str")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "sex_at_birth"),
+                        Map.entry("osName", "sex_at_birth")
+                    )
+                ))
+            ),
+
+            // Diagnoses
+            Map.ofEntries(
+                Map.entry("gqlName", "id"),
+                Map.entry("osName", "id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "age_at_diagnosis"),
+                Map.entry("osName", "age_at_diagnosis_str")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "anatomic_site"),
+                Map.entry("osName", "anatomic_site")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "diagnosis_basis"),
+                Map.entry("osName", "diagnosis_basis")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "diagnosis"),
+                Map.entry("osName", "diagnosis")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "diagnosis_classification_system"),
+                Map.entry("osName", "diagnosis_classification_system")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "disease_phase"),
+                Map.entry("osName", "disease_phase")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "tumor_classification"),
+                Map.entry("osName", "tumor_classification")
+            ),
 
             // Studies
-            new String[]{"dbgap_accession", "dbgap_accession"},
+            Map.ofEntries(
+                Map.entry("gqlName", "dbgap_accession"),
+                Map.entry("osName", "dbgap_accession")
+            ),
+
 
             // Additional fields for download
-            new String[]{"diagnosis_id", "diagnosis_id"},
-            new String[]{"diagnosis_comment", "diagnosis_comment"},
-            new String[]{"study_id", "study_id"},
-            new String[]{"toronto_childhood_cancer_staging", "toronto_childhood_cancer_staging"},
-            new String[]{"tumor_grade", "tumor_grade"},
-            new String[]{"tumor_stage_clinical_m", "tumor_stage_clinical_m"},
-            new String[]{"tumor_stage_clinical_n", "tumor_stage_clinical_n"},
-            new String[]{"tumor_stage_clinical_t", "tumor_stage_clinical_t"},
-
-            // Additional fields for Cohort manifest download
-            new String[]{"race", "race_str"},
-            new String[]{"sex_at_birth", "sex_at_birth"},
-        };
+            Map.ofEntries(
+                Map.entry("gqlName", "diagnosis_id"),
+                Map.entry("osName", "diagnosis_id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "diagnosis_comment"),
+                Map.entry("osName", "diagnosis_comment")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "study_id"),
+                Map.entry("osName", "study_id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "toronto_childhood_cancer_staging"),
+                Map.entry("osName", "toronto_childhood_cancer_staging")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "tumor_grade"),
+                Map.entry("osName", "tumor_grade")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "tumor_stage_clinical_m"),
+                Map.entry("osName", "tumor_stage_clinical_m")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "tumor_stage_clinical_n"),
+                Map.entry("osName", "tumor_stage_clinical_n")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "tumor_stage_clinical_t"),
+                Map.entry("osName", "tumor_stage_clinical_t")
+            )
+        );
 
         String defaultSort = "diagnosis_id"; // Default sort order
 
         Map<String, String> mapping = Map.ofEntries(
             // Diagnoses
-            Map.entry("diagnosis_pk", "diagnosis_pk"),
+            Map.entry("id", "id"),
             Map.entry("age_at_diagnosis", "age_at_diagnosis"),
             Map.entry("anatomic_site", "anatomic_site"),
             Map.entry("diagnosis_basis", "diagnosis_basis"),
@@ -666,8 +785,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("tumor_classification", "tumor_classification"),
 
             // Demographics
-            Map.entry("participant_pk", "participant_pk"),
-            Map.entry("participant_id", "participant_id"),
+            Map.entry("participant", "participant"),
 
             // Studies
             Map.entry("dbgap_accession", "dbgap_accession"),
@@ -687,25 +805,49 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private List<Map<String, Object>> studyOverview(Map<String, Object> params) throws IOException {
-        final String[][] PROPERTIES = new String[][]{
+        final List<Map<String, Object>> PROPERTIES = List.of(
             // Studies
-            new String[]{"study_pk", "study_pk"},
-            new String[]{"dbgap_accession", "dbgap_accession"},
-            new String[]{"study_name", "study_name"},
+            Map.ofEntries(
+                Map.entry("gqlName", "id"),
+                Map.entry("osName", "id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "dbgap_accession"),
+                Map.entry("osName", "dbgap_accession")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "study_name"),
+                Map.entry("osName", "study_name")
+            ),
 
             // Additional fields for download
-            new String[]{"consent", "consent"},
-            new String[]{"consent_number", "consent_number_str"},
-            new String[]{"external_url", "external_url"},
-            new String[]{"study_description", "study_description"},
-            new String[]{"study_id", "study_id"},
-        };
+            Map.ofEntries(
+                Map.entry("gqlName", "consent"),
+                Map.entry("osName", "consent")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "consent_number"),
+                Map.entry("osName", "consent_number_str")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "external_url"),
+                Map.entry("osName", "external_url")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "study_description"),
+                Map.entry("osName", "study_description")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "study_id"),
+                Map.entry("osName", "study_id")
+            )
+        );
 
         String defaultSort = "dbgap_accession"; // Default sort order
 
         Map<String, String> mapping = Map.ofEntries(
             // Studies
-            Map.entry("study_pk", "study_pk"),
+            Map.entry("id", "id"),
             Map.entry("dbgap_accession", "dbgap_accession"),
             Map.entry("study_name", "study_name"),
 
@@ -750,40 +892,91 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private List<Map<String, Object>> survivalOverview(Map<String, Object> params) throws IOException {
-        final String[][] PROPERTIES = new String[][]{
+        final List<Map<String, Object>> PROPERTIES = List.of(
             // Participants
-            new String[]{"participant_pk", "participant_pk"},
-            new String[]{"participant_id", "participant_id"},
+            Map.ofEntries(
+                Map.entry("gqlName", "participant"),
+                Map.entry("osName", "participant"),
+                Map.entry("nested", List.of(
+                    Map.ofEntries(
+                        Map.entry("gqlName", "id"),
+                        Map.entry("osName", "id")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "participant_id"),
+                        Map.entry("osName", "participant_id")
+                    ),
 
-            // Studies
-            new String[]{"dbgap_accession", "dbgap_accession"},
+                    // Additional fields for Cohort manifest download
+                    Map.ofEntries(
+                        Map.entry("gqlName", "race"),
+                        Map.entry("osName", "race_str")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "sex_at_birth"),
+                        Map.entry("osName", "sex_at_birth")
+                    )
+                ))
+            ),
 
             // Survivals
-            new String[]{"survival_pk", "survival_pk"},
-            new String[]{"age_at_last_known_survival_status", "age_at_last_known_survival_status_str"},
-            new String[]{"cause_of_death", "cause_of_death"},
-            new String[]{"first_event", "first_event"},
-            new String[]{"last_known_survival_status", "last_known_survival_status"},
+            Map.ofEntries(
+                Map.entry("gqlName", "dbgap_accession"),
+                Map.entry("osName", "dbgap_accession")
+            ),
+
+            // Studies
+            Map.ofEntries(
+                Map.entry("gqlName", "id"),
+                Map.entry("osName", "id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "age_at_last_known_survival_status"),
+                Map.entry("osName", "age_at_last_known_survival_status_str")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "cause_of_death"),
+                Map.entry("osName", "cause_of_death")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "first_event"),
+                Map.entry("osName", "first_event")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "last_known_survival_status"),
+                Map.entry("osName", "last_known_survival_status")
+            ),
 
             // Additional fields for download
-            new String[]{"age_at_event_free_survival_status", "age_at_event_free_survival_status_str"},
-            new String[]{"event_free_survival_status", "event_free_survival_status"},
-            new String[]{"study_id", "study_id"},
-            new String[]{"survival_id", "survival_id"},
-        };
+            Map.ofEntries(
+                Map.entry("gqlName", "age_at_event_free_survival_status"),
+                Map.entry("osName", "age_at_event_free_survival_status_str")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "event_free_survival_status"),
+                Map.entry("osName", "event_free_survival_status")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "study_id"),
+                Map.entry("osName", "study_id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "survival_id"),
+                Map.entry("osName", "survival_id")
+            )
+        );
 
-        String defaultSort = "participant_id"; // Default sort order
+        String defaultSort = "survival_id"; // Default sort order
 
         Map<String, String> mapping = Map.ofEntries(
             // Participants
-            Map.entry("participant_pk", "participant_pk"),
-            Map.entry("participant_id", "participant_id"),
+            Map.entry("participant", "participant"),
 
             // Studies
             Map.entry("dbgap_accession", "dbgap_accession"),
 
             // Survivals
-            Map.entry("survival_pk", "survival_pk"),
+            Map.entry("id", "id"),
             Map.entry("age_at_last_known_survival_status", "age_at_last_known_survival_status"),
             Map.entry("cause_of_death", "cause_of_death"),
             Map.entry("first_event", "first_event"),
@@ -800,38 +993,86 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private List<Map<String, Object>> treatmentOverview(Map<String, Object> params) throws IOException {
-        final String[][] PROPERTIES = new String[][]{
+        final List<Map<String, Object>> PROPERTIES = List.of(
             // Participants
-            new String[]{"participant_pk", "participant_pk"},
-            new String[]{"participant_id", "participant_id"},
+            Map.ofEntries(
+                Map.entry("gqlName", "participant"),
+                Map.entry("osName", "participant"),
+                Map.entry("nested", List.of(
+                    Map.ofEntries(
+                        Map.entry("gqlName", "id"),
+                        Map.entry("osName", "id")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "participant_id"),
+                        Map.entry("osName", "participant_id")
+                    ),
+
+                    // Additional fields for Cohort manifest download
+                    Map.ofEntries(
+                        Map.entry("gqlName", "race"),
+                        Map.entry("osName", "race_str")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "sex_at_birth"),
+                        Map.entry("osName", "sex_at_birth")
+                    )
+                ))
+            ),
 
             // Studies
-            new String[]{"dbgap_accession", "dbgap_accession"},
-            new String[]{"study_id", "study_id"},
+            Map.ofEntries(
+                Map.entry("gqlName", "dbgap_accession"),
+                Map.entry("osName", "dbgap_accession")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "study_id"),
+                Map.entry("osName", "study_id")
+            ),
 
             // Treatments
-            new String[]{"treatment_pk", "treatment_pk"},
-            new String[]{"treatment_id", "treatment_id"},
-            new String[]{"age_at_treatment_start", "age_at_treatment_start_str"},
-            new String[]{"age_at_treatment_end", "age_at_treatment_end_str"},
-            new String[]{"treatment_type", "treatment_type"},
-            new String[]{"treatment_agent_str", "treatment_agent_str"},
-            new String[]{"treatment_agent", "treatment_agent"},
-        };
+            Map.ofEntries(
+                Map.entry("gqlName", "id"),
+                Map.entry("osName", "id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "treatment_id"),
+                Map.entry("osName", "treatment_id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "age_at_treatment_start"),
+                Map.entry("osName", "age_at_treatment_start_str")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "age_at_treatment_end"),
+                Map.entry("osName", "age_at_treatment_end_str")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "treatment_type"),
+                Map.entry("osName", "treatment_type")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "treatment_agent_str"),
+                Map.entry("osName", "treatment_agent_str")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "treatment_agent"),
+                Map.entry("osName", "treatment_agent")
+            )
+        );
 
-        String defaultSort = "participant_id"; // Default sort order
+        String defaultSort = "treatment_type"; // Default sort order
 
         Map<String, String> mapping = Map.ofEntries(
             // Participants
-            Map.entry("participant_pk", "participant_pk"),
-            Map.entry("participant_id", "participant_id"),
+            Map.entry("participant", "participant"),
 
             // Studies
             Map.entry("dbgap_accession", "dbgap_accession"),
             Map.entry("study_id", "study_id"),
 
             // Treatments
-            Map.entry("treatment_pk", "treatment_pk"),
+            Map.entry("id", "id"),
             Map.entry("treatment_id", "treatment_id"),
             Map.entry("age_at_treatment_start", "age_at_treatment_start"),
             Map.entry("age_at_treatment_end", "age_at_treatment_end"),
@@ -844,37 +1085,82 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private List<Map<String, Object>> treatmentResponseOverview(Map<String, Object> params) throws IOException {
-        final String[][] PROPERTIES = new String[][]{
+        final List<Map<String, Object>> PROPERTIES = List.of(
             // Participants
-            new String[]{"participant_pk", "participant_pk"},
-            new String[]{"participant_id", "participant_id"},
+            Map.ofEntries(
+                Map.entry("gqlName", "participant"),
+                Map.entry("osName", "participant"),
+                Map.entry("nested", List.of(
+                    Map.ofEntries(
+                        Map.entry("gqlName", "id"),
+                        Map.entry("osName", "id")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "participant_id"),
+                        Map.entry("osName", "participant_id")
+                    ),
+
+                    // Additional fields for Cohort manifest download
+                    Map.ofEntries(
+                        Map.entry("gqlName", "race"),
+                        Map.entry("osName", "race_str")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "sex_at_birth"),
+                        Map.entry("osName", "sex_at_birth")
+                    )
+                ))
+            ),
 
             // Studies
-            new String[]{"dbgap_accession", "dbgap_accession"},
-            new String[]{"study_id", "study_id"},
+            Map.ofEntries(
+                Map.entry("gqlName", "dbgap_accession"),
+                Map.entry("osName", "dbgap_accession")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "study_id"),
+                Map.entry("osName", "study_id")
+            ),
 
             // Treatment Responses
-            new String[]{"treatment_response_pk", "treatment_response_pk"},
-            new String[]{"treatment_response_id", "treatment_response_id"},
-            new String[]{"response", "response"},
-            new String[]{"age_at_response", "age_at_response_str"},
-            new String[]{"response_category", "response_category"},
-            new String[]{"response_system", "response_system"},
-        };
+            Map.ofEntries(
+                Map.entry("gqlName", "id"),
+                Map.entry("osName", "id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "treatment_response_id"),
+                Map.entry("osName", "treatment_response_id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "response"),
+                Map.entry("osName", "response")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "age_at_response"),
+                Map.entry("osName", "age_at_response_str")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "response_category"),
+                Map.entry("osName", "response_category")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "response_system"),
+                Map.entry("osName", "response_system")
+            )
+        );
 
-        String defaultSort = "participant_id"; // Default sort order
+        String defaultSort = "response"; // Default sort order
 
         Map<String, String> mapping = Map.ofEntries(
             // Participants
-            Map.entry("participant_pk", "participant_pk"),
-            Map.entry("participant_id", "participant_id"),
+            Map.entry("participant", "participant"),
 
             // Studies
             Map.entry("dbgap_accession", "dbgap_accession"),
             Map.entry("study_id", "study_id"),
 
             // Treatment Responses
-            Map.entry("treatment_response_pk", "treatment_response_pk"),
+            Map.entry("id", "id"),
             Map.entry("treatment_response_id", "treatment_response_id"),
             Map.entry("response", "response"),
             Map.entry("age_at_response", "age_at_response"),
@@ -896,7 +1182,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
      * @return
      * @throws IOException
      */
-    private List<Map<String, Object>> overview(String endpoint, Map<String, Object> params, String[][] properties, String defaultSort, Map<String, String> mapping, String overviewType) throws IOException {
+    private List<Map<String, Object>> overview(String endpoint, Map<String, Object> params, List<Map<String, Object>> properties, String defaultSort, Map<String, String> mapping, String overviewType) throws IOException {
         Request request = new Request("GET", endpoint);
         Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), overviewType);
         String order_by = (String)params.get(ORDER_BY);
@@ -913,14 +1199,32 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         String studyId = (String) params.get("study_id");
         List<Map<String, Object>> studies;
 
-        final String[][] PROPERTIES = new String[][]{
-            new String[]{"dbgap_accession", "dbgap_accession"},
-            new String[]{"study_description", "study_description"},
-            new String[]{"num_participants", "num_participants"},
-            new String[]{"num_diseases", "num_diseases"},
-            new String[]{"num_anatomic_sites", "num_anatomic_sites"},
-            new String[]{"num_survivals", "num_survivals"}
-        };
+        final List<Map<String, Object>> PROPERTIES = List.of(
+            Map.ofEntries(
+                Map.entry("gqlName", "dbgap_accession"),
+                Map.entry("osName", "dbgap_accession")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "study_description"),
+                Map.entry("osName", "study_description")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "num_participants"),
+                Map.entry("osName", "num_participants")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "num_diseases"),
+                Map.entry("osName", "num_diseases")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "num_anatomic_sites"),
+                Map.entry("osName", "num_anatomic_sites")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "num_survivals"),
+                Map.entry("osName", "num_survivals")
+            )
+        );
 
         Map<String, String> mapping = Map.ofEntries(
             Map.entry("dbgap_accession", "dbgap_accession"),
@@ -951,12 +1255,24 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private List<Map<String, Object>> studiesListing() throws IOException {
-        String[][] properties = new String[][]{
-            new String[]{"dbgap_accession", "dbgap_accession"},
-            new String[]{"study_name", "study_name"},
-            new String[]{"num_participants", "num_participants"},
-            new String[]{"num_diseases", "num_diseases"}
-        };
+        List<Map<String, Object>> properties = List.of(
+            Map.ofEntries(
+                Map.entry("gqlName", "dbgap_accession"),
+                Map.entry("osName", "dbgap_accession")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "study_name"),
+                Map.entry("osName", "study_name")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "num_participants"),
+                Map.entry("osName", "num_participants")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "num_diseases"),
+                Map.entry("osName", "num_diseases")
+            )
+        );
 
         Map<String, Object> query = esService.buildListQuery();
         Request request = new Request("GET", STUDIES_END_POINT);
@@ -964,10 +1280,16 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private List<Map<String, Object>> findParticipantIdsInList(Map<String, Object> params) throws IOException {
-        final String[][] properties = new String[][]{
-                new String[]{"participant_id", "participant_id"},
-                new String[]{"study_id", "study_id"}
-        };
+        final List<Map<String, Object>> properties = List.of(
+            Map.ofEntries(
+                Map.entry("gqlName", "participant_id"),
+                Map.entry("osName", "participant_id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "study_id"),
+                Map.entry("osName", "study_id")
+            )
+        );
 
         Map<String, Object> query = esService.buildListQuery(params, Set.of(), false);
         Request request = new Request("GET",PARTICIPANTS_END_POINT);
