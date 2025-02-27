@@ -1,5 +1,6 @@
 # Build stage
-FROM maven:3.8.5-openjdk-17 AS build
+# FROM maven:3.8.5-openjdk-17 AS build
+FROM maven:3.9.6-eclipse-temurin-17 as build
 
 WORKDIR /usr/src/app
 COPY . .
