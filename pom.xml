@@ -43,7 +43,7 @@
         </dependency>
     
         <!-- Spring Boot -->
-        
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
@@ -114,12 +114,6 @@
         <dependency>  
             <groupId>com.github.ben-manes.caffeine</groupId>  
             <artifactId>caffeine</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.google.errorprone</groupId>
-                    <artifactId>error_prone_annotations</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <!-- Unirest Java -->
         <dependency>
@@ -165,11 +159,11 @@
             <version>1.5.1</version>
             <scope>test</scope>
         </dependency>
-        <!-- Neo4j Graphql -->
+         <!-- Neo4j Graphql -->
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-graphql-java</artifactId>
-            <version>1.9.1</version>
+            <version>1.8.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.graphql-java</groupId>
@@ -180,12 +174,12 @@
         <dependency>
             <groupId>org.neo4j.driver</groupId>
             <artifactId>neo4j-java-driver</artifactId>
-            <version>5.27.0</version>
+            <version>4.4.9</version>
         </dependency>
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-cypher-dsl</artifactId>
-            <version>2023.9.5</version>
+            <version>2023.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains</groupId>
@@ -214,22 +208,12 @@
                     <groupId>commons-logging</groupId>
                     <artifactId>commons-logging</artifactId>
                 </exclusion>
-                <exclusion>
-                    <groupId>org.apache.logging.log4j</groupId>
-                    <artifactId>log4j-api</artifactId>
-                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
-            <version>4.5.13</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>commons-logging</groupId>
-                    <artifactId>commons-logging</artifactId>
-                </exclusion>
-            </exclusions>
+            <version>4.5.14</version>
         </dependency>
 
         <dependency>
@@ -252,14 +236,6 @@
                     <groupId>joda-time</groupId>
                     <artifactId>joda-time</artifactId>
                 </exclusion>
-                <exclusion>
-                    <groupId>commons-logging</groupId>
-                    <artifactId>commons-logging</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.logging.log4j</groupId>
-                    <artifactId>log4j-api</artifactId>
-                </exclusion>
             </exclusions>
         </dependency>
         <!-- AWS Java SDK -->
@@ -268,12 +244,6 @@
             <artifactId>aws-java-sdk-core</artifactId>
             <version>1.12.782</version>
             <scope>compile</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>commons-logging</groupId>
-                    <artifactId>commons-logging</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <!-- Lombok -->
         <dependency>
