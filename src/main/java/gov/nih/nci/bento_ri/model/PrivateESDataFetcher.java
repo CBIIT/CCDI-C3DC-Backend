@@ -234,8 +234,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<Map<String, Object>> getGroupCountByRange(String category, Map<String, Object> query, String endpoint, String cardinalityAggName) throws IOException {
         query = inventoryESService.addRangeCountAggregations(query, category, cardinalityAggName);
+        String queryJson = gson.toJson(query);
         Request request = new Request("GET", endpoint);
-        request.setJsonEntity(gson.toJson(query));
+        request.setJsonEntity(queryJson);
         JsonObject jsonObject = inventoryESService.send(request);
         Map<String, JsonArray> aggs = inventoryESService.collectRangCountAggs(jsonObject, category);
         JsonArray buckets = aggs.get(category);
@@ -244,7 +245,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private List<Map<String, Object>> getGroupCount(String category, Map<String, Object> query, String endpoint, String cardinalityAggName, List<String> only_includes) throws IOException {
-        if (RANGE_PARAMS.contains(category)) {
+        if (RANGE_PARAMS.contains(category)) { // Not sure if this case ever occurs, because there's a separate method getGroupCountByRange() for range params
             query = inventoryESService.addRangeAggregations(query, category, only_includes);
             Request request = new Request("GET", endpoint);
             String jsonizedRequest = gson.toJson(query);
@@ -258,14 +259,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             String[] AGG_NAMES = new String[] {category};
             query = inventoryESService.addAggregations(query, AGG_NAMES, cardinalityAggName, only_includes);
             Request request = new Request("GET", endpoint);
-            request.setJsonEntity(gson.toJson(query));
+            String jsonizedRequest = gson.toJson(query);
+            request.setJsonEntity(jsonizedRequest);
             JsonObject jsonObject = inventoryESService.send(request);
             Map<String, JsonArray> aggs = inventoryESService.collectTermAggs(jsonObject, AGG_NAMES);
             JsonArray buckets = aggs.get(category);
 
             return getGroupCountHelper(buckets, cardinalityAggName);
         }
-        
     }
 
     private List<Map<String, Object>> getRangeGroupCountHelper(JsonObject ranges) throws IOException {
@@ -298,13 +299,28 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private List<Map<String, Object>> getGroupCountHelper(JsonArray buckets, String cardinalityAggName) throws IOException {
+        int dotIndex = cardinalityAggName == null ? -1 : cardinalityAggName.indexOf("."); // Look for period (.) in cardinal property's name
+        boolean isNested = (dotIndex != -1); // Determine whether the cardinal property is nested
         List<Map<String, Object>> data = new ArrayList<>();
-        for (JsonElement group: buckets) {
-            data.add(Map.of("group", group.getAsJsonObject().get("key").getAsString(),
-                    "subjects", !(cardinalityAggName == null) ? group.getAsJsonObject().get("cardinality_count").getAsJsonObject().get("value").getAsInt() : group.getAsJsonObject().get("doc_count").getAsInt()
-            ));
 
+        for (JsonElement group: buckets) {
+            int count = -1;
+
+            if (cardinalityAggName == null) {
+                count = group.getAsJsonObject().get("doc_count").getAsInt();
+            } else if (isNested) {
+                count = group.getAsJsonObject().get("cardinality_count").getAsJsonObject()
+                        .get("nested_cardinality_count").getAsJsonObject().get("value").getAsInt();
+            } else {
+                count = group.getAsJsonObject().get("cardinality_count").getAsJsonObject().get("value").getAsInt();
+            }
+
+            data.add(Map.ofEntries(
+                Map.entry("group", group.getAsJsonObject().get("key").getAsString()),
+                Map.entry("subjects", count)
+            ));
         }
+
         return data;
     }
 

@@ -316,8 +316,8 @@ public class InventoryESService extends ESService {
         subField_ranges.put("ranges", Set.of(Map.of("key", "0 - 4", "from", 0, "to", 4 * 365), Map.of("key", "5 - 9", "from", 4 * 365, "to", 9 * 365), Map.of("key", "10 - 14", "from", 9 * 365, "to", 14 * 365), Map.of("key", "15 - 19", "from", 14 * 365, "to", 19 * 365), Map.of("key", "20 - 29", "from", 19 * 365, "to", 29 * 365), Map.of("key", "> 29", "from", 29 * 365)));
         subField.put("range", subField_ranges);
 
-        if (! (cardinalityAggName == null)) {
-            subField.put("aggs", Map.of("cardinality_count", Map.of("cardinality", Map.of("field", cardinalityAggName, "precision_threshold", 40000))));
+        if (cardinalityAggName != null) {
+            subField.put("aggs", addCardinalityHelper(cardinalityAggName));
         }
 
         fields.put(rangeAggName, subField);
@@ -380,7 +380,35 @@ public class InventoryESService extends ESService {
     }
 
     public Map<String, Object> addCardinalityHelper(String cardinalityAggName) {
-        return Map.of("cardinality_count", Map.of("cardinality", Map.of("field", cardinalityAggName, "precision_threshold", 40000)));
+        int dotIndex = cardinalityAggName.indexOf("."); // Look for period (.) in cardinal property's name
+        boolean isNested = (dotIndex != -1); // Determine whether the cardinal property is nested
+        Map<String, Object> cardinalityInnerClause = Map.ofEntries(
+            Map.entry("cardinality", Map.ofEntries(
+                Map.entry("field", cardinalityAggName),
+                Map.entry("precision_threshold", 40000)
+            ))
+        );
+        Map<String, Object> cardinalityClause = null;
+
+        // Handle nesting
+        if (isNested) {
+            cardinalityClause = Map.ofEntries(
+                Map.entry("cardinality_count", Map.ofEntries(
+                    Map.entry("nested", Map.ofEntries(
+                        Map.entry("path", cardinalityAggName.substring(0, dotIndex))
+                    )),
+                    Map.entry("aggs", Map.ofEntries(
+                        Map.entry("nested_cardinality_count", cardinalityInnerClause)
+                    ))
+                ))
+            );
+        } else {
+            cardinalityClause = Map.ofEntries(
+                Map.entry("cardinality_count", cardinalityInnerClause)
+            );
+        }
+
+        return cardinalityClause;
     }
 
     public Map<String, JsonArray> collectNodeCountAggs(JsonObject jsonObject, String nodeName) {

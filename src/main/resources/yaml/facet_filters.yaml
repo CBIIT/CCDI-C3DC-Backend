@@ -6,27 +6,27 @@
 
 diagnoses:
   - agg_name: age_at_diagnosis
-    cardinality_agg_name: participant_pk
+    cardinality_agg_name: participant.id
     filter_count_name: filterParticipantCountByAgeAtDiagnosis
     widget_count_name: participantCountByAgeAtDiagnosis
   - agg_name: anatomic_site
-    cardinality_agg_name: participant_pk
+    cardinality_agg_name: participant.id
     filter_count_name: filterParticipantCountByAnatomicSite
     widget_count_name: participantCountByAnatomicSite
   - agg_name: diagnosis
-    cardinality_agg_name: participant_pk
+    cardinality_agg_name: participant.id
     filter_count_name: filterParticipantCountByDiagnosis
     widget_count_name: participantCountByDiagnosis
   - agg_name: diagnosis_classification_system
-    cardinality_agg_name: participant_pk
+    cardinality_agg_name: participant.id
     filter_count_name: filterParticipantCountByDiagnosisClassificationSystem
     widget_count_name: null
   - agg_name: diagnosis_basis
-    cardinality_agg_name: participant_pk
+    cardinality_agg_name: participant.id
     filter_count_name: filterParticipantCountByDiagnosisBasis
     widget_count_name: null
   - agg_name: disease_phase
-    cardinality_agg_name: participant_pk
+    cardinality_agg_name: participant.id
     filter_count_name: filterParticipantCountByDiseasePhase
     widget_count_name: null
 participants:
@@ -49,52 +49,52 @@ participants:
 studies: []
 survivals:
   - agg_name: age_at_last_known_survival_status
-    cardinality_agg_name: participant_pk
+    cardinality_agg_name: participant.id
     filter_count_name: filterParticipantCountByAgeAtLastKnownSurvivalStatus
     widget_count_name: null
   - agg_name: cause_of_death
-    cardinality_agg_name: participant_pk
+    cardinality_agg_name: participant.id
     filter_count_name: filterParticipantCountByCauseOfDeath
     widget_count_name: null
   - agg_name: first_event
-    cardinality_agg_name: participant_pk
+    cardinality_agg_name: participant.id
     filter_count_name: filterParticipantCountByFirstEvent
     widget_count_name: null
   - agg_name: last_known_survival_status
-    cardinality_agg_name: participant_pk
+    cardinality_agg_name: participant.id
     filter_count_name: filterParticipantCountByLastKnownSurvivalStatus
     widget_count_name: null
 treatments:
   - agg_name: treatment_type
-    cardinality_agg_name: participant_pk
+    cardinality_agg_name: participant.id
     filter_count_name: filterParticipantCountByTreatmentType
     widget_count_name: participantCountByTreatmentType
   - agg_name: age_at_treatment_start
-    cardinality_agg_name: participant_pk
+    cardinality_agg_name: participant.id
     filter_count_name: filterParticipantCountByAgeAtTreatmentStart
     widget_count_name: null
   - agg_name: age_at_treatment_end
-    cardinality_agg_name: participant_pk
+    cardinality_agg_name: participant.id
     filter_count_name: filterParticipantCountByAgeAtTreatmentEnd
     widget_count_name: null
   - agg_name: treatment_agent
-    cardinality_agg_name: participant_pk
+    cardinality_agg_name: participant.id
     filter_count_name: filterParticipantCountByTreatmentAgent
     widget_count_name: null
 treatment_responses:
   - agg_name: response
-    cardinality_agg_name: participant_pk
+    cardinality_agg_name: participant.id
     filter_count_name: filterParticipantCountByResponse
     widget_count_name: null
   - agg_name: age_at_response
-    cardinality_agg_name: participant_pk
+    cardinality_agg_name: participant.id
     filter_count_name: filterParticipantCountByAgeAtResponse
     widget_count_name: null
   - agg_name: response_category
-    cardinality_agg_name: participant_pk
+    cardinality_agg_name: participant.id
     filter_count_name: filterParticipantCountByResponseCategory
     widget_count_name: null
   - agg_name: response_system
-    cardinality_agg_name: participant_pk
+    cardinality_agg_name: participant.id
     filter_count_name: filterParticipantCountByResponseSystem
     widget_count_name: null
