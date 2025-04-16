@@ -191,18 +191,8 @@ public class InventoryESService extends ESService {
                             "terms", Map.of("treatment_responses." + key, valueSet)
                         ));
                     } else if (PARTICIPANT_PARAMS.contains(key) && !indexType.equals("participants")) {// Filter by nested Participant property
-                        filter.add(Map.of(
-                            "nested", Map.of(
-                                "path", "participant",
-                                "query", Map.of(
-                                    "bool", Map.of(
-                                        "filter", List.of(Map.of(
-                                            "terms", Map.of("participant." + key, valueSet)
-                                        ))
-                                    )
-                                ),
-                                "inner_hits", Map.of()
-                            )
+                        participant_filters.add(Map.of(
+                            "terms", Map.of("participant." + key, valueSet)
                         ));
                     } else {
                         filter.add(Map.of(
@@ -223,7 +213,7 @@ public class InventoryESService extends ESService {
             result.put("query", Map.of("match_all", Map.of()));
         } else {
             if (participantFilterLen > 0) {
-                filter.add(Map.of("nested", Map.of("path", "participant_filters", "query", Map.of("bool", Map.of("filter", participant_filters)), "inner_hits", Map.of())));
+                filter.add(Map.of("nested", Map.of("path", "participant", "query", Map.of("bool", Map.of("filter", participant_filters)), "inner_hits", Map.of())));
             }
             if (diagnosisFilterLen > 0) {
                 filter.add(Map.of("nested", Map.of("path", "diagnoses", "query", Map.of("bool", Map.of("filter", diagnosis_filters)), "inner_hits", Map.of())));
