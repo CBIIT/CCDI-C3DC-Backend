@@ -650,12 +650,43 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("osName", "sex_at_birth")
             ),
 
+            // CPI Data
+            Map.ofEntries(
+                Map.entry("gqlName", "cpi_data"),
+                Map.entry("osName", "cpi_data"),
+                Map.entry("nested", List.of(
+                    Map.ofEntries(
+                        Map.entry("gqlName", "associated_id"),
+                        Map.entry("osName", "associated_id")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "data_location"),
+                        Map.entry("osName", "data_location")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "data_type"),
+                        Map.entry("osName", "data_type")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "domain_category"),
+                        Map.entry("osName", "domain_category")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "domain_description"),
+                        Map.entry("osName", "domain_description")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "repository_of_synonym_id"),
+                        Map.entry("osName", "repository_of_synonym_id")
+                    )
+                ))
+            ),
+
             // Studies
             Map.ofEntries(
                 Map.entry("gqlName", "dbgap_accession"),
                 Map.entry("osName", "dbgap_accession")
             ),
-
 
             // Additional fields for download
             Map.ofEntries(
@@ -672,6 +703,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("participant_id", "participant_id"),
             Map.entry("race", "race_str"),
             Map.entry("sex_at_birth", "sex_at_birth"),
+
+            // CPI Data
+            Map.entry("cpi_data", "cpi_data"),
 
             // Studies
             Map.entry("dbgap_accession", "dbgap_accession"),
