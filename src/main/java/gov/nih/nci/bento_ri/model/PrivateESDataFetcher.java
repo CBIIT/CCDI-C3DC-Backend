@@ -22,6 +22,7 @@ import com.google.gson.JsonObject;
 import java.io.InputStream;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 
@@ -46,6 +47,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String COHORTS_END_POINT = "/cohorts/_search";
     final String PARTICIPANTS_END_POINT = "/participants/_search";
     final String SURVIVALS_END_POINT = "/survivals/_search";
+    final String SYNONYMS_END_POINT = "/synonyms/_search";
     final String TREATMENTS_END_POINT = "/treatments/_search";
     final String TREATMENT_RESPONSES_END_POINT = "/treatment_responses/_search";
     final String DIAGNOSES_END_POINT = "/diagnoses/_search";
@@ -57,6 +59,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map.entry("participants", PARTICIPANTS_END_POINT),
         Map.entry("studies", STUDIES_END_POINT),
         Map.entry("survivals", SURVIVALS_END_POINT),
+        Map.entry("synonyms", SURVIVALS_END_POINT),
         Map.entry("treatments", TREATMENTS_END_POINT),
         Map.entry("treatment_responses", TREATMENT_RESPONSES_END_POINT)
     );
@@ -324,72 +327,71 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return data;
     }
 
-    private Map<String, String[]> idsLists() throws IOException {
-        // Specify which Opensearch fields to obtain GraphQL return values from
-        Map<String, List<Map<String, Object>>> indexProperties = Map.ofEntries(
-            Map.entry(PARTICIPANTS_END_POINT, List.of(
-                Map.ofEntries(
-                    Map.entry("gqlName", "participantIds"),
-                    Map.entry("osName", "participant_id")
-                )
-            ))
-        );
-        // Define sort priorty, from highest to lowest
-        Map<String, String[]> sortPriority = Map.ofEntries(
-            Map.entry(PARTICIPANTS_END_POINT, new String[]{
-                "participant_id"
-            })
-        );
-        //Generic Query
-        Map<String, Object> query = esService.buildListQuery();
-        //Results Map
-        Map<String, String[]> results = new HashMap<>();
-        //Iterate through each index properties map and make a request to each endpoint then format the results as
-        // String arrays
+    private Map<String, List<Object>> idsLists() throws IOException {
         String cacheKey = "participantIDs";
-        Map<String, String[]> data = (Map<String, String[]>)caffeineCache.asMap().get(cacheKey);
+        Map<String, List<Object>> results = new HashMap<>();
+        Map<String, List<Object>> data = (Map<String, List<Object>>)caffeineCache.asMap().get(cacheKey);
+
+        // Early return if cached
         if (data != null) {
             logger.info("hit cache!");
             return data;
         }
 
-        for (String endpoint: indexProperties.keySet()){
-            Request request = new Request("GET", endpoint);
-            List<Map<String, Object>> properties = indexProperties.get(endpoint);
-            String[] sortOrder = sortPriority.get(endpoint);
-            ArrayList<Map<String, String>> sortParams = new ArrayList<Map<String, String>>();
-            List<String> fields = new ArrayList<>();
+        Map<String, Object> participantParams = Map.ofEntries(
+            Map.entry(OFFSET, 0),
+            Map.entry(ORDER_BY, "participant_id"),
+            Map.entry(PAGE_SIZE, ESService.MAX_ES_SIZE),
+            Map.entry(SORT_DIRECTION, "asc")
+        );
+        Map<String, Object> synonymParams = Map.ofEntries(
+            Map.entry(OFFSET, 0),
+            Map.entry(ORDER_BY, "associated_id"),
+            Map.entry(PAGE_SIZE, ESService.MAX_ES_SIZE),
+            Map.entry(SORT_DIRECTION, "asc")
+        );
+        final List<Map<String, Object>> participantProperties = List.of(
+            Map.ofEntries(
+                Map.entry("gqlName", "participant_id"),
+                Map.entry("osName", "participant_id")
+            )
+        );
+        final List<Map<String, Object>> synonymProperties = List.of(
+            Map.ofEntries(
+                Map.entry("gqlName", "associated_id"),
+                Map.entry("osName", "associated_id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "participant_id"),
+                Map.entry("osName", "participant_id")
+            )
+        );
 
-            for (Map<String, Object> prop: properties) {
-                fields.add((String) prop.get("osName"));
-            }
+        Map<String, String> participantMapping = Map.ofEntries(// field -> sort field
+            Map.entry("participant_id", "participant_id")
+        );
+        Map<String, String> synonymMapping = Map.ofEntries(// field -> sort field
+            Map.entry("associated_id", "associated_id"),
+            Map.entry("participant_id", "participant_id")
+        );
 
-            for (String sortField: sortOrder) {
-                sortParams.add(Map.of(sortField, "asc"));
-            }
-            
-            query.put("_source", fields);
-            query.put("sort", sortParams);
+        List<Map<String, Object>> participantResults = overview(PARTICIPANTS_END_POINT, participantParams, participantProperties, "participant_id", participantMapping, "participants");
+        List<Map<String, Object>> synonymResults = overview(SYNONYMS_END_POINT, synonymParams, synonymProperties, "associated_id", synonymMapping, "synonyms");
 
-            List<Map<String, Object>> result = esService.collectPage(request, query, properties, ESService.MAX_ES_SIZE,
-                    0);
-            Map<String, List<String>> indexResults = new HashMap<>();
-            properties.forEach(x -> indexResults.put((String) x.get("gqlName"), new ArrayList<>()));
-            for(Map<String, Object> resultElement: result){
-                for(String key: indexResults.keySet()){
-                    List<String> tmp = indexResults.get(key);
-                    String v = (String) resultElement.get(key);
-                    if (!tmp.contains(v)) {
-                        tmp.add(v);
-                    }
-                }
-            }
-            for(String key: indexResults.keySet()){
-                results.put(key, indexResults.get(key).toArray(new String[indexResults.size()]));
-            }
-        }
+        results.put(
+            "participantIds",
+            participantResults.stream().map(participant -> participant.get("participant_id")).collect(Collectors.toList())
+        );
+        results.put(
+            "associatedIds",
+            synonymResults.stream().map(synonym -> Map.ofEntries(
+                Map.entry("associated_id", synonym.get("associated_id")),
+                Map.entry("participant_id", synonym.get("participant_id"))
+            )).collect(Collectors.toList())
+        );
+
         caffeineCache.put(cacheKey, results);
-        
+
         return results;
     }
 
