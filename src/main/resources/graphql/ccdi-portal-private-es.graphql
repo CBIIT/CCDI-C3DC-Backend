@@ -11,7 +11,13 @@ type GlobalSearchResult {
 }
 
 type IdsListsES {
+    associatedIds: [AssociatedId]
     participantIds: [String]
+}
+
+type AssociatedId {
+    participant_id: String
+    associated_id: String
 }
 
 type ParticipantResult {
