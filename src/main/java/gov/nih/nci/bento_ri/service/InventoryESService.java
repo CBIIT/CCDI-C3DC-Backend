@@ -4,17 +4,11 @@ import com.google.gson.*;
 
 import gov.nih.nci.bento.model.ConfigurationDAO;
 import gov.nih.nci.bento.service.ESService;
-import gov.nih.nci.bento.service.RedisService;
-import gov.nih.nci.bento.service.connector.AWSClient;
-import gov.nih.nci.bento.service.connector.AbstractClient;
-import gov.nih.nci.bento.service.connector.DefaultClient;
+import gov.nih.nci.bento.utility.TypeChecker;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.client.*;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -53,22 +47,11 @@ public class InventoryESService extends ESService {
 
     static final AWSCredentialsProvider credentialsProvider = new DefaultAWSCredentialsProviderChain();
 
-    private static final Logger logger = LogManager.getLogger(RedisService.class);
-
-    @Autowired
-    private ConfigurationDAO config;
-
-    private RestClient client;
-
     private Gson gson = new GsonBuilder().serializeNulls().create();
 
     private InventoryESService(ConfigurationDAO config) {
         super(config);
         this.gson = new GsonBuilder().serializeNulls().create();
-        logger.info("Initializing Elasticsearch client");
-        // Base on host name to use signed request (AWS) or not (local)
-        AbstractClient abstractClient = config.isEsSignRequests() ? new AWSClient(config) : new DefaultClient(config);
-        client = abstractClient.getLowLevelElasticClient();
     }
 
     /**
@@ -128,7 +111,15 @@ public class InventoryESService extends ESService {
             if (rangeParams.contains(key)) {
                 // Range parameters, should contain two doubles, first lower bound, then upper bound
                 // Any other values after those two will be ignored
-                List<Integer> bounds = (List<Integer>) params.get(key);
+                List<Integer> bounds = null;
+                Object boundsRaw = params.get(key);
+
+                if (TypeChecker.isListOfType(boundsRaw, Integer.class)) {
+                    @SuppressWarnings("unchecked")
+                    List<Integer> castedBounds = (List<Integer>) boundsRaw;
+                    bounds = castedBounds;
+                }
+
                 if (bounds.size() >= 2) {
                     Integer lower = bounds.get(0);
                     Integer higher = bounds.get(1);
@@ -166,7 +157,14 @@ public class InventoryESService extends ESService {
                 }
             } else {
                 // Term parameters (default)
-                List<String> valueSet = (List<String>) params.get(key);
+                List<String> valueSet = null;
+                Object valueSetRaw = params.get(key);
+
+                if (TypeChecker.isListOfType(valueSetRaw, String.class)) {
+                    @SuppressWarnings("unchecked")
+                    List<String> castedValueSet = (List<String>) valueSetRaw;
+                    valueSet = castedValueSet;
+                }
                 
                 if (key.equals("participant_pk")) {
                     key = "id";

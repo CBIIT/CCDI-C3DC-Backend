@@ -1,11 +1,12 @@
 package gov.nih.nci.bento;
 
 import gov.nih.nci.bento.service.ESService;
+import gov.nih.nci.bento.utility.TypeChecker;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.List;
@@ -27,15 +28,56 @@ public class EsServiceTest {
                 "param1", List.of("value1", "value2")
         );
         Map<String, Object> builtQuery = esService.buildListQuery(params, Set.of());
+        Map<String, Object> bool = null;
+        List<Map<String, Object>> filter = null;
+        List<String> param1 = null;
+        Map<String, Object> query = null;
+        Object boolRaw = null;
+        Object filterRaw = null;
+        Object queryRaw = null;
+        Object termsRaw = null;
+
         assertNotNull(builtQuery);
-        var query = (Map<String, Object>)builtQuery.get("query");
+
+        queryRaw = builtQuery.get("query");
+
+        if (TypeChecker.isMapStringObject(queryRaw)) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> castedQuery = (Map<String, Object>) queryRaw;
+            query = castedQuery;
+        }
+
         assertNotNull(query);
-        var bool = (Map<String, Object>)query.get("bool");
+
+        boolRaw = query.get("bool");
+
+        if (TypeChecker.isMapStringObject(boolRaw)) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> castedBool = (Map<String, Object>) query.get("bool");
+            bool = castedBool;
+        }
+
         assertNotNull(bool);
-        var filter = (List<Map<String, Object>>)bool.get("filter");
+
+        filterRaw = bool.get("filter");
+
+        if (TypeChecker.isListOfMapStringObject(filterRaw)) {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> castedFilter = (List<Map<String, Object>>) bool.get("filter");
+            filter = castedFilter;
+        }
+
         assertNotNull(filter);
         assertEquals(1, filter.size());
-        var param1 = ((Map<String, List<String>>)filter.get(0).get("terms")).get("param1");
+
+        termsRaw = filter.get(0).get("terms");
+
+        if (TypeChecker.isMapStringListOfType(termsRaw, String.class)) {
+            @SuppressWarnings("unchecked")
+            Map<String, List<String>> castedTerms = (Map<String, List<String>>) termsRaw;
+            param1 = castedTerms.get("param1");
+        }
+
         assertEquals(2, param1.size());
         assertEquals("value1", param1.get(0));
         assertEquals("value2", param1.get(1));
