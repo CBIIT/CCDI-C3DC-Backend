@@ -1,12 +1,14 @@
 # Build stage
-FROM maven:3.8.5-openjdk-17 AS build
+# FROM maven:3.8.5-openjdk-17 AS build
+FROM maven:3.9.9-eclipse-temurin-21 AS build
 
 WORKDIR /usr/src/app
 COPY . .
 RUN mvn package -DskipTests
 
 # Production stage
-FROM tomcat:11.0.6-jdk17 AS fnl_base_image
+# FROM tomcat:11.0.6-jdk17 AS fnl_base_image
+FROM tomcat:11.0.6-jdk21 AS fnl_base_image
 
 RUN apt-get update && apt-get -y upgrade
 
