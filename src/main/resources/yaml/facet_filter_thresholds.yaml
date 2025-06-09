@@ -7,6 +7,7 @@ diagnoses:
     ICD-O-3.2: 5000
   diagnosis_basis:
     Clinical: 5700
+    Not Reported: 5000
   disease_phase:
     Initial Diagnosis: 5700
 participants: {}
@@ -16,5 +17,9 @@ survivals:
     Not Reported: 5700
   first_event:
     Not Reported: 5700
-treatments: {}
+treatments:
+  treatment_agent:
+    Not Reported: 2400
+  treatment_type:
+    Surgical Procedure: 1500
 treatment_responses: {}
