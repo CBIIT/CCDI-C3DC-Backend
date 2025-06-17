@@ -6,7 +6,7 @@ COPY . .
 RUN mvn package -DskipTests
 
 # Production stage
-FROM tomcat:11.0.6-jdk17 AS fnl_base_image
+FROM tomcat:11.0.7-jdk17 AS fnl_base_image
 
 RUN apt-get update && apt-get -y upgrade
 
