@@ -299,19 +299,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return data;
     }
 
-    // private List<Map<String, Object>> getBooleanGroupCountHelper(JsonObject filters) throws IOException {
-    //     List<Map<String, Object>> data = new ArrayList<>();
-    //     for (Map.Entry<String, JsonElement> group: filters.entrySet()) {
-    //         int count = group.getValue().getAsJsonObject().get("parent").getAsJsonObject().get("doc_count").getAsInt();
-    //         if (count > 0) {
-    //             data.add(Map.of("group", group.getKey(),
-    //                 "subjects", count
-    //             ));
-    //         }
-    //     }
-    //     return data;
-    // }
-
     private List<Map<String, Object>> getGroupCountHelper(JsonArray buckets, String cardinalityAggName) throws IOException {
         int dotIndex = cardinalityAggName == null ? -1 : cardinalityAggName.indexOf("."); // Look for period (.) in cardinal property's name
         boolean isNested = (dotIndex != -1); // Determine whether the cardinal property is nested
