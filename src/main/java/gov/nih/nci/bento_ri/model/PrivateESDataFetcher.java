@@ -25,6 +25,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
+import static org.junit.Assert.fail;
 
 @Component
 public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
@@ -367,12 +368,21 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             )
         );
 
-        Map<String, String> participantMapping = Map.ofEntries(// field -> sort field
-            Map.entry("participant_id", "participant_id")
+        Map<String, Map<String, Object>> participantMapping = Map.ofEntries(// field -> sort field
+            Map.entry("participant_id", Map.ofEntries(
+                Map.entry("osName", "participant_id"),
+                Map.entry("isNested", false)
+            ))
         );
-        Map<String, String> synonymMapping = Map.ofEntries(// field -> sort field
-            Map.entry("associated_id", "associated_id"),
-            Map.entry("participant_id", "participant_id")
+        Map<String, Map<String, Object>> synonymMapping = Map.ofEntries(// field -> sort field
+            Map.entry("associated_id", Map.ofEntries(
+                Map.entry("osName", "associated_id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("participant_id", Map.ofEntries(
+                Map.entry("osName", "participant_id"),
+                Map.entry("isNested", false)
+            ))
         );
 
         List<Map<String, Object>> participantResults = overview(PARTICIPANTS_END_POINT, participantParams, participantProperties, "participant_id", participantMapping, "participants");
@@ -595,15 +605,30 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         String defaultSort = "dbgap_accession"; // Default sort order
 
-        Map<String, String> mapping = Map.ofEntries(
+        Map<String, Map<String, Object>> mapping = Map.ofEntries(
             // Studies
-            Map.entry("dbgap_accession", "dbgap_accession"),
+            Map.entry("dbgap_accession", Map.ofEntries(
+                Map.entry("osName", "dbgap_accession"),
+                Map.entry("isNested", false)
+            )),
 
             // Demographics
-            Map.entry("participant_pk", "id"),
-            Map.entry("participant_id", "participant_id"),
-            Map.entry("race", "race"),
-            Map.entry("sex_at_birth", "sex_at_birth")
+            Map.entry("participant_pk", Map.ofEntries(
+                Map.entry("osName", "id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("participant_id", Map.ofEntries(
+                Map.entry("osName", "participant_id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("race", Map.ofEntries(
+                Map.entry("osName", "race"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("sex_at_birth", Map.ofEntries(
+                Map.entry("osName", "sex_at_birth"),
+                Map.entry("isNested", false)
+            ))
         );
 
         participants = overview(COHORTS_END_POINT, params, PROPERTIES, defaultSort, mapping, "participants");
@@ -699,21 +724,42 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         String defaultSort = "participant_id"; // Default sort order
 
-        Map<String, String> mapping = Map.ofEntries(// field -> sort field
+        Map<String, Map<String, Object>> mapping = Map.ofEntries(// field -> sort field
             // Demographics
-            Map.entry("id", "id"),
-            Map.entry("participant_id", "participant_id"),
-            Map.entry("race", "race_str"),
-            Map.entry("sex_at_birth", "sex_at_birth"),
+            Map.entry("id", Map.ofEntries(
+                Map.entry("osName", "id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("participant_id", Map.ofEntries(
+                Map.entry("osName", "participant_id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("race", Map.ofEntries(
+                Map.entry("osName", "race_str"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("sex_at_birth", Map.ofEntries(
+                Map.entry("osName", "sex_at_birth"),
+                Map.entry("isNested", false)
+            )),
 
             // CPI Data
-            Map.entry("cpi_data", "cpi_data"),
+            Map.entry("cpi_data", Map.ofEntries(
+                Map.entry("osName", "cpi_data"),
+                Map.entry("isNested", false)
+            )),
 
             // Studies
-            Map.entry("dbgap_accession", "dbgap_accession"),
+            Map.entry("dbgap_accession", Map.ofEntries(
+                Map.entry("osName", "dbgap_accession"),
+                Map.entry("isNested", false)
+            )),
 
             // Additional fields for download
-            Map.entry("study_id", "study_id")
+            Map.entry("study_id", Map.ofEntries(
+                Map.entry("osName", "study_id"),
+                Map.entry("isNested", false)
+            ))
         );
 
         return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, "participants");
@@ -825,32 +871,87 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         String defaultSort = "diagnosis_id"; // Default sort order
 
-        Map<String, String> mapping = Map.ofEntries(
+        Map<String, Map<String, Object>> mapping = Map.ofEntries(
             // Diagnoses
-            Map.entry("id", "id"),
-            Map.entry("age_at_diagnosis", "age_at_diagnosis"),
-            Map.entry("anatomic_site", "anatomic_site"),
-            Map.entry("diagnosis_basis", "diagnosis_basis"),
-            Map.entry("diagnosis", "diagnosis"),
-            Map.entry("diagnosis_classification_system", "diagnosis_classification_system"),
-            Map.entry("disease_phase", "disease_phase"),
-            Map.entry("tumor_classification", "tumor_classification"),
+            Map.entry("id", Map.ofEntries(
+                Map.entry("osName", "id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("age_at_diagnosis", Map.ofEntries(
+                Map.entry("osName", "age_at_diagnosis"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("anatomic_site", Map.ofEntries(
+                Map.entry("osName", "anatomic_site"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("diagnosis_basis", Map.ofEntries(
+                Map.entry("osName", "diagnosis_basis"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("diagnosis", Map.ofEntries(
+                Map.entry("osName", "diagnosis"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("diagnosis_classification_system", Map.ofEntries(
+                Map.entry("osName", "diagnosis_classification_system"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("disease_phase", Map.ofEntries(
+                Map.entry("osName", "disease_phase"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("tumor_classification", Map.ofEntries(
+                Map.entry("osName", "tumor_classification"),
+                Map.entry("isNested", false)
+            )),
 
             // Demographics
-            Map.entry("participant", "participant"),
+            Map.entry("participant.participant_id", Map.ofEntries(
+                Map.entry("osName", "participant_id"),
+                Map.entry("isNested", true),
+                Map.entry("path", "participant")
+            )),
 
             // Studies
-            Map.entry("dbgap_accession", "dbgap_accession"),
+            Map.entry("dbgap_accession", Map.ofEntries(
+                Map.entry("osName", "dbgap_accession"),
+                Map.entry("isNested", false)
+            )),
 
             // Additional fields for download
-            Map.entry("diagnosis_id", "diagnosis_id"),
-            Map.entry("diagnosis_comment", "diagnosis_comment"),
-            Map.entry("study_id", "study_id"),
-            Map.entry("toronto_childhood_cancer_staging", "toronto_childhood_cancer_staging"),
-            Map.entry("tumor_grade", "tumor_grade"),
-            Map.entry("tumor_stage_clinical_m", "tumor_stage_clinical_m"),
-            Map.entry("tumor_stage_clinical_n", "tumor_stage_clinical_n"),
-            Map.entry("tumor_stage_clinical_t", "tumor_stage_clinical_t")
+            Map.entry("diagnosis_id", Map.ofEntries(
+                Map.entry("osName", "diagnosis_id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("diagnosis_comment", Map.ofEntries(
+                Map.entry("osName", "diagnosis_comment"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("study_id", Map.ofEntries(
+                Map.entry("osName", "study_id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("toronto_childhood_cancer_staging", Map.ofEntries(
+                Map.entry("osName", "toronto_childhood_cancer_staging"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("tumor_grade", Map.ofEntries(
+                Map.entry("osName", "tumor_grade"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("tumor_stage_clinical_m", Map.ofEntries(
+                Map.entry("osName", "tumor_stage_clinical_m"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("tumor_stage_clinical_n", Map.ofEntries(
+                Map.entry("osName", "tumor_stage_clinical_n"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("tumor_stage_clinical_t", Map.ofEntries(
+                Map.entry("osName", "tumor_stage_clinical_t"),
+                Map.entry("isNested", false)
+            ))
         );
 
         return overview(DIAGNOSES_END_POINT, params, PROPERTIES, defaultSort, mapping, "diagnoses");
@@ -897,18 +998,42 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         String defaultSort = "dbgap_accession"; // Default sort order
 
-        Map<String, String> mapping = Map.ofEntries(
+        Map<String, Map<String, Object>> mapping = Map.ofEntries(
             // Studies
-            Map.entry("id", "id"),
-            Map.entry("dbgap_accession", "dbgap_accession"),
-            Map.entry("study_name", "study_name"),
+            Map.entry("id", Map.ofEntries(
+                Map.entry("osName", "id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("dbgap_accession", Map.ofEntries(
+                Map.entry("osName", "dbgap_accession"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("study_name", Map.ofEntries(
+                Map.entry("osName", "study_name"),
+                Map.entry("isNested", false)
+            )),
 
             // Additional fields for download
-            Map.entry("consent", "consent"),
-            Map.entry("consent_number", "consent_number"),
-            Map.entry("external_url", "external_url"),
-            Map.entry("study_description", "study_description"),
-            Map.entry("study_id", "study_id")
+            Map.entry("consent", Map.ofEntries(
+                Map.entry("osName", "consent"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("consent_number", Map.ofEntries(
+                Map.entry("osName", "consent_number"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("external_url", Map.ofEntries(
+                Map.entry("osName", "external_url"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("study_description", Map.ofEntries(
+                Map.entry("osName", "study_description"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("study_id", Map.ofEntries(
+                Map.entry("osName", "study_id"),
+                Map.entry("isNested", false)
+            ))
         );
         
         Request request = new Request("GET", PARTICIPANTS_END_POINT);
@@ -1020,25 +1145,59 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         String defaultSort = "survival_id"; // Default sort order
 
-        Map<String, String> mapping = Map.ofEntries(
+        Map<String, Map<String, Object>> mapping = Map.ofEntries(
             // Participants
-            Map.entry("participant", "participant"),
+            Map.entry("participant.participant_id", Map.ofEntries(
+                Map.entry("osName", "participant_id"),
+                Map.entry("isNested", true),
+                Map.entry("path", "participant")
+            )),
 
             // Studies
-            Map.entry("dbgap_accession", "dbgap_accession"),
+            Map.entry("dbgap_accession", Map.ofEntries(
+                Map.entry("osName", "dbgap_accession"),
+                Map.entry("isNested", false)
+            )),
 
             // Survivals
-            Map.entry("id", "id"),
-            Map.entry("age_at_last_known_survival_status", "age_at_last_known_survival_status"),
-            Map.entry("cause_of_death", "cause_of_death"),
-            Map.entry("first_event", "first_event"),
-            Map.entry("last_known_survival_status", "last_known_survival_status"),
+            Map.entry("id", Map.ofEntries(
+                Map.entry("osName", "id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("age_at_last_known_survival_status", Map.ofEntries(
+                Map.entry("osName", "age_at_last_known_survival_status"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("cause_of_death", Map.ofEntries(
+                Map.entry("osName", "cause_of_death"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("first_event", Map.ofEntries(
+                Map.entry("osName", "first_event"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("last_known_survival_status", Map.ofEntries(
+                Map.entry("osName", "last_known_survival_status"),
+                Map.entry("isNested", false)
+            )),
 
             // Additional fields for download
-            Map.entry("age_at_event_free_survival_status", "age_at_event_free_survival_status"),
-            Map.entry("event_free_survival_status", "event_free_survival_status"),
-            Map.entry("study_id", "study_id"),
-            Map.entry("survival_id", "survival_id")
+            Map.entry("age_at_event_free_survival_status", Map.ofEntries(
+                Map.entry("osName", "age_at_event_free_survival_status"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("event_free_survival_status", Map.ofEntries(
+                Map.entry("osName", "event_free_survival_status"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("study_id", Map.ofEntries(
+                Map.entry("osName", "study_id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("survival_id", Map.ofEntries(
+                Map.entry("osName", "survival_id"),
+                Map.entry("isNested", false)
+            ))
         );
 
         return overview(SURVIVALS_END_POINT, params, PROPERTIES, defaultSort, mapping, "survivals");
@@ -1115,22 +1274,53 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         String defaultSort = "treatment_type"; // Default sort order
 
-        Map<String, String> mapping = Map.ofEntries(
+        Map<String, Map<String, Object>> mapping = Map.ofEntries(
             // Participants
-            Map.entry("participant", "participant"),
+            Map.entry("participant.participant_id", Map.ofEntries(
+                Map.entry("osName", "participant_id"),
+                Map.entry("isNested", true),
+                Map.entry("path", "participant")
+            )),
 
             // Studies
-            Map.entry("dbgap_accession", "dbgap_accession"),
-            Map.entry("study_id", "study_id"),
+            Map.entry("dbgap_accession", Map.ofEntries(
+                Map.entry("osName", "dbgap_accession"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("study_id", Map.ofEntries(
+                Map.entry("osName", "study_id"),
+                Map.entry("isNested", false)
+            )),
 
             // Treatments
-            Map.entry("id", "id"),
-            Map.entry("treatment_id", "treatment_id"),
-            Map.entry("age_at_treatment_start", "age_at_treatment_start"),
-            Map.entry("age_at_treatment_end", "age_at_treatment_end"),
-            Map.entry("treatment_type", "treatment_type"),
-            Map.entry("treatment_agent", "treatment_agent_str"),
-            Map.entry("treatment_agent_str", "treatment_agent_str")
+            Map.entry("id", Map.ofEntries(
+                Map.entry("osName", "id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("treatment_id", Map.ofEntries(
+                Map.entry("osName", "treatment_id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("age_at_treatment_start", Map.ofEntries(
+                Map.entry("osName", "age_at_treatment_start"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("age_at_treatment_end", Map.ofEntries(
+                Map.entry("osName", "age_at_treatment_end"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("treatment_type", Map.ofEntries(
+                Map.entry("osName", "treatment_type"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("treatment_agent", Map.ofEntries(
+                Map.entry("osName", "treatment_agent"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("treatment_agent_str", Map.ofEntries(
+                Map.entry("osName", "treatment_agent_str"),
+                Map.entry("isNested", false)
+            ))
         );
 
         return overview(TREATMENTS_END_POINT, params, PROPERTIES, defaultSort, mapping, "treatments");
@@ -1203,21 +1393,49 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         String defaultSort = "response"; // Default sort order
 
-        Map<String, String> mapping = Map.ofEntries(
+        Map<String, Map<String, Object>> mapping = Map.ofEntries(
             // Participants
-            Map.entry("participant", "participant"),
+            Map.entry("participant.participant_id", Map.ofEntries(
+                Map.entry("osName", "participant_id"),
+                Map.entry("isNested", true),
+                Map.entry("path", "participant")
+            )),
 
             // Studies
-            Map.entry("dbgap_accession", "dbgap_accession"),
-            Map.entry("study_id", "study_id"),
+            Map.entry("dbgap_accession", Map.ofEntries(
+                Map.entry("osName", "dbgap_accession"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("study_id", Map.ofEntries(
+                Map.entry("osName", "study_id"),
+                Map.entry("isNested", false)
+            )),
 
             // Treatment Responses
-            Map.entry("id", "id"),
-            Map.entry("treatment_response_id", "treatment_response_id"),
-            Map.entry("response", "response"),
-            Map.entry("age_at_response", "age_at_response"),
-            Map.entry("response_category", "response_category"),
-            Map.entry("response_system", "response_system")
+            Map.entry("id", Map.ofEntries(
+                Map.entry("osName", "id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("treatment_response_id", Map.ofEntries(
+                Map.entry("osName", "treatment_response_id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("response", Map.ofEntries(
+                Map.entry("osName", "response"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("age_at_response", Map.ofEntries(
+                Map.entry("osName", "age_at_response"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("response_category", Map.ofEntries(
+                Map.entry("osName", "response_category"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("response_system", Map.ofEntries(
+                Map.entry("osName", "response_system"),
+                Map.entry("isNested", false)
+            ))
         );
 
         return overview(TREATMENT_RESPONSES_END_POINT, params, PROPERTIES, defaultSort, mapping, "treatment_responses");
@@ -1234,7 +1452,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
      * @return
      * @throws IOException
      */
-    private List<Map<String, Object>> overview(String endpoint, Map<String, Object> params, List<Map<String, Object>> properties, String defaultSort, Map<String, String> mapping, String overviewType) throws IOException {
+    private List<Map<String, Object>> overview(String endpoint, Map<String, Object> params, List<Map<String, Object>> properties, String defaultSort, Map<String, Map<String, Object>> mapping, String overviewType) throws IOException {
         Request request = new Request("GET", endpoint);
         Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), overviewType);
         String order_by = (String)params.get(ORDER_BY);
@@ -1278,13 +1496,31 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             )
         );
 
-        Map<String, String> mapping = Map.ofEntries(
-            Map.entry("dbgap_accession", "dbgap_accession"),
-            Map.entry("study_description", "study_description"),
-            Map.entry("num_participants", "num_participants"),
-            Map.entry("num_diseases", "num_diseases"),
-            Map.entry("num_anatomic_sites", "num_anatomic_sites"),
-            Map.entry("num_survivals", "num_survivals")
+        Map<String, Map<String, Object>> mapping = Map.ofEntries(
+            Map.entry("dbgap_accession", Map.ofEntries(
+                Map.entry("osName", "dbgap_accession"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("study_description", Map.ofEntries(
+                Map.entry("osName", "study_description"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("num_participants", Map.ofEntries(
+                Map.entry("osName", "num_participants"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("num_diseases", Map.ofEntries(
+                Map.entry("osName", "num_diseases"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("num_anatomic_sites", Map.ofEntries(
+                Map.entry("osName", "num_anatomic_sites"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("num_survivals", Map.ofEntries(
+                Map.entry("osName", "num_survivals"),
+                Map.entry("isNested", false)
+            ))
         );
 
         Map<String, Object> study_params = Map.ofEntries(
@@ -1349,19 +1585,37 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return esService.collectPage(request, query, properties, ESService.MAX_ES_SIZE, 0);
     }
 
-    private Map<String, String> mapSortOrder(String order_by, String direction, String defaultSort, Map<String, String> mapping) {
-        String sortDirection = direction;
-        if (!sortDirection.equalsIgnoreCase("asc") && !sortDirection.equalsIgnoreCase("desc")) {
-            sortDirection = "asc";
+    private Map<String, Object> mapSortOrder(String order_by, String direction, String defaultSort, Map<String, Map<String, Object>> mapping) {
+        String sortDirection = "asc";
+        Object sortPredicate;
+
+        // Handle invalid sort parameters
+        if (!mapping.containsKey(order_by)) {
+            logger.info("Order: \"" + order_by + "\" not recognized, use default order");
+            return Map.of(defaultSort, sortDirection);
         }
 
-        String sortOrder = defaultSort; // Default sort order
-        if (mapping.containsKey(order_by)) {
-            sortOrder = mapping.get(order_by);
-        } else {
-            logger.info("Order: \"" + order_by + "\" not recognized, use default order");
+        // Only two valid sort directions
+        if (sortDirection.equalsIgnoreCase("asc") || sortDirection.equalsIgnoreCase("desc")) {
+            sortDirection = direction;
         }
-        return Map.of(sortOrder, sortDirection);
+
+        Map<String, Object> mappingDetails = mapping.get(order_by);
+        boolean isNested = (Boolean) mappingDetails.get("isNested");
+        String propName = (String) mappingDetails.get("osName");
+
+        if (isNested) {
+            String nestedPath = (String) mappingDetails.get("path");
+            propName = String.join(".", nestedPath, propName);
+            sortPredicate = Map.ofEntries(
+                Map.entry("nested_path", nestedPath),
+                Map.entry("order", sortDirection)
+            );
+        } else {
+            sortPredicate = sortDirection;
+        }
+
+        return Map.of(propName, sortPredicate);
     }
 
     private Integer numberOfDiseases(Map<String, Object> params) throws Exception {
