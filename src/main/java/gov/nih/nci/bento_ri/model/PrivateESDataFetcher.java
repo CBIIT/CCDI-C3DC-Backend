@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.yaml.snakeyaml.Yaml;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -27,7 +28,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
-import static org.junit.Assert.fail;
 
 @Component
 public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
@@ -202,7 +202,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 List<String> valueSet = null;
         Object valueSetRaw = params.get(category);
 
-        if (TypeChecker.isListOfType(valueSetRaw, String.class)) {
+        if (TypeChecker.isOfType(valueSetRaw, new TypeToken<List<String>>() {})) {
             @SuppressWarnings("unchecked")
             List<String> castedValueSet = (List<String>) params.get(category);
             valueSet = INCLUDE_PARAMS.contains(category) ? castedValueSet : List.of();
@@ -344,7 +344,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map<String, List<Object>> data = null;
         Object dataRaw = caffeineCache.asMap().get(cacheKey);
 
-        if (TypeChecker.isMapStringListOfType(dataRaw, Object.class)) {
+        if (TypeChecker.isOfType(dataRaw, new TypeToken<Map<String, List<Object>>>() {})) {
             @SuppressWarnings("unchecked")
             Map<String, List<Object>> castedData = (Map<String, List<Object>>) dataRaw;
             data = castedData;
@@ -434,7 +434,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map<String, Object> data = null;
         Object dataRaw = caffeineCache.asMap().get(cacheKey);
 
-        if (TypeChecker.isMapStringObject(dataRaw)) {
+        if (TypeChecker.isOfType(dataRaw, new TypeToken<Map<String, Object>>() {})) {
             @SuppressWarnings("unchecked")
             Map<String, Object> castedData = (Map<String, Object>) dataRaw;
             data = castedData;
@@ -519,7 +519,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     data.put(filterCountQueryName, filterCounts);
                 }
 
-                if (TypeChecker.isListOfType(valuesRaw, String.class)) {
+                if (TypeChecker.isOfType(valuesRaw, new TypeToken<List<String>>() {})) {
                     @SuppressWarnings("unchecked")
                     List<String> castedValues = (List<String>) valuesRaw;
                     values = castedValues;
@@ -1749,7 +1749,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 List<Integer> bounds = null;
                 Object boundsRaw = params.get(key);
 
-                if (TypeChecker.isListOfType(boundsRaw, Integer.class)) {
+                if (TypeChecker.isOfType(boundsRaw, new TypeToken<List<Integer>>() {})) {
                     @SuppressWarnings("unchecked")
                     List<Integer> castedBounds = (List<Integer>) boundsRaw;
                     bounds = castedBounds;
@@ -1767,7 +1767,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 List<String> valueSet = null;
                 Object valueSetRaw = params.get(key);
 
-                if (TypeChecker.isListOfType(valueSetRaw, String.class)) {
+                if (TypeChecker.isOfType(valueSetRaw, new TypeToken<List<String>>() {})) {
                     @SuppressWarnings("unchecked")
                     List<String> castedValueSet = (List<String>) valueSetRaw;
                     valueSet = castedValueSet;

@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import com.google.common.reflect.TypeToken;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,7 +43,7 @@ public class EsServiceTest {
 
         queryRaw = builtQuery.get("query");
 
-        if (TypeChecker.isMapStringObject(queryRaw)) {
+        if (TypeChecker.isOfType(queryRaw, new TypeToken<Map<String, Object>>() {})) {
             @SuppressWarnings("unchecked")
             Map<String, Object> castedQuery = (Map<String, Object>) queryRaw;
             query = castedQuery;
@@ -51,7 +53,7 @@ public class EsServiceTest {
 
         boolRaw = query.get("bool");
 
-        if (TypeChecker.isMapStringObject(boolRaw)) {
+        if (TypeChecker.isOfType(boolRaw, new TypeToken<Map<String, Object>>() {})) {
             @SuppressWarnings("unchecked")
             Map<String, Object> castedBool = (Map<String, Object>) query.get("bool");
             bool = castedBool;
@@ -61,7 +63,7 @@ public class EsServiceTest {
 
         filterRaw = bool.get("filter");
 
-        if (TypeChecker.isListOfMapStringObject(filterRaw)) {
+        if (TypeChecker.isOfType(filterRaw, new TypeToken<List<Map<String, Object>>>() {})) {
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> castedFilter = (List<Map<String, Object>>) bool.get("filter");
             filter = castedFilter;
@@ -72,7 +74,7 @@ public class EsServiceTest {
 
         termsRaw = filter.get(0).get("terms");
 
-        if (TypeChecker.isMapStringListOfType(termsRaw, String.class)) {
+        if (TypeChecker.isOfType(termsRaw, new TypeToken<Map<String, List<String>>>() {})) {
             @SuppressWarnings("unchecked")
             Map<String, List<String>> castedTerms = (Map<String, List<String>>) termsRaw;
             param1 = castedTerms.get("param1");

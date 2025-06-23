@@ -9,6 +9,7 @@ import gov.nih.nci.bento.utility.TypeChecker;
 import org.opensearch.client.*;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.google.common.reflect.TypeToken;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -114,7 +115,7 @@ public class InventoryESService extends ESService {
                 List<Integer> bounds = null;
                 Object boundsRaw = params.get(key);
 
-                if (TypeChecker.isListOfType(boundsRaw, Integer.class)) {
+                if (TypeChecker.isOfType(boundsRaw, new TypeToken<List<Integer>>() {})) {
                     @SuppressWarnings("unchecked")
                     List<Integer> castedBounds = (List<Integer>) boundsRaw;
                     bounds = castedBounds;
@@ -160,7 +161,7 @@ public class InventoryESService extends ESService {
                 List<String> valueSet = null;
                 Object valueSetRaw = params.get(key);
 
-                if (TypeChecker.isListOfType(valueSetRaw, String.class)) {
+                if (TypeChecker.isOfType(valueSetRaw, new TypeToken<List<String>>() {})) {
                     @SuppressWarnings("unchecked")
                     List<String> castedValueSet = (List<String>) valueSetRaw;
                     valueSet = castedValueSet;
