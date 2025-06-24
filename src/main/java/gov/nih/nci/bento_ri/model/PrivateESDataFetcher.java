@@ -4,8 +4,10 @@ import gov.nih.nci.bento.constants.Const;
 import gov.nih.nci.bento.model.AbstractPrivateESDataFetcher;
 import gov.nih.nci.bento.model.search.yaml.YamlQueryFactory;
 import gov.nih.nci.bento.service.ESService;
+import gov.nih.nci.bento.utility.TypeChecker;
 import gov.nih.nci.bento_ri.service.InventoryESService;
 import graphql.schema.idl.RuntimeWiring;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Request;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.yaml.snakeyaml.Yaml;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -25,7 +28,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
-import static org.junit.Assert.fail;
 
 @Component
 public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
@@ -197,7 +199,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private List<Map<String, Object>> subjectCountBy(String category, Map<String, Object> params, String endpoint, Map<String, Object> additionalParams, String cardinalityAggName, String indexType) throws IOException {
         Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE), indexType);
         List<String> only_includes;
-        List<String> valueSet = INCLUDE_PARAMS.contains(category) ? (List<String>)params.get(category) : List.of();
+                List<String> valueSet = null;
+        Object valueSetRaw = params.get(category);
+
+        if (TypeChecker.isOfType(valueSetRaw, new TypeToken<List<String>>() {})) {
+            @SuppressWarnings("unchecked")
+            List<String> castedValueSet = (List<String>) params.get(category);
+            valueSet = INCLUDE_PARAMS.contains(category) ? castedValueSet : List.of();
+        }
+
         if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))){
             only_includes = valueSet;
         } else {
@@ -289,19 +299,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return data;
     }
 
-    private List<Map<String, Object>> getBooleanGroupCountHelper(JsonObject filters) throws IOException {
-        List<Map<String, Object>> data = new ArrayList<>();
-        for (Map.Entry<String, JsonElement> group: filters.entrySet()) {
-            int count = group.getValue().getAsJsonObject().get("parent").getAsJsonObject().get("doc_count").getAsInt();
-            if (count > 0) {
-                data.add(Map.of("group", group.getKey(),
-                    "subjects", count
-                ));
-            }
-        }
-        return data;
-    }
-
     private List<Map<String, Object>> getGroupCountHelper(JsonArray buckets, String cardinalityAggName) throws IOException {
         int dotIndex = cardinalityAggName == null ? -1 : cardinalityAggName.indexOf("."); // Look for period (.) in cardinal property's name
         boolean isNested = (dotIndex != -1); // Determine whether the cardinal property is nested
@@ -331,7 +328,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private Map<String, List<Object>> idsLists() throws IOException {
         String cacheKey = "participantIDs";
         Map<String, List<Object>> results = new HashMap<>();
-        Map<String, List<Object>> data = (Map<String, List<Object>>)caffeineCache.asMap().get(cacheKey);
+        Map<String, List<Object>> data = null;
+        Object dataRaw = caffeineCache.asMap().get(cacheKey);
+
+        if (TypeChecker.isOfType(dataRaw, new TypeToken<Map<String, List<Object>>>() {})) {
+            @SuppressWarnings("unchecked")
+            Map<String, List<Object>> castedData = (Map<String, List<Object>>) dataRaw;
+            data = castedData;
+        }
 
         // Early return if cached
         if (data != null) {
@@ -414,7 +418,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
      */
     private Map<String, Object> getParticipants(Map<String, Object> params) throws IOException {
         String cacheKey = generateCacheKey(params);
-        Map<String, Object> data = (Map<String, Object>)caffeineCache.asMap().get(cacheKey);
+        Map<String, Object> data = null;
+        Object dataRaw = caffeineCache.asMap().get(cacheKey);
+
+        if (TypeChecker.isOfType(dataRaw, new TypeToken<Map<String, Object>>() {})) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> castedData = (Map<String, Object>) dataRaw;
+            data = castedData;
+        }
 
         if (data != null) {
             logger.info("hit cache!");
@@ -481,6 +492,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 String cardinalityAggName = filter.get(CARDINALITY_AGG_NAME);
                 String field = filter.get(AGG_NAME);
                 String filterCountQueryName = filter.get(FILTER_COUNT_QUERY);
+                List<String> values = null;
+                Object valuesRaw = params.get(field);
                 String widgetQueryName = filter.get(WIDGET_QUERY);
                 boolean shouldCheckThreshold = facetFilterThresholds.get(index).containsKey(field);
                 List<Map<String, Object>> filterCounts = filterSubjectCountBy(field, params, endpoint, cardinalityAggName, index);
@@ -493,13 +506,19 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     data.put(filterCountQueryName, filterCounts);
                 }
 
+                if (TypeChecker.isOfType(valuesRaw, new TypeToken<List<String>>() {})) {
+                    @SuppressWarnings("unchecked")
+                    List<String> castedValues = (List<String>) valuesRaw;
+                    values = castedValues;
+                }
+
                 // Get widget counts
                 if (widgetQueryName != null) {
                     // Fetch data for widgets
                     if (RANGE_PARAMS.contains(field)) {
                         List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, endpoint, cardinalityAggName, index);
                         data.put(widgetQueryName, subjectCount);
-                    } else if (params.containsKey(field) && ((List<String>) params.get(field)).size() > 0) {
+                    } else if (params.containsKey(field) && values.size() > 0) {
                         List<Map<String, Object>> subjectCount = subjectCountBy(field, params, endpoint, cardinalityAggName, index);
                         data.put(widgetQueryName, subjectCount);
                     } else {
@@ -1714,7 +1733,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             if (RANGE_PARAMS.contains(key)) {
                 // Range parameters, should contain two doubles, first lower bound, then upper bound
                 // Any other values after those two will be ignored
-                List<Integer> bounds = (List<Integer>) params.get(key);
+                List<Integer> bounds = null;
+                Object boundsRaw = params.get(key);
+
+                if (TypeChecker.isOfType(boundsRaw, new TypeToken<List<Integer>>() {})) {
+                    @SuppressWarnings("unchecked")
+                    List<Integer> castedBounds = (List<Integer>) boundsRaw;
+                    bounds = castedBounds;
+                }
+
                 if (bounds.size() >= 2) {
                     Integer lower = bounds.get(0);
                     Integer higher = bounds.get(1);
@@ -1724,7 +1751,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     keys.add(key.concat(lower.toString()).concat(higher.toString()));
                 }
             } else {
-                List<String> valueSet = (List<String>) params.get(key);
+                List<String> valueSet = null;
+                Object valueSetRaw = params.get(key);
+
+                if (TypeChecker.isOfType(valueSetRaw, new TypeToken<List<String>>() {})) {
+                    @SuppressWarnings("unchecked")
+                    List<String> castedValueSet = (List<String>) valueSetRaw;
+                    valueSet = castedValueSet;
+                }
+            
                 // list with only one empty string [""] means return all records
                 if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
                     keys.add(key.concat(valueSet.toString()));
