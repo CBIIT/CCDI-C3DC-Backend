@@ -11,12 +11,51 @@ type GlobalSearchResult {
 }
 
 type IdsListsES {
+    associatedIds: [AssociatedId]
     participantIds: [String]
+}
+
+type AssociatedId {
+    participant_id: String
+    associated_id: String
+}
+
+type ParticipantResult {
+    participant_id: String
+    study_id: String
 }
 
 type SearchParticipantsReturnObject {
     group: String
     subjects: Int
+}
+
+type NestedParticipant {
+    id: String
+    participant_id: String
+    race: String
+    sex_at_birth: String
+}
+
+type CohortMetadataReturnObject {
+    id: String
+    participant_id: String
+    race: [String]
+    sex_at_birth: String
+
+    diagnoses: [DiagnosisOverviewResult]
+    survivals: [SurvivalOverviewResult]
+    treatments: [TreatmentOverviewResult]
+    treatment_responses: [TreatmentResponseOverviewResult]
+}
+
+type CpiDataReturnObject {
+    associated_id: String
+    data_location: String
+    data_type: String
+    domain_category: String
+    domain_description: String
+    repository_of_synonym_id: String
 }
 
 type RangeCount {
@@ -25,133 +64,195 @@ type RangeCount {
     subjects: Int
 }
 
-type SearchParticipantsResult {
-    filterParticipantCountByGender: [SearchParticipantsReturnObject]
-    filterParticipantCountByRace: [SearchParticipantsReturnObject]
-    filterParticipantCountByEthnicity: [SearchParticipantsReturnObject]
-    filterParticipantCountByDiagnosisAge: RangeCount
-    filterParticipantCountByDiagnosisAnatomicSite: [SearchParticipantsReturnObject]
-    filterParticipantCountByDiseasePhase: [SearchParticipantsReturnObject]
-    filterParticipantCountByICDO: [SearchParticipantsReturnObject]
-    filterParticipantCountByVitalStatus: [SearchParticipantsReturnObject]
-    filterParticipantCountBySampleAnatomicSite: [SearchParticipantsReturnObject]
-    filterParticipantCountBySampleAge: RangeCount
-    filterParticipantCountByTumorStatus: [SearchParticipantsReturnObject]
-    filterParticipantCountByTumorClassification: [SearchParticipantsReturnObject]
-    filterParticipantCountByAssayMethod: [SearchParticipantsReturnObject]
-    filterParticipantCountByFileType: [SearchParticipantsReturnObject]
-    filterParticipantCountByPHSAccession: [SearchParticipantsReturnObject]
-    filterParticipantCountByGrantID: [SearchParticipantsReturnObject]
-    filterParticipantCountByInstitution: [SearchParticipantsReturnObject]
-    filterParticipantCountByName: [SearchParticipantsReturnObject]
-    filterParticipantCountByAcronym: [SearchParticipantsReturnObject]
-    filterParticipantCountByStudyTitle: [SearchParticipantsReturnObject]
-    filterParticipantCountByLibrarySelection: [SearchParticipantsReturnObject]
-    filterParticipantCountByLibrarySource: [SearchParticipantsReturnObject]
-    filterParticipantCountByLibraryStrategy: [SearchParticipantsReturnObject]
-
-    numberOfStudies: Int
+type GetParticipantsResult {
+    # Overall count
     numberOfParticipants: Int
-    numberOfSamples: Int
-    numberOfFiles: Int
-    numberOfDiagnosis: Int
-    participantsFileCount: Int
-    diagnosisFileCount: Int
-    samplesFileCount: Int
-    studiesFileCount: Int
-    filesFileCount: Int
+    numberOfDiagnoses: Int
+    numberOfDiseases: Int
+    numberOfStudies: Int
+    numberOfSurvivals: Int
+    numberOfTreatments: Int
+    numberOfTreatmentResponses: Int
 
-    participantCountByStudy: [SearchParticipantsReturnObject]
-    participantCountByDiagnosis: [SearchParticipantsReturnObject]
-    participantCountByDiagnosisAge: [SearchParticipantsReturnObject]
-    participantCountByGender: [SearchParticipantsReturnObject]
+    # Demographics
+    filterParticipantCountByRace: [SearchParticipantsReturnObject]
+    filterParticipantCountBySexAtBirth: [SearchParticipantsReturnObject]
+
+    # Diagnoses
+    filterParticipantCountByAgeAtDiagnosis: RangeCount
+    filterParticipantCountByAnatomicSite: [SearchParticipantsReturnObject]
+    filterParticipantCountByDiagnosis: [SearchParticipantsReturnObject]
+    filterParticipantCountByDiagnosisClassificationSystem: [SearchParticipantsReturnObject]
+    filterParticipantCountByDiagnosisBasis: [SearchParticipantsReturnObject]
+    filterParticipantCountByDiseasePhase: [SearchParticipantsReturnObject]
+
+    # Studies
+    filterParticipantCountByDbgapAccession: [SearchParticipantsReturnObject]
+    filterParticipantCountByStudyName: [SearchParticipantsReturnObject]
+
+    # Survivals
+    filterParticipantCountByAgeAtLastKnownSurvivalStatus: RangeCount
+    filterParticipantCountByCauseOfDeath: [SearchParticipantsReturnObject]
+    filterParticipantCountByFirstEvent: [SearchParticipantsReturnObject]
+    filterParticipantCountByLastKnownSurvivalStatus: [SearchParticipantsReturnObject]
+
+    # Treatments
+    filterParticipantCountByAgeAtTreatmentStart: RangeCount
+    filterParticipantCountByAgeAtTreatmentEnd: RangeCount
+    filterParticipantCountByTreatmentType: [SearchParticipantsReturnObject]
+    filterParticipantCountByTreatmentAgent: [SearchParticipantsReturnObject]
+
+    # Treatment Responses
+    filterParticipantCountByResponse: [SearchParticipantsReturnObject]
+    filterParticipantCountByAgeAtResponse: RangeCount
+    filterParticipantCountByResponseCategory: [SearchParticipantsReturnObject]
+    filterParticipantCountByResponseSystem: [SearchParticipantsReturnObject]
+
+    # Widget counts
     participantCountByRace: [SearchParticipantsReturnObject]
-    participantCountByEthnicity: [SearchParticipantsReturnObject]
+    participantCountBySexAtBirth: [SearchParticipantsReturnObject]
+    participantCountByAgeAtDiagnosis: [SearchParticipantsReturnObject]
+    participantCountByAnatomicSite: [SearchParticipantsReturnObject]
+    participantCountByDiagnosis: [SearchParticipantsReturnObject]
+    participantCountByTreatmentType: [SearchParticipantsReturnObject]
 }
 
-type ParticipantOverViewResult {
-    id: String
-    participant_id: String
-    phs_accession: String
+type ParticipantOverviewResult {
+    # Demographics
+    id: String # For adding to cohort
+    participant_id: String # For display
     race: String
-    gender: String
-    ethnicity: String
-    alternate_participant_id: String
-    files: [String]
+    sex_at_birth: String
+
+    # CPI Data
+    cpi_data: [CpiDataReturnObject]
+
+    # Study
+    dbgap_accession: String
+
+    # Additional fields for download
+    study_id: String
 }
 
-type DiagnosisOverViewResult {
-    id: String
-    diagnosis_id: String
-    participant_id: String
-    phs_accession: String
-    diagnosis_icd_o: String
+type CohortMetadataResult {
+    # Study
+    dbgap_accession: String
+
+    participants: [CohortMetadataReturnObject]
+}
+
+type DiagnosisOverviewResult {
+    # Demographics
+    participant: NestedParticipant
+
+    # Diagnosis
+    id: String # For selecting record
+    age_at_diagnosis: String
     anatomic_site: String
+    diagnosis_basis: String
+    diagnosis: String
+    diagnosis_classification_system: String
     disease_phase: String
-    age_at_diagnosis: Int
-    vital_status: String
-    files: [String]
-}
-
-type StudyOverViewResult {
-    id: String
-    study_id: String
-    grant_id: String
-    phs_accession: String
-    study_short_title: String
-    personnel_name: String
-    num_of_participants: String
-    diagnosis: [String]
-    num_of_samples: String
-    anatomic_site: [String]
-    num_of_files: String
-    file_type: [String]
-    pubmed_id: String
-    files: [String]
-}
-
-type SampleOverViewResult {
-    id: String
-    sample_id: String
-    participant_id: String
-    study_id: String
-    anatomic_site: String
-    participant_age_at_collection: Int
-    diagnosis_icd_o: String
-    sample_tumor_status: String
     tumor_classification: String
-    files: [String]
+
+    # Study
+    dbgap_accession: String
+
+    # Additional fields for Explore page download
+    diagnosis_id: String
+    diagnosis_comment: String
+    study_id: String
+    toronto_childhood_cancer_staging: String
+    tumor_grade: String
+    tumor_stage_clinical_m: String
+    tumor_stage_clinical_n: String
+    tumor_stage_clinical_t: String
 }
 
-type FileOverViewResult {
-    id: String
-    file_name: String
-    file_category: String
-    file_description: String
-    file_type: String
-    file_size: String
-    sample_id: String
-    participant_id: String
+type StudyOverviewResult {
+    # Study
+    id: String # For selecting record
+    dbgap_accession: String
+    study_name: String
+
+    # Additional fields for download
+    consent: String
+    consent_number: String
+    external_url: String
+    study_description: String
     study_id: String
-    file_id: String
-    guid: String
-    md5sum: String
-    files: [String]
 }
 
-type FileDetail {
-    id: String
-    file_id: String
-    guid: String
-    file_name: String
-    study_short_title: String
-    phs_accession: String
-    sample_id: String
-    participant_id: String
+type SurvivalOverviewResult {
+    # Demographics
+    participant: NestedParticipant
+
+    # Study
+    dbgap_accession: String
+
+    # Survival
+    id: String # For selecting record
+    age_at_last_known_survival_status: String
+    cause_of_death: String
+    first_event: String
+    last_known_survival_status: String
+
+    # Additional fields for download
+    age_at_event_free_survival_status: String
+    event_free_survival_status: String
     study_id: String
-    file_type: String
-    file_size: Float
-    md5sum: String
+    survival_id: String
+}
+
+type TreatmentOverviewResult {
+    # Demographics
+    participant: NestedParticipant
+
+    # Study
+    dbgap_accession: String
+    study_id: String
+
+    # Treatment
+    id: String # For selecting record
+    treatment_id: String
+    age_at_treatment_start: String
+    age_at_treatment_end: String
+    treatment_type: String
+    treatment_agent: [String]
+    treatment_agent_str: String
+}
+
+type TreatmentResponseOverviewResult {
+    # Demographics
+    participant: NestedParticipant
+
+    # Study
+    dbgap_accession: String
+    study_id: String
+
+    # Treatment Response
+    id: String # For selecting record
+    treatment_response_id: String
+    response: String
+    age_at_response: String
+    response_category: String
+    response_system: String
+}
+
+type StudyDetailsResult {
+    dbgap_accession: String
+    study_description: String
+    num_participants: Int
+    num_diseases: Int
+    num_anatomic_sites: Int
+    num_survivals: Int
+}
+
+type StudiesListingResult {
+    num_diseases: Int
+    num_participants: Int
+    dbgap_accession: String
+    study_name: String
 }
 
 schema {
@@ -160,35 +261,332 @@ schema {
 
 type QueryType {
     esVersion: String
+    findParticipantIdsInList(participant_id: [String] = []): [ParticipantResult]
     globalSearch (input: String, first: Int = 10, offset: Int = 0): GlobalSearchResult
 
     idsLists: IdsListsES
     
-    searchParticipants (participant_ids: [String] = [""], race: [String] = [""], gender: [String] = [""], ethnicity: [String] = [""], age_at_diagnosis: [Int] = [0], diagnosis_anatomic_site: [String] = [""], disease_phase: [String] = [""], diagnosis_icd_o: [String] = [""], vital_status: [String] = [""], sample_anatomic_site: [String] = [""], participant_age_at_collection: [Int] = [0], sample_tumor_status: [String] = [""], tumor_classification: [String] = [""], assay_method: [String] = [""], file_type: [String] = [""], phs_accession: [String] = [""], grant_id: [String] = [""], institution: [String] = [""], study_acronym: [String] = [""], study_short_title: [String] = [""], library_selection: [String] = [""], library_source: [String] = [""], library_strategy: [String] = [""]): SearchParticipantsResult
-    
-    participantOverview (participant_ids: [String] = [""], race: [String] = [""], gender: [String] = [""], ethnicity: [String] = [""], age_at_diagnosis: [Int] = [0], diagnosis_anatomic_site: [String] = [""], disease_phase: [String] = [""], diagnosis_icd_o: [String] = [""], vital_status: [String] = [""], sample_anatomic_site: [String] = [""], participant_age_at_collection: [Int] = [0], sample_tumor_status: [String] = [""], tumor_classification: [String] = [""], assay_method: [String] = [""], file_type: [String] = [""], phs_accession: [String] = [""], grant_id: [String] = [""], institution: [String] = [""], study_acronym: [String] = [""], study_short_title: [String] = [""], library_selection: [String] = [""], library_source: [String] = [""], library_strategy: [String] = [""], offset: Int = 0, first: Int = 10, order_by: String = "", sort_direction: String = ""): [ParticipantOverViewResult]
+    numberOfDiseases: Int
+    numberOfParticipants: Int
+    numberOfReferenceFiles: Int
+    numberOfStudies: Int
+    numberOfSurvivals: Int
+    numberOfTreatments: Int
+    numberOfTreatmentResponses: Int
 
-    diagnosisOverview (participant_ids: [String] = [""], race: [String] = [""], gender: [String] = [""], ethnicity: [String] = [""], age_at_diagnosis: [Int] = [0], diagnosis_anatomic_site: [String] = [""], disease_phase: [String] = [""], diagnosis_icd_o: [String] = [""], vital_status: [String] = [""], sample_anatomic_site: [String] = [""], participant_age_at_collection: [Int] = [0], sample_tumor_status: [String] = [""], tumor_classification: [String] = [""], assay_method: [String] = [""], file_type: [String] = [""], phs_accession: [String] = [""], grant_id: [String] = [""], institution: [String] = [""], study_acronym: [String] = [""], study_short_title: [String] = [""], library_selection: [String] = [""], library_source: [String] = [""], library_strategy: [String] = [""], offset: Int = 0, first: Int = 10, order_by: String = "", sort_direction: String = ""): [DiagnosisOverViewResult]
-    
-    studyOverview (participant_ids: [String] = [""], race: [String] = [""], gender: [String] = [""], ethnicity: [String] = [""], age_at_diagnosis: [Int] = [0], diagnosis_anatomic_site: [String] = [""], disease_phase: [String] = [""], diagnosis_icd_o: [String] = [""], vital_status: [String] = [""], sample_anatomic_site: [String] = [""], participant_age_at_collection: [Int] = [0], sample_tumor_status: [String] = [""], tumor_classification: [String] = [""], assay_method: [String] = [""], file_type: [String] = [""], phs_accession: [String] = [""], grant_id: [String] = [""], institution: [String] = [""], study_acronym: [String] = [""], study_short_title: [String] = [""], library_selection: [String] = [""], library_source: [String] = [""], library_strategy: [String] = [""], offset: Int = 0, first: Int = 10, order_by: String = "", sort_direction: String = ""): [StudyOverViewResult]
-    
-    sampleOverview (participant_ids: [String] = [""], race: [String] = [""], gender: [String] = [""], ethnicity: [String] = [""], age_at_diagnosis: [Int] = [0], diagnosis_anatomic_site: [String] = [""], disease_phase: [String] = [""], diagnosis_icd_o: [String] = [""], vital_status: [String] = [""], sample_anatomic_site: [String] = [""], participant_age_at_collection: [Int] = [0], sample_tumor_status: [String] = [""], tumor_classification: [String] = [""], assay_method: [String] = [""], file_type: [String] = [""], phs_accession: [String] = [""], grant_id: [String] = [""], institution: [String] = [""], study_acronym: [String] = [""], study_short_title: [String] = [""], library_selection: [String] = [""], library_source: [String] = [""], library_strategy: [String] = [""], offset: Int = 0, first: Int = 10, order_by: String = "", sort_direction: String = ""): [SampleOverViewResult]
+    cohortMetadata(
+        # Demographics
+        participant_pk: [String]
 
-    fileOverview (participant_ids: [String] = [""], race: [String] = [""], gender: [String] = [""], ethnicity: [String] = [""], age_at_diagnosis: [Int] = [0], diagnosis_anatomic_site: [String] = [""], disease_phase: [String] = [""], diagnosis_icd_o: [String] = [""], vital_status: [String] = [""], sample_anatomic_site: [String] = [""], participant_age_at_collection: [Int] = [0], sample_tumor_status: [String] = [""], tumor_classification: [String] = [""], assay_method: [String] = [""], file_type: [String] = [""], phs_accession: [String] = [""], grant_id: [String] = [""], institution: [String] = [""], study_acronym: [String] = [""], study_short_title: [String] = [""], library_selection: [String] = [""], library_source: [String] = [""], library_strategy: [String] = [""], offset: Int = 0, first: Int = 10, order_by: String = "", sort_direction: String = ""): [FileOverViewResult]
-
-    fileIDsFromList (
-        participant_ids: [String] = [],
-        diagnosis_ids: [String] = [],
-        study_ids: [String] = [],
-        sample_ids: [String] = [],
-        file_ids: [String] = []
-    ): [String]
-
-    filesInList(
-        id: [String],
-        order_by: String = "",
-        sort_direction: String = "ASC",
+        # Table config
         first: Int = 10,
-        offset: Int = 0
-    ): [FileDetail]
+        offset: Int = 0,
+        order_by: String = "",
+        sort_direction: String = ""
+    ): [CohortMetadataResult]
+
+    getParticipants (
+        # Demographics
+        participant_pk: [String]
+        participant_id: [String] = [""],
+        race: [String] = [""],
+        sex_at_birth: [String] = [""],
+
+        # Diagnoses
+        age_at_diagnosis: [Int] = [0],
+        anatomic_site: [String] = [""],
+        diagnosis: [String] = [""],
+        diagnosis_classification_system: [String] = [""],
+        diagnosis_basis: [String] = [""],
+        disease_phase: [String] = [""]
+
+        # Studies
+        dbgap_accession: [String] = [""],
+        study_name: [String] = [""],
+
+        # Survivals
+        age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
+        first_event: [String] = [""],
+        last_known_survival_status: [String] = [""]
+
+        # Treatments
+        age_at_treatment_start: [Int] = [0],
+        age_at_treatment_end: [Int] = [0],
+        treatment_type: [String] = [""],
+        treatment_agent: [String] = [""],
+
+        # Treatment Responses
+        response: [String] = [""],
+        age_at_response: [Int] = [0],
+        response_category: [String] = [""],
+        response_system: [String] = [""]
+    ): GetParticipantsResult
+
+    participantOverview (
+        # Demographics
+        participant_pk: [String]
+        participant_id: [String] = [""],
+        race: [String] = [""],
+        sex_at_birth: [String] = [""],
+
+        # Diagnoses
+        age_at_diagnosis: [Int] = [0],
+        anatomic_site: [String] = [""],
+        diagnosis: [String] = [""],
+        diagnosis_classification_system: [String] = [""],
+        diagnosis_basis: [String] = [""],
+        disease_phase: [String] = [""]
+
+        # Studies
+        dbgap_accession: [String] = [""],
+        study_name: [String] = [""],
+
+        # Survivals
+        age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
+        first_event: [String] = [""],
+        last_known_survival_status: [String] = [""]
+
+        # Treatments
+        age_at_treatment_start: [Int] = [0],
+        age_at_treatment_end: [Int] = [0],
+        treatment_type: [String] = [""],
+        treatment_agent: [String] = [""],
+
+        # Treatment Responses
+        response: [String] = [""],
+        age_at_response: [Int] = [0],
+        response_category: [String] = [""],
+        response_system: [String] = [""]
+
+        # Table config
+        first: Int = 10,
+        offset: Int = 0,
+        order_by: String = "",
+        sort_direction: String = ""
+    ): [ParticipantOverviewResult]
+
+    diagnosisOverview (
+        # Demographics
+        participant_pk: [String]
+        participant_id: [String] = [""],
+        race: [String] = [""],
+        sex_at_birth: [String] = [""],
+
+        # Diagnoses
+        age_at_diagnosis: [Int] = [0],
+        anatomic_site: [String] = [""],
+        diagnosis: [String] = [""],
+        diagnosis_classification_system: [String] = [""],
+        diagnosis_basis: [String] = [""],
+        disease_phase: [String] = [""]
+
+        # Studies
+        dbgap_accession: [String] = [""],
+        study_name: [String] = [""],
+
+        # Survivals
+        age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
+        first_event: [String] = [""],
+        last_known_survival_status: [String] = [""]
+
+        # Treatments
+        age_at_treatment_start: [Int] = [0],
+        age_at_treatment_end: [Int] = [0],
+        treatment_type: [String] = [""],
+        treatment_agent: [String] = [""],
+
+        # Treatment Responses
+        response: [String] = [""],
+        age_at_response: [Int] = [0],
+        response_category: [String] = [""],
+        response_system: [String] = [""]
+
+        # Table config
+        first: Int = 10,
+        offset: Int = 0,
+        order_by: String = "",
+        sort_direction: String = ""
+    ): [DiagnosisOverviewResult]
+    
+    studyOverview (
+        # Demographics
+        participant_pk: [String]
+        participant_id: [String] = [""],
+        race: [String] = [""],
+        sex_at_birth: [String] = [""],
+
+        # Diagnoses
+        age_at_diagnosis: [Int] = [0],
+        anatomic_site: [String] = [""],
+        diagnosis: [String] = [""],
+        diagnosis_classification_system: [String] = [""],
+        diagnosis_basis: [String] = [""],
+        disease_phase: [String] = [""]
+
+        # Studies
+        dbgap_accession: [String] = [""],
+        study_name: [String] = [""],
+
+        # Survivals
+        age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
+        first_event: [String] = [""],
+        last_known_survival_status: [String] = [""]
+
+        # Treatments
+        age_at_treatment_start: [Int] = [0],
+        age_at_treatment_end: [Int] = [0],
+        treatment_type: [String] = [""],
+        treatment_agent: [String] = [""],
+
+        # Treatment Responses
+        response: [String] = [""],
+        age_at_response: [Int] = [0],
+        response_category: [String] = [""],
+        response_system: [String] = [""]
+
+        # Table config
+        first: Int = 10,
+        offset: Int = 0,
+        order_by: String = "",
+        sort_direction: String = ""
+    ): [StudyOverviewResult]
+
+    survivalOverview (
+        # Demographics
+        participant_pk: [String]
+        participant_id: [String] = [""],
+        race: [String] = [""],
+        sex_at_birth: [String] = [""],
+
+        # Diagnoses
+        age_at_diagnosis: [Int] = [0],
+        anatomic_site: [String] = [""],
+        diagnosis: [String] = [""],
+        diagnosis_classification_system: [String] = [""],
+        diagnosis_basis: [String] = [""],
+        disease_phase: [String] = [""]
+
+        # Studies
+        dbgap_accession: [String] = [""],
+        study_name: [String] = [""],
+
+        # Survivals
+        age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
+        first_event: [String] = [""],
+        last_known_survival_status: [String] = [""]
+
+        # Treatments
+        age_at_treatment_start: [Int] = [0],
+        age_at_treatment_end: [Int] = [0],
+        treatment_type: [String] = [""],
+        treatment_agent: [String] = [""],
+
+        # Treatment Responses
+        response: [String] = [""],
+        age_at_response: [Int] = [0],
+        response_category: [String] = [""],
+        response_system: [String] = [""]
+
+        # Table config
+        first: Int = 10,
+        offset: Int = 0,
+        order_by: String = "",
+        sort_direction: String = ""
+    ): [SurvivalOverviewResult]
+
+    treatmentOverview (
+        # Demographics
+        participant_pk: [String]
+        participant_id: [String] = [""],
+        race: [String] = [""],
+        sex_at_birth: [String] = [""],
+
+        # Diagnoses
+        age_at_diagnosis: [Int] = [0],
+        anatomic_site: [String] = [""],
+        diagnosis: [String] = [""],
+        diagnosis_classification_system: [String] = [""],
+        diagnosis_basis: [String] = [""],
+        disease_phase: [String] = [""]
+
+        # Studies
+        dbgap_accession: [String] = [""],
+        study_name: [String] = [""],
+
+        # Survivals
+        age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
+        first_event: [String] = [""],
+        last_known_survival_status: [String] = [""]
+
+        # Treatments
+        age_at_treatment_start: [Int] = [0],
+        age_at_treatment_end: [Int] = [0],
+        treatment_type: [String] = [""],
+        treatment_agent: [String] = [""],
+
+        # Treatment Responses
+        response: [String] = [""],
+        age_at_response: [Int] = [0],
+        response_category: [String] = [""],
+        response_system: [String] = [""]
+
+        # Table config
+        first: Int = 10,
+        offset: Int = 0,
+        order_by: String = "",
+        sort_direction: String = ""
+    ): [TreatmentOverviewResult]
+
+    treatmentResponseOverview (
+        # Demographics
+        participant_pk: [String]
+        participant_id: [String] = [""],
+        race: [String] = [""],
+        sex_at_birth: [String] = [""],
+
+        # Diagnoses
+        age_at_diagnosis: [Int] = [0],
+        anatomic_site: [String] = [""],
+        diagnosis: [String] = [""],
+        diagnosis_classification_system: [String] = [""],
+        diagnosis_basis: [String] = [""],
+        disease_phase: [String] = [""]
+
+        # Studies
+        dbgap_accession: [String] = [""],
+        study_name: [String] = [""],
+
+        # Survivals
+        age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
+        first_event: [String] = [""],
+        last_known_survival_status: [String] = [""]
+
+        # Treatments
+        age_at_treatment_start: [Int] = [0],
+        age_at_treatment_end: [Int] = [0],
+        treatment_type: [String] = [""],
+        treatment_agent: [String] = [""],
+
+        # Treatment Responses
+        response: [String] = [""],
+        age_at_response: [Int] = [0],
+        response_category: [String] = [""],
+        response_system: [String] = [""]
+
+        # Table config
+        first: Int = 10,
+        offset: Int = 0,
+        order_by: String = "",
+        sort_direction: String = ""
+    ): [TreatmentResponseOverviewResult]
+    
+    studyDetails(study_id: String): StudyDetailsResult
+    studiesListing: [StudiesListingResult]
 }

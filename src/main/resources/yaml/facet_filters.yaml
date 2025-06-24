@@ -1,0 +1,100 @@
+# Facet filters and how to query/aggregate them
+# agg_name - facet filter's corresponding field in Opensearch query
+# cardinality_agg_name - Opensearch field for identify unique results
+# filter_count_name - what to call the count in GraphQL
+# widget_count_name - what to call the widget count in GraphQL
+
+diagnoses:
+  - agg_name: age_at_diagnosis
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByAgeAtDiagnosis
+    widget_count_name: participantCountByAgeAtDiagnosis
+  - agg_name: anatomic_site
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByAnatomicSite
+    widget_count_name: participantCountByAnatomicSite
+  - agg_name: diagnosis
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByDiagnosis
+    widget_count_name: participantCountByDiagnosis
+  - agg_name: diagnosis_classification_system
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByDiagnosisClassificationSystem
+    widget_count_name: null
+  - agg_name: diagnosis_basis
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByDiagnosisBasis
+    widget_count_name: null
+  - agg_name: disease_phase
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByDiseasePhase
+    widget_count_name: null
+participants:
+  - agg_name: race
+    cardinality_agg_name: null
+    filter_count_name: filterParticipantCountByRace
+    widget_count_name: participantCountByRace
+  - agg_name: sex_at_birth
+    cardinality_agg_name: null
+    filter_count_name: filterParticipantCountBySexAtBirth
+    widget_count_name: participantCountBySexAtBirth
+  - agg_name: dbgap_accession
+    cardinality_agg_name: null
+    filter_count_name: filterParticipantCountByDbgapAccession
+    widget_count_name: null
+  - agg_name: study_name
+    cardinality_agg_name: null
+    filter_count_name: filterParticipantCountByStudyName
+    widget_count_name: null
+studies: []
+survivals:
+  - agg_name: age_at_last_known_survival_status
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByAgeAtLastKnownSurvivalStatus
+    widget_count_name: null
+  - agg_name: cause_of_death
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByCauseOfDeath
+    widget_count_name: null
+  - agg_name: first_event
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByFirstEvent
+    widget_count_name: null
+  - agg_name: last_known_survival_status
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByLastKnownSurvivalStatus
+    widget_count_name: null
+treatments:
+  - agg_name: treatment_type
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByTreatmentType
+    widget_count_name: participantCountByTreatmentType
+  - agg_name: age_at_treatment_start
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByAgeAtTreatmentStart
+    widget_count_name: null
+  - agg_name: age_at_treatment_end
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByAgeAtTreatmentEnd
+    widget_count_name: null
+  - agg_name: treatment_agent
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByTreatmentAgent
+    widget_count_name: null
+treatment_responses:
+  - agg_name: response
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByResponse
+    widget_count_name: null
+  - agg_name: age_at_response
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByAgeAtResponse
+    widget_count_name: null
+  - agg_name: response_category
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByResponseCategory
+    widget_count_name: null
+  - agg_name: response_system
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByResponseSystem
+    widget_count_name: null
