@@ -307,8 +307,8 @@ public class InventoryESService extends ESService {
         subField_ranges.put("ranges", Set.of(
             Map.of(
                 "key", "0 - 4",
-                "from", 0, "to",
-                5 * 365
+                "from", 0,
+                "to", 5 * 365
             ), Map.of(
                 "key", "5 - 9",
                 "from", 5 * 365,
