@@ -302,7 +302,34 @@ public class InventoryESService extends ESService {
         Map<String, Object> subField_ranges = new HashMap<String, Object>();
 
         subField_ranges.put("field", rangeAggName);
-        subField_ranges.put("ranges", Set.of(Map.of("key", "0 - 4", "from", 0, "to", 4 * 365), Map.of("key", "5 - 9", "from", 4 * 365, "to", 9 * 365), Map.of("key", "10 - 14", "from", 9 * 365, "to", 14 * 365), Map.of("key", "15 - 19", "from", 14 * 365, "to", 19 * 365), Map.of("key", "20 - 29", "from", 19 * 365, "to", 29 * 365), Map.of("key", "> 29", "from", 29 * 365)));
+
+        // Opensearch ranges are [from, to)
+        subField_ranges.put("ranges", Set.of(
+            Map.of(
+                "key", "0 - 4",
+                "from", 0, "to",
+                5 * 365
+            ), Map.of(
+                "key", "5 - 9",
+                "from", 5 * 365,
+                "to", 10 * 365
+            ), Map.of(
+                "key", "10 - 14",
+                "from", 10 * 365,
+                "to", 15 * 365
+            ), Map.of(
+                "key", "15 - 19",
+                "from", 15 * 365,
+                "to", 20 * 365
+            ), Map.of(
+                "key", "20 - 29",
+                "from", 20 * 365,
+                "to", 30 * 365
+            ), Map.of(
+                "key", "> 29",
+                "from", 30 * 365
+            )
+        ));
         subField.put("range", subField_ranges);
 
         if (cardinalityAggName != null) {
