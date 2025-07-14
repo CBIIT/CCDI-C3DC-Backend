@@ -41,6 +41,7 @@
         </Async>
 	</Appenders>
 	<Loggers>
+		<!-- C3DC-1646: Enhanced logging for security and performance monitoring -->
 		<Logger name="gov.nih.nci.bento" level="info" additivity="false">
 			<AppenderRef ref="AsyncInfo" />
 			<AppenderRef ref="LogToConsole" />
@@ -48,6 +49,15 @@
 		<Logger name="bento" level="error" additivity="false">
 			<AppenderRef ref="AsyncErr" />
 			<AppenderRef ref="LogToConsole" />
+		</Logger>
+		<!-- Security logging -->
+		<Logger name="security" level="info" additivity="false">
+			<AppenderRef ref="AsyncInfo" />
+			<AppenderRef ref="LogToConsole" />
+		</Logger>
+		<!-- Performance monitoring -->
+		<Logger name="performance" level="debug" additivity="false">
+			<AppenderRef ref="AsyncInfo" />
 		</Logger>
 		<Logger name="org.springframework.boot" level="error"
 			additivity="false">

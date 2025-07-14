@@ -8,7 +8,7 @@ The Bento Backend Framework is a server-side backend written in Java to be used 
 
 The Bento Backend can be found in this Github Repository: [Bento Backend](https://github.com/CBIIT/bento-backend)
 ## Pre-requisites
-*   Java 11 or newer installed on the server hosting the Bento Backend
+*   Java 21 or newer installed on the server hosting the Bento Backend (updated for version 1.7.0)
 *   The Neo4j database containing the Bento data has been initialized and is running
 
 ## Configuration
@@ -47,3 +47,21 @@ On Windows, use the command
 ```bash
 mvnw.cmd spring-boot:run
 ```
+
+## Version 1.7.0 Enhancements (C3DC-1646)
+
+This version includes the following improvements:
+* **Enhanced Monitoring**: Added health check endpoints and metrics exposure
+* **Security Improvements**: Added security headers and improved CORS configuration
+* **Enhanced Logging**: Added security and performance logging categories
+* **GraphQL Enhancements**: Added version information and health status queries
+* **Java 21 Support**: Updated to require Java 21 for improved performance and security
+
+### New Configuration Options
+
+The following new configuration options are available in `application.properties`:
+
+* `application.version` - Application version identifier
+* `management.endpoints.web.exposure.include` - Exposed management endpoints
+* `security.headers.*` - Security header configuration
+* `cors.*` - CORS configuration for frontend integration

@@ -4,6 +4,9 @@ schema {
 
 type QueryType {
     schemaVersion: String @cypher(statement: "RETURN '1.0.0'")
+    
+    # C3DC-1646: Enhanced version information for public API
+    applicationVersion: String @cypher(statement: "RETURN '1.7.0'")
 
     neo4jVersion: String @cypher(statement: """
         call dbms.components()

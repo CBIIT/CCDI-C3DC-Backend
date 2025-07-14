@@ -20,6 +20,17 @@ schema {
 
 type QueryType {
     schemaVersion: String @cypher(statement: "RETURN '1.0.0'")
+    
+    # C3DC-1646: Enhanced version and health information
+    applicationVersion: String @cypher(statement: "RETURN '1.7.0'")
+    
+    healthCheck: HealthStatus @cypher(statement: """
+        RETURN {
+            status: 'UP',
+            timestamp: datetime().epochMillis,
+            database: 'connected'
+        } as result
+    """)
 
     neo4jVersion: String @cypher(statement: """
         call dbms.components()
@@ -27,4 +38,11 @@ type QueryType {
         unwind versions as version
         return version
     """)
+}
+
+# C3DC-1646: Added health status type for monitoring
+type HealthStatus {
+    status: String
+    timestamp: Int
+    database: String
 }
