@@ -44,8 +44,6 @@ type CohortMetadataReturnObject {
     sex_at_birth: String
 
     # CPI Data
-    synonym: [CpiDataReturnObject]
-
     diagnoses: [DiagnosisOverviewResult]
     survivals: [SurvivalOverviewResult]
     synonyms: [CpiDataReturnObject]
