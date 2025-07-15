@@ -600,7 +600,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             // CPI data
             Map.ofEntries(
                 Map.entry("gqlName", "synonym"),
-                Map.entry("osName", "cpi_data"),
+                Map.entry("osName", "synonym"),
                 Map.entry("nested", List.of(
                     Map.ofEntries(
                         Map.entry("gqlName", "associated_id"),
@@ -639,34 +639,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.ofEntries(
                 Map.entry("gqlName", "survivals"),
                 Map.entry("osName", "survivals")
-            ),
-
-            // Synonym
-            Map.ofEntries(
-                Map.entry("gqlName", "synonyms"),
-                Map.entry("osName", "synonyms"),
-                Map.entry("nested", List.of(
-                    Map.ofEntries(
-                        Map.entry("gqlName", "associated_id"),
-                        Map.entry("osName", "associated_id")
-                    ),
-                    Map.ofEntries(
-                        Map.entry("gqlName", "data_location"),
-                        Map.entry("osName", "data_location")
-                    ),
-                    Map.ofEntries(
-                        Map.entry("gqlName", "domain_category"),
-                        Map.entry("osName", "domain_category")
-                    ),
-                    Map.ofEntries(
-                        Map.entry("gqlName", "domain_description"),
-                        Map.entry("osName", "domain_description")
-                    ),
-                    Map.ofEntries(
-                        Map.entry("gqlName", "repository_of_synonym_id"),
-                        Map.entry("osName", "repository_of_synonym_id")
-                    )
-                ))
             ),
 
             // Treatments
