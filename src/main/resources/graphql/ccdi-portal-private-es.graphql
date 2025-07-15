@@ -48,6 +48,7 @@ type CohortMetadataReturnObject {
 
     diagnoses: [DiagnosisOverviewResult]
     survivals: [SurvivalOverviewResult]
+    synonyms: [CpiDataReturnObject]
     treatments: [TreatmentOverviewResult]
     treatment_responses: [TreatmentResponseOverviewResult]
 }

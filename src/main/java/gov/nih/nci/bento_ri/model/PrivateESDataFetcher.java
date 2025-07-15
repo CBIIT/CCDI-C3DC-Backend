@@ -641,6 +641,34 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("osName", "survivals")
             ),
 
+            // Synonym
+            Map.ofEntries(
+                Map.entry("gqlName", "synonyms"),
+                Map.entry("osName", "synonyms"),
+                Map.entry("nested", List.of(
+                    Map.ofEntries(
+                        Map.entry("gqlName", "associated_id"),
+                        Map.entry("osName", "associated_id")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "data_location"),
+                        Map.entry("osName", "data_location")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "domain_category"),
+                        Map.entry("osName", "domain_category")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "domain_description"),
+                        Map.entry("osName", "domain_description")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "repository_of_synonym_id"),
+                        Map.entry("osName", "repository_of_synonym_id")
+                    )
+                ))
+            ),
+
             // Treatments
             Map.ofEntries(
                 Map.entry("gqlName", "treatments"),
@@ -663,36 +691,31 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("isNested", false)
             )),
 
-            // CPI data
+            // CPI Data
             Map.entry("synonym.associated_id", Map.ofEntries(
                 Map.entry("osName", "associated_id"),
                 Map.entry("isNested", true),
-                Map.entry("path", "cpi_data")
+                Map.entry("path", "synonyms")
             )),
             Map.entry("synonym.data_location", Map.ofEntries(
                 Map.entry("osName", "data_location"),
                 Map.entry("isNested", true),
-                Map.entry("path", "cpi_data")
-            )),
-            Map.entry("synonym.data_type", Map.ofEntries(
-                Map.entry("osName", "data_type"),
-                Map.entry("isNested", true),
-                Map.entry("path", "cpi_data")
+                Map.entry("path", "synonyms")
             )),
             Map.entry("synonym.domain_category", Map.ofEntries(
                 Map.entry("osName", "domain_category"),
                 Map.entry("isNested", true),
-                Map.entry("path", "cpi_data")
+                Map.entry("path", "synonyms")
             )),
             Map.entry("synonym.domain_description", Map.ofEntries(
                 Map.entry("osName", "domain_description"),
                 Map.entry("isNested", true),
-                Map.entry("path", "cpi_data")
+                Map.entry("path", "synonyms")
             )),
             Map.entry("synonym.repository_of_synonym_id", Map.ofEntries(
                 Map.entry("osName", "repository_of_synonym_id"),
                 Map.entry("isNested", true),
-                Map.entry("path", "cpi_data")
+                Map.entry("path", "synonyms")
             )),
 
             // Demographics
