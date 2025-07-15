@@ -623,10 +623,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         Map.entry("osName", "data_location")
                     ),
                     Map.ofEntries(
-                        Map.entry("gqlName", "data_type"),
-                        Map.entry("osName", "data_type")
-                    ),
-                    Map.ofEntries(
                         Map.entry("gqlName", "domain_category"),
                         Map.entry("osName", "domain_category")
                     ),
