@@ -611,8 +611,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
             // CPI data
             Map.ofEntries(
-                Map.entry("gqlName", "synonym"),
-                Map.entry("osName", "synonym"),
+                Map.entry("gqlName", "synonyms"),
+                Map.entry("osName", "synonyms"),
                 Map.entry("nested", List.of(
                     Map.ofEntries(
                         Map.entry("gqlName", "associated_id"),
@@ -678,27 +678,27 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             )),
 
             // CPI Data
-            Map.entry("synonym.associated_id", Map.ofEntries(
+            Map.entry("synonyms.associated_id", Map.ofEntries(
                 Map.entry("osName", "associated_id"),
                 Map.entry("isNested", true),
                 Map.entry("path", "synonyms")
             )),
-            Map.entry("synonym.data_location", Map.ofEntries(
+            Map.entry("synonyms.data_location", Map.ofEntries(
                 Map.entry("osName", "data_location"),
                 Map.entry("isNested", true),
                 Map.entry("path", "synonyms")
             )),
-            Map.entry("synonym.domain_category", Map.ofEntries(
+            Map.entry("synonyms.domain_category", Map.ofEntries(
                 Map.entry("osName", "domain_category"),
                 Map.entry("isNested", true),
                 Map.entry("path", "synonyms")
             )),
-            Map.entry("synonym.domain_description", Map.ofEntries(
+            Map.entry("synonyms.domain_description", Map.ofEntries(
                 Map.entry("osName", "domain_description"),
                 Map.entry("isNested", true),
                 Map.entry("path", "synonyms")
             )),
-            Map.entry("synonym.repository_of_synonym_id", Map.ofEntries(
+            Map.entry("synonyms.repository_of_synonym_id", Map.ofEntries(
                 Map.entry("osName", "repository_of_synonym_id"),
                 Map.entry("isNested", true),
                 Map.entry("path", "synonyms")
