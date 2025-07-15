@@ -597,6 +597,18 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("osName", "sex_at_birth")
             ),
 
+            // Diagnoses
+            Map.ofEntries(
+                Map.entry("gqlName", "diagnoses"),
+                Map.entry("osName", "diagnoses")
+            ),
+
+            // Survivals
+            Map.ofEntries(
+                Map.entry("gqlName", "survivals"),
+                Map.entry("osName", "survivals")
+            ),
+
             // CPI data
             Map.ofEntries(
                 Map.entry("gqlName", "synonym"),
@@ -629,18 +641,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 ))
             ),
 
-            // Diagnoses
-            Map.ofEntries(
-                Map.entry("gqlName", "diagnoses"),
-                Map.entry("osName", "diagnoses")
-            ),
-
-            // Survivals
-            Map.ofEntries(
-                Map.entry("gqlName", "survivals"),
-                Map.entry("osName", "survivals")
-            ),
-
             // Treatments
             Map.ofEntries(
                 Map.entry("gqlName", "treatments"),
@@ -660,6 +660,24 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             // Studies
             Map.entry("dbgap_accession", Map.ofEntries(
                 Map.entry("osName", "dbgap_accession"),
+                Map.entry("isNested", false)
+            )),
+
+            // Demographics
+            Map.entry("participant_pk", Map.ofEntries(
+                Map.entry("osName", "id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("participant_id", Map.ofEntries(
+                Map.entry("osName", "participant_id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("race", Map.ofEntries(
+                Map.entry("osName", "race"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("sex_at_birth", Map.ofEntries(
+                Map.entry("osName", "sex_at_birth"),
                 Map.entry("isNested", false)
             )),
 
@@ -688,24 +706,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("osName", "repository_of_synonym_id"),
                 Map.entry("isNested", true),
                 Map.entry("path", "synonyms")
-            )),
-
-            // Demographics
-            Map.entry("participant_pk", Map.ofEntries(
-                Map.entry("osName", "id"),
-                Map.entry("isNested", false)
-            )),
-            Map.entry("participant_id", Map.ofEntries(
-                Map.entry("osName", "participant_id"),
-                Map.entry("isNested", false)
-            )),
-            Map.entry("race", Map.ofEntries(
-                Map.entry("osName", "race"),
-                Map.entry("isNested", false)
-            )),
-            Map.entry("sex_at_birth", Map.ofEntries(
-                Map.entry("osName", "sex_at_birth"),
-                Map.entry("isNested", false)
             ))
         );
 
