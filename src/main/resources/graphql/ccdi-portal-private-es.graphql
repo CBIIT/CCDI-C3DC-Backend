@@ -46,7 +46,7 @@ type CohortMetadataReturnObject {
     # CPI Data
     diagnoses: [DiagnosisOverviewResult]
     survivals: [SurvivalOverviewResult]
-    synonyms: [CpiDataReturnObject]
+    synonyms: [NestedSynonym]
     treatments: [TreatmentOverviewResult]
     treatment_responses: [TreatmentResponseOverviewResult]
 }
@@ -55,6 +55,15 @@ type CpiDataReturnObject {
     associated_id: String
     data_location: String
     data_type: String
+    domain_category: String
+    domain_description: String
+    repository_of_synonym_id: String
+}
+
+type NestedSynonym {
+    id: String
+    associated_id: String
+    data_location: String
     domain_category: String
     domain_description: String
     repository_of_synonym_id: String

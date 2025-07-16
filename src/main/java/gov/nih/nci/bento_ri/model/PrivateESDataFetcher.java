@@ -615,6 +615,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("osName", "synonyms"),
                 Map.entry("nested", List.of(
                     Map.ofEntries(
+                        Map.entry("gqlName", "id"),
+                        Map.entry("osName", "id")
+                    ),
+                    Map.ofEntries(
                         Map.entry("gqlName", "associated_id"),
                         Map.entry("osName", "associated_id")
                     ),
@@ -678,6 +682,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             )),
 
             // CPI Data
+            Map.entry("synonyms.id", Map.ofEntries(
+                Map.entry("osName", "id"),
+                Map.entry("isNested", true),
+                Map.entry("path", "synonyms")
+            )),
             Map.entry("synonyms.associated_id", Map.ofEntries(
                 Map.entry("osName", "associated_id"),
                 Map.entry("isNested", true),
