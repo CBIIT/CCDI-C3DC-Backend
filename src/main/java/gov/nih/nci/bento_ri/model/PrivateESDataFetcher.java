@@ -621,12 +621,21 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             String type = (String) chartConfig.get("type");
             Map<String, Object> chartData = new HashMap<String, Object>();
             chartData.put("property", property);
+            int totalNumberOfParticipants = 0;
 
             // Obtain details for querying Opensearch
             Map<String, String> groupConfig = getGroupConfig(property);
             String cardinalityAggName = groupConfig.get("cardinality_agg_name");
             String endpoint = ENDPOINTS.get(groupConfig.get("index"));
             String indexName = groupConfig.get("index");
+
+            // If chart type is percentage, then count the total number of participants
+            if (type.equals("percentage")) {
+                Map<String, Object> combinedCohortParams = Map.of("participant_pk", cohortsCombined);
+                Map<String, Object> combinedCohortsQuery = inventoryESService.buildFacetFilterQuery(combinedCohortParams, RANGE_PARAMS, Set.of(), "participants");
+
+                totalNumberOfParticipants = inventoryESService.getCount(combinedCohortsQuery, "participants");
+            }
 
             // Prepare list of data for each cohort
             List<Map<String, Object>> cohortsData = new ArrayList<Map<String, Object>>();
@@ -640,7 +649,23 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
                 // Retrieve data for the cohort
                 List<Map<String, Object>> cohortGroupCounts = filterSubjectCountBy(property, cohortParams, endpoint, cardinalityAggName, indexName);
-                cohortData.put("participantsByGroup", cohortGroupCounts);
+
+                // If chart type is percentage, then replace counts with percentages
+                if (type.equals("percentage")) {
+                    List<Map<String, Object>> cohortGroupPercentages = new ArrayList<Map<String, Object>>();
+
+                    for (Map<String, Object> groupCount : cohortGroupCounts) {
+                        String group = (String) groupCount.get("group");
+                        int count = (Integer) groupCount.get("subjects");
+                        double percentage = totalNumberOfParticipants > 0 ? ((double) count / totalNumberOfParticipants) * 100 : 0.0;
+
+                        cohortGroupPercentages.add(Map.of("group", group, "subjects", percentage));
+                    }
+
+                    cohortData.put("participantsByGroup", cohortGroupPercentages);
+                } else if (type.equals("count")) {
+                    cohortData.put("participantsByGroup", cohortGroupCounts);
+                }
 
                 // Add cohort data to the list of cohorts
                 cohortsData.add(cohortData);
