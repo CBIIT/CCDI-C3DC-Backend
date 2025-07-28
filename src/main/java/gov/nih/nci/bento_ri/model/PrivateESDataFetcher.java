@@ -599,8 +599,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 @SuppressWarnings("unchecked")
                 List<String> castedCohort = (List<String>) cohortRaw;
                 cohort = castedCohort;
-                cohortsCombined.addAll(cohort);
-                cohorts.put(key, cohort);
+
+                if (!cohort.isEmpty()) {
+                    // Add cohort to combined list
+                    cohortsCombined.addAll(cohort);
+                    cohorts.put(key, cohort);
+                }
             }
         }
 
