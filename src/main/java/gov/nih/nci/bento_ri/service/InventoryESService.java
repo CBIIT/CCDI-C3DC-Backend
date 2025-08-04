@@ -232,6 +232,37 @@ public class InventoryESService extends ESService {
         return result;
     }
 
+    public List<String> getBucketNames(String property, Map<String, Object> params, Set<String> rangeParams, String cardinalityAggName, String index, String endpoint) throws IOException {
+        List<String> bucketNames = new ArrayList<String>();
+        Map<String, Object> query = buildFacetFilterQuery(params, rangeParams, Set.of(), index);
+
+        // TODO: buckets for numeric ranges, when such a feature is needed
+        // stub
+
+        // Add aggs clause to Opensearch query
+        String[] aggNames = new String[] {property};
+        query = addAggregations(query, aggNames, cardinalityAggName, List.of());
+
+        // Send Opensearch request and retrieve list of buckets
+        Request request = new Request("GET", endpoint);
+        String jsonizedRequest = gson.toJson(query);
+        request.setJsonEntity(jsonizedRequest);
+        JsonObject jsonObject = send(request);
+        Map<String, JsonArray> aggs = collectTermAggs(jsonObject, aggNames);
+        JsonArray buckets = aggs.get(property);
+
+        if (buckets != null) {
+            for (JsonElement bucket : buckets) {
+                JsonObject bucketObj = bucket.getAsJsonObject();
+                if (bucketObj.has("key")) {
+                    bucketNames.add(bucketObj.get("key").getAsString());
+                }
+            }
+        }
+
+        return bucketNames;
+    }
+
     /**
      * Queries the /_count Opensearch endpoint and returns the number of hits
      * @param query Opensearch query

@@ -46,6 +46,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String ORDER_BY = "order_by";
     final String SORT_DIRECTION = "sort_direction";
 
+    // Maximum numbers of buckets to show in cohort analyzer charts
+    final int COHORT_CHART_BUCKET_LIMIT_HIGH = 20;
+    final int COHORT_CHART_BUCKET_LIMIT_LOW = 5;
+
     final String STUDIES_FACET_END_POINT = "/study_participants/_search";
     final String COHORTS_END_POINT = "/cohorts/_search";
     final String PARTICIPANTS_END_POINT = "/participants/_search";
@@ -612,6 +616,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             return result;
         }
 
+        // TODO: use TypeChecker to cast
         chartConfigs = (List<Map<String, Object>>) params.get("charts");
 
         if (chartConfigs == null || chartConfigs.isEmpty()) {
@@ -626,6 +631,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map<String, Object> chartData = new HashMap<String, Object>();
             chartData.put("property", property);
             int totalNumberOfParticipants = 0;
+            List<String> bucketNames;
+            List<String> bucketNamesTopFew;
+            List<String> bucketNamesTopMany;
 
             // Obtain details for querying Opensearch
             Map<String, String> groupConfig = getGroupConfig(property);
@@ -633,9 +641,24 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             String endpoint = ENDPOINTS.get(groupConfig.get("index"));
             String indexName = groupConfig.get("index");
 
+            // Determine most populous buckets
+            Map<String, Object> combinedCohortParams = Map.of("participant_pk", cohortsCombined);
+            bucketNames = inventoryESService.getBucketNames(property, combinedCohortParams, RANGE_PARAMS, cardinalityAggName, indexName, endpoint);
+
+            if (bucketNames.size() > COHORT_CHART_BUCKET_LIMIT_LOW) {
+                bucketNamesTopFew = new ArrayList<>(bucketNames.subList(0, COHORT_CHART_BUCKET_LIMIT_LOW));
+            } else {
+                bucketNamesTopFew = new ArrayList<>(bucketNames);
+            }
+
+            if (bucketNames.size() > COHORT_CHART_BUCKET_LIMIT_HIGH) {
+                bucketNamesTopMany = new ArrayList<>(bucketNames.subList(0, COHORT_CHART_BUCKET_LIMIT_HIGH));
+            } else {
+                bucketNamesTopMany = new ArrayList<>(bucketNames);
+            }
+
             // If chart type is percentage, then count the total number of participants
             if (type.equals("percentage")) {
-                Map<String, Object> combinedCohortParams = Map.of("participant_pk", cohortsCombined);
                 Map<String, Object> combinedCohortsQuery = inventoryESService.buildFacetFilterQuery(combinedCohortParams, RANGE_PARAMS, Set.of(), "participants");
 
                 totalNumberOfParticipants = inventoryESService.getCount(combinedCohortsQuery, "participants");
@@ -653,12 +676,46 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
                 // Retrieve data for the cohort
                 List<Map<String, Object>> cohortGroupCounts = filterSubjectCountBy(property, cohortParams, endpoint, cardinalityAggName, indexName);
+                List<Map<String, Object>> cohortGroupCountsTruncated = new ArrayList<Map<String, Object>>();
+                int otherMany = 0;
+                int otherFew = 0;
+
+                // Format for efficient retrieval
+                Map<String, Object> groupsToSubjects = new HashMap<>();
+                for (Map<String, Object> groupCount : cohortGroupCounts) {
+                    String group = (String) groupCount.get("group");
+                    Object subjects = groupCount.get("subjects");
+                    groupsToSubjects.put(group, subjects);
+                }
+
+                // Add buckets and their counts to a truncated list of results
+                for (String bucketName : bucketNames) {
+                    Integer subjects = (Integer) groupsToSubjects.getOrDefault(bucketName, 0);
+
+                    if (bucketNamesTopMany.contains(bucketName)) {
+                        cohortGroupCountsTruncated.add(Map.of("group", bucketName, "subjects", subjects));
+
+                        if (!bucketNamesTopFew.contains(bucketName)) {
+                            otherFew += subjects;
+                        }
+                    } else {
+                        otherMany += subjects;
+                    }
+                }
+
+                if (bucketNames.size() > COHORT_CHART_BUCKET_LIMIT_LOW) {
+                    cohortGroupCountsTruncated.add(Map.of("group", "OtherFew", "subjects", otherFew));
+                }
+
+                if (bucketNames.size() > COHORT_CHART_BUCKET_LIMIT_HIGH) {
+                    cohortGroupCountsTruncated.add(Map.of("group", "OtherMany", "subjects", otherMany));
+                }
 
                 // If chart type is percentage, then replace counts with percentages
                 if (type.equals("percentage")) {
                     List<Map<String, Object>> cohortGroupPercentages = new ArrayList<Map<String, Object>>();
 
-                    for (Map<String, Object> groupCount : cohortGroupCounts) {
+                    for (Map<String, Object> groupCount : cohortGroupCountsTruncated) {
                         String group = (String) groupCount.get("group");
                         int count = (Integer) groupCount.get("subjects");
                         double percentage = totalNumberOfParticipants > 0 ? ((double) count / totalNumberOfParticipants) * 100 : 0.0;
@@ -668,7 +725,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
                     cohortData.put("participantsByGroup", cohortGroupPercentages);
                 } else if (type.equals("count")) {
-                    cohortData.put("participantsByGroup", cohortGroupCounts);
+                    cohortData.put("participantsByGroup", cohortGroupCountsTruncated);
                 }
 
                 // Add cohort data to the list of cohorts
