@@ -46,6 +46,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String ORDER_BY = "order_by";
     final String SORT_DIRECTION = "sort_direction";
 
+    // Maximum numbers of buckets to show in cohort analyzer charts
+    final int COHORT_CHART_BUCKET_LIMIT_HIGH = 20;
+    final int COHORT_CHART_BUCKET_LIMIT_LOW = 5;
+
     final String STUDIES_FACET_END_POINT = "/study_participants/_search";
     final String COHORTS_END_POINT = "/cohorts/_search";
     final String PARTICIPANTS_END_POINT = "/participants/_search";
@@ -131,6 +135,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return getParticipants(args);
                         })
+                        .dataFetcher("cohortCharts", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return cohortCharts(args);
+                        })
                         .dataFetcher("cohortMetadata", env -> {
                             Map<String, Object> args = env.getArguments();
                             return cohortMetadata(args);
@@ -199,7 +207,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private List<Map<String, Object>> subjectCountBy(String category, Map<String, Object> params, String endpoint, Map<String, Object> additionalParams, String cardinalityAggName, String indexType) throws IOException {
         Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE), indexType);
         List<String> only_includes;
-                List<String> valueSet = null;
+        List<String> valueSet = null;
         Object valueSetRaw = params.get(category);
 
         if (TypeChecker.isOfType(valueSetRaw, new TypeToken<List<String>>() {})) {
@@ -565,6 +573,217 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         caffeineCache.put(cacheKey, data);
 
         return data;
+    }
+
+    private List<Map<String, Object>> cohortCharts(Map<String, Object> params) throws IOException {
+        List<Map<String, Object>> chartConfigs = null;
+        Object chartConfigsRaw;
+        List<Map<String, Object>> charts = new ArrayList<Map<String, Object>>();
+        Map<String, Object> cohorts = new HashMap<String, Object>();
+        List<String> cohortsCombined = new ArrayList<String>();
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+
+        if (params == null || !params.containsKey("charts")) {
+            return List.of(); // No charts specified
+        }
+
+        if (!(params.containsKey("c1") || params.containsKey("c2") || params.containsKey("c3"))) {
+            return List.of(); // No cohorts specified
+        }
+
+        // Combine cohorts from c1, c2, c3 into a single list
+        for (String key : List.of("c1", "c2", "c3")) {
+            if (!params.containsKey(key)) {
+                continue;
+            }
+
+            Object cohortRaw = params.get(key);
+            List<String> cohort;
+
+            if (TypeChecker.isOfType(cohortRaw, new TypeToken<List<String>>() {})) {
+                @SuppressWarnings("unchecked")
+                List<String> castedCohort = (List<String>) cohortRaw;
+                cohort = castedCohort;
+
+                if (!cohort.isEmpty()) {
+                    // Add cohort to combined list
+                    cohortsCombined.addAll(cohort);
+                    cohorts.put(key, cohort);
+                }
+            }
+        }
+
+        if (cohortsCombined.isEmpty()) {
+            return result;
+        }
+
+        chartConfigsRaw = params.get("charts");
+        if (TypeChecker.isOfType(chartConfigsRaw, new TypeToken<List<Map<String, Object>>>() {})) {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> castedChartConfigs = (List<Map<String, Object>>) chartConfigsRaw;
+            chartConfigs = castedChartConfigs;
+        }
+
+        if (chartConfigs == null || chartConfigs.isEmpty()) {
+            return result;
+        }
+
+        // Allocate a map of Opensearch details for each property
+        HashMap<String, HashMap<String, String>> groupConfigs = new HashMap<>();
+        for (Map<String, Object> chartConfig : chartConfigs) {
+            String property = (String) chartConfig.get("property");
+            groupConfigs.put(property, new HashMap<String, String>());
+        }
+
+        // Retrieve Opensearch details for each property
+        for (String index : facetFilters.keySet()) {
+            List<Map<String, String>> facetFilterConfigs = facetFilters.get(index);
+            for (Map<String, String> facetFilterConfig : facetFilterConfigs) {
+                String aggName = facetFilterConfig.get("agg_name");
+                if (aggName != null && groupConfigs.containsKey(aggName)) {
+                    HashMap<String, String> groupConfig = new HashMap<>(facetFilterConfig);
+                    groupConfig.put("index", index);
+                    groupConfigs.put(aggName, groupConfig);
+                }
+            }
+        }
+
+        // Generate charts for each configuration
+        for (Map<String, Object> chartConfig : chartConfigs) {
+            // Prepare map that represents the entire chart
+            String property = (String) chartConfig.get("property");
+            String type = (String) chartConfig.get("type");
+            Map<String, Object> chartData = new HashMap<String, Object>();
+            chartData.put("property", property);
+            int totalNumberOfParticipants = 0;
+            List<String> bucketNames;
+            List<String> bucketNamesTopFew;
+            List<String> bucketNamesTopMany;
+
+            // Obtain details for querying Opensearch
+            Map<String, String> groupConfig = groupConfigs.get(property);
+            String cardinalityAggName = groupConfig.get("cardinality_agg_name");
+            String endpoint = ENDPOINTS.get(groupConfig.get("index"));
+            String indexName = groupConfig.get("index");
+
+            // Determine most populous buckets
+            Map<String, Object> combinedCohortParams = Map.of("participant_pk", cohortsCombined);
+            bucketNames = inventoryESService.getBucketNames(property, combinedCohortParams, RANGE_PARAMS, cardinalityAggName, indexName, endpoint);
+
+            if (bucketNames.size() > COHORT_CHART_BUCKET_LIMIT_LOW) {
+                bucketNamesTopFew = new ArrayList<>(bucketNames.subList(0, COHORT_CHART_BUCKET_LIMIT_LOW));
+            } else {
+                bucketNamesTopFew = new ArrayList<>(bucketNames);
+            }
+
+            if (bucketNames.size() > COHORT_CHART_BUCKET_LIMIT_HIGH) {
+                bucketNamesTopMany = new ArrayList<>(bucketNames.subList(0, COHORT_CHART_BUCKET_LIMIT_HIGH));
+            } else {
+                bucketNamesTopMany = new ArrayList<>(bucketNames);
+            }
+
+            // If chart type is percentage, then count the total number of participants
+            if (type.equals("percentage")) {
+                Map<String, Object> combinedCohortsQuery = inventoryESService.buildFacetFilterQuery(combinedCohortParams, RANGE_PARAMS, Set.of(), "participants");
+
+                totalNumberOfParticipants = inventoryESService.getCount(combinedCohortsQuery, "participants");
+            }
+
+            // Prepare list of data for each cohort
+            List<Map<String, Object>> cohortsData = new ArrayList<Map<String, Object>>();
+
+            // Retrieve data for each cohort
+            for (String cohortName : cohorts.keySet()) {
+                // Prepare map of data for the cohort
+                Map<String, Object> cohortData = new HashMap<String, Object>();
+                Map<String, Object> cohortParams = Map.of("participant_pk", cohorts.get(cohortName));
+                cohortData.put("cohort", cohortName);
+
+                // Retrieve data for the cohort
+                List<Map<String, Object>> cohortGroupCounts = filterSubjectCountBy(property, cohortParams, endpoint, cardinalityAggName, indexName);
+                List<Map<String, Object>> cohortGroupCountsTruncated = new ArrayList<Map<String, Object>>();
+                int otherMany = 0;
+                int otherFew = 0;
+
+                // Format for efficient retrieval
+                Map<String, Object> groupsToSubjects = new HashMap<>();
+                for (Map<String, Object> groupCount : cohortGroupCounts) {
+                    String group = (String) groupCount.get("group");
+                    Object subjects = groupCount.get("subjects");
+                    groupsToSubjects.put(group, subjects);
+                }
+
+                // Add buckets and their counts to a truncated list of results
+                for (String bucketName : bucketNames) {
+                    Integer subjects = (Integer) groupsToSubjects.getOrDefault(bucketName, 0);
+
+                    if (bucketNamesTopMany.contains(bucketName)) {
+                        cohortGroupCountsTruncated.add(Map.of("group", bucketName, "subjects", subjects));
+
+                    } else {
+                        otherMany += subjects;
+                    }
+
+                    if (!bucketNamesTopFew.contains(bucketName)) {
+                        otherFew += subjects;
+                    }
+                }
+
+                if (bucketNames.size() > COHORT_CHART_BUCKET_LIMIT_LOW) {
+                    cohortGroupCountsTruncated.add(Map.of("group", "OtherFew", "subjects", otherFew));
+                }
+
+                if (bucketNames.size() > COHORT_CHART_BUCKET_LIMIT_HIGH) {
+                    cohortGroupCountsTruncated.add(Map.of("group", "OtherMany", "subjects", otherMany));
+                }
+
+                // If chart type is percentage, then replace counts with percentages
+                if (type.equals("percentage")) {
+                    List<Map<String, Object>> cohortGroupPercentages = new ArrayList<Map<String, Object>>();
+
+                    for (Map<String, Object> groupCount : cohortGroupCountsTruncated) {
+                        String group = (String) groupCount.get("group");
+                        int count = (Integer) groupCount.get("subjects");
+                        double percentage = totalNumberOfParticipants > 0 ? ((double) count / totalNumberOfParticipants) * 100 : 0.0;
+
+                        cohortGroupPercentages.add(Map.of("group", group, "subjects", percentage));
+                    }
+
+                    cohortData.put("participantsByGroup", cohortGroupPercentages);
+                } else if (type.equals("count")) {
+                    cohortData.put("participantsByGroup", cohortGroupCountsTruncated);
+                }
+
+                // Add cohort data to the list of cohorts
+                cohortsData.add(cohortData);
+            }
+
+            // Add list of all cohorts' data to the chart
+            chartData.put("cohorts", cohortsData);
+
+            // Add chart to the list of charts
+            charts.add(chartData);
+        }
+
+        return charts;
+    }
+
+    private Map<String, String> getGroupConfig(String propertyName) {
+        for (String index : facetFilters.keySet()) {
+            List<Map<String, String>> groupConfigs = facetFilters.get(index);
+
+            for (Map<String, String> groupConfig : groupConfigs) {
+                String aggName = groupConfig.get("agg_name");
+
+                if (aggName != null && aggName.equals(propertyName)) {
+                    Map<String, String> modifiedGroupConfig = new HashMap<>(groupConfig);
+                    modifiedGroupConfig.put("index", index);
+                    return modifiedGroupConfig;
+                }
+            }
+        }
+
+        return null;
     }
 
     private List<Map<String, Object>> cohortMetadata(Map<String, Object> params) throws IOException {

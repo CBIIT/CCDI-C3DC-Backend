@@ -1,3 +1,13 @@
+input CohortChartConfigChart {
+    property: String
+    type: CohortChartType
+}
+
+enum CohortChartType {
+    count
+    percentage
+}
+
 type GS_About {
     page: String
     title: String
@@ -27,7 +37,7 @@ type ParticipantResult {
 
 type SearchParticipantsReturnObject {
     group: String
-    subjects: Int
+    subjects: Float
 }
 
 type NestedParticipant {
@@ -143,6 +153,16 @@ type ParticipantOverviewResult {
 
     # Additional fields for download
     study_id: String
+}
+
+type CohortChartsResult {
+    property: String
+    cohorts: [CohortChartReturnObject]
+}
+
+type CohortChartReturnObject {
+    cohort: String
+    participantsByGroup: [SearchParticipantsReturnObject]
 }
 
 type CohortMetadataResult {
@@ -273,7 +293,7 @@ schema {
 type QueryType {
     esVersion: String
     findParticipantIdsInList(participant_id: [String] = []): [ParticipantResult]
-    globalSearch (input: String, first: Int = 10, offset: Int = 0): GlobalSearchResult
+    globalSearch(input: String, first: Int = 10, offset: Int = 0): GlobalSearchResult
 
     idsLists: IdsListsES
     
@@ -284,6 +304,13 @@ type QueryType {
     numberOfSurvivals: Int
     numberOfTreatments: Int
     numberOfTreatmentResponses: Int
+
+    cohortCharts(
+        c1: [String],
+        c2: [String],
+        c3: [String],
+        charts: [CohortChartConfigChart]
+    ): [CohortChartsResult]
 
     cohortMetadata(
         # Demographics
@@ -296,7 +323,7 @@ type QueryType {
         sort_direction: String = ""
     ): [CohortMetadataResult]
 
-    getParticipants (
+    getParticipants(
         # Demographics
         participant_pk: [String]
         participant_id: [String] = [""],
@@ -334,7 +361,7 @@ type QueryType {
         response_system: [String] = [""]
     ): GetParticipantsResult
 
-    participantOverview (
+    participantOverview(
         # Demographics
         participant_pk: [String]
         participant_id: [String] = [""],
@@ -378,7 +405,7 @@ type QueryType {
         sort_direction: String = ""
     ): [ParticipantOverviewResult]
 
-    diagnosisOverview (
+    diagnosisOverview(
         # Demographics
         participant_pk: [String]
         participant_id: [String] = [""],
@@ -422,7 +449,7 @@ type QueryType {
         sort_direction: String = ""
     ): [DiagnosisOverviewResult]
     
-    studyOverview (
+    studyOverview(
         # Demographics
         participant_pk: [String]
         participant_id: [String] = [""],
@@ -466,7 +493,7 @@ type QueryType {
         sort_direction: String = ""
     ): [StudyOverviewResult]
 
-    survivalOverview (
+    survivalOverview(
         # Demographics
         participant_pk: [String]
         participant_id: [String] = [""],
@@ -510,7 +537,7 @@ type QueryType {
         sort_direction: String = ""
     ): [SurvivalOverviewResult]
 
-    treatmentOverview (
+    treatmentOverview(
         # Demographics
         participant_pk: [String]
         participant_id: [String] = [""],
@@ -554,7 +581,7 @@ type QueryType {
         sort_direction: String = ""
     ): [TreatmentOverviewResult]
 
-    treatmentResponseOverview (
+    treatmentResponseOverview(
         # Demographics
         participant_pk: [String]
         participant_id: [String] = [""],
