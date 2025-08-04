@@ -576,7 +576,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private List<Map<String, Object>> cohortCharts(Map<String, Object> params) throws IOException {
-        List<Map<String, Object>> chartConfigs;
+        List<Map<String, Object>> chartConfigs = null;
+        Object chartConfigsRaw;
         List<Map<String, Object>> charts = new ArrayList<Map<String, Object>>();
         Map<String, Object> cohorts = new HashMap<String, Object>();
         List<String> cohortsCombined = new ArrayList<String>();
@@ -616,11 +617,35 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             return result;
         }
 
-        // TODO: use TypeChecker to cast
-        chartConfigs = (List<Map<String, Object>>) params.get("charts");
+        chartConfigsRaw = params.get("charts");
+        if (TypeChecker.isOfType(chartConfigsRaw, new TypeToken<List<Map<String, Object>>>() {})) {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> castedChartConfigs = (List<Map<String, Object>>) chartConfigsRaw;
+            chartConfigs = castedChartConfigs;
+        }
 
         if (chartConfigs == null || chartConfigs.isEmpty()) {
             return result;
+        }
+
+        // Allocate a map of Opensearch details for each property
+        HashMap<String, HashMap<String, String>> groupConfigs = new HashMap<>();
+        for (Map<String, Object> chartConfig : chartConfigs) {
+            String property = (String) chartConfig.get("property");
+            groupConfigs.put(property, new HashMap<String, String>());
+        }
+
+        // Retrieve Opensearch details for each property
+        for (String index : facetFilters.keySet()) {
+            List<Map<String, String>> facetFilterConfigs = facetFilters.get(index);
+            for (Map<String, String> facetFilterConfig : facetFilterConfigs) {
+                String aggName = facetFilterConfig.get("agg_name");
+                if (aggName != null && groupConfigs.containsKey(aggName)) {
+                    HashMap<String, String> groupConfig = new HashMap<>(facetFilterConfig);
+                    groupConfig.put("index", index);
+                    groupConfigs.put(aggName, groupConfig);
+                }
+            }
         }
 
         // Generate charts for each configuration
@@ -636,7 +661,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             List<String> bucketNamesTopMany;
 
             // Obtain details for querying Opensearch
-            Map<String, String> groupConfig = getGroupConfig(property);
+            Map<String, String> groupConfig = groupConfigs.get(property);
             String cardinalityAggName = groupConfig.get("cardinality_agg_name");
             String endpoint = ENDPOINTS.get(groupConfig.get("index"));
             String indexName = groupConfig.get("index");
@@ -695,11 +720,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     if (bucketNamesTopMany.contains(bucketName)) {
                         cohortGroupCountsTruncated.add(Map.of("group", bucketName, "subjects", subjects));
 
-                        if (!bucketNamesTopFew.contains(bucketName)) {
-                            otherFew += subjects;
-                        }
                     } else {
                         otherMany += subjects;
+                    }
+
+                    if (!bucketNamesTopFew.contains(bucketName)) {
+                        otherFew += subjects;
                     }
                 }
 
