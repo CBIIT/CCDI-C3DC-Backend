@@ -1277,14 +1277,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
             // Additional fields for download
             Map.ofEntries(
-                Map.entry("gqlName", "consent"),
-                Map.entry("osName", "consent")
-            ),
-            Map.ofEntries(
-                Map.entry("gqlName", "consent_number"),
-                Map.entry("osName", "consent_number_str")
-            ),
-            Map.ofEntries(
                 Map.entry("gqlName", "external_url"),
                 Map.entry("osName", "external_url")
             ),
@@ -1316,14 +1308,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             )),
 
             // Additional fields for download
-            Map.entry("consent", Map.ofEntries(
-                Map.entry("osName", "consent"),
-                Map.entry("isNested", false)
-            )),
-            Map.entry("consent_number", Map.ofEntries(
-                Map.entry("osName", "consent_number"),
-                Map.entry("isNested", false)
-            )),
             Map.entry("external_url", Map.ofEntries(
                 Map.entry("osName", "external_url"),
                 Map.entry("isNested", false)

@@ -207,8 +207,6 @@ type StudyOverviewResult {
     study_name: String
 
     # Additional fields for download
-    consent: String
-    consent_number: String
     external_url: String
     study_description: String
     study_id: String
