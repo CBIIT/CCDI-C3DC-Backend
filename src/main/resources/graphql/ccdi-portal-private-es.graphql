@@ -61,6 +61,15 @@ type CohortMetadataReturnObject {
     treatment_responses: [TreatmentResponseOverviewResult]
 }
 
+type CohortMetadataConsentGroup {
+    # Consent Group data
+    consent_group_name: String
+    consent_group_number: String
+
+    # Participant data
+    participants: [CohortMetadataReturnObject]
+}
+
 type CpiDataReturnObject {
     associated_id: String
     data_location: String
@@ -169,7 +178,7 @@ type CohortMetadataResult {
     # Study
     dbgap_accession: String
 
-    participants: [CohortMetadataReturnObject]
+    consent_groups: [CohortMetadataConsentGroup]
 }
 
 type DiagnosisOverviewResult {
