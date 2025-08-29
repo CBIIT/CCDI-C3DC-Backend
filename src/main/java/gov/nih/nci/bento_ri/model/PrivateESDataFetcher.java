@@ -788,14 +788,25 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<Map<String, Object>> cohortMetadata(Map<String, Object> params) throws IOException {
         List<Map<String, Object>> participants;
-        Map<String, List<Map<String, Object>>> participantsByStudy = new HashMap<String, List<Map<String, Object>>>();
-        List<Map<String, Object>> listOfParticipantsByStudy = new ArrayList<Map<String, Object>>();
+        Map<String, Map<String, List<Map<String, Object>>>> participantsByConsentGroupByStudy = new HashMap<String, Map<String, List<Map<String, Object>>>>();
+        Map<String, Map<String, Map<String, Object>>> consentGroupsByStudy = new HashMap<String, Map<String, Map<String, Object>>>();
+        List<Map<String, Object>> listOfConsentGroupsByStudy = new ArrayList<Map<String, Object>>();
 
         final List<Map<String, Object>> PROPERTIES = List.of(
             // Studies
             Map.ofEntries(
                 Map.entry("gqlName", "dbgap_accession"),
                 Map.entry("osName", "dbgap_accession")
+            ),
+
+            // Consent Groups
+            Map.ofEntries(
+                Map.entry("gqlName", "consent_group_name"),
+                Map.entry("osName", "consent_group_name")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "consent_group_number"),
+                Map.entry("osName", "consent_group_number")
             ),
 
             // Demographics
@@ -882,6 +893,16 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("isNested", false)
             )),
 
+            // Consent Groups
+            Map.entry("consent_group_name", Map.ofEntries(
+                Map.entry("osName", "consent_group_name"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("consent_group_number", Map.ofEntries(
+                Map.entry("osName", "consent_group_number"),
+                Map.entry("isNested", false)
+            )),
+
             // Demographics
             Map.entry("participant_pk", Map.ofEntries(
                 Map.entry("osName", "id"),
@@ -935,28 +956,55 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         participants = overview(COHORTS_END_POINT, params, PROPERTIES, defaultSort, mapping, "participants");
 
-        // Restructure the data to a map, keyed by dbgap_accession
+        // Group participants by consent group and prepare final mapping
         participants.forEach((Map<String, Object> participant) -> {
             String dbgapAccession = (String) participant.get("dbgap_accession");
+            String consentGroupName = (String) participant.get("consent_group_name");
+            String consentGroupNumber = (String) participant.get("consent_group_number");
 
-            if (participantsByStudy.containsKey(dbgapAccession)) {
-                participantsByStudy.get(dbgapAccession).add(participant);
-            } else {
-                participantsByStudy.put(dbgapAccession, new ArrayList<Map<String, Object>>(
-                    List.of(participant)
-                ));
+            // Make sure mappings exist for the study
+            if (!consentGroupsByStudy.containsKey(dbgapAccession)) {
+                consentGroupsByStudy.put(dbgapAccession, new HashMap<String, Map<String, Object>>());
             }
+
+            if (!participantsByConsentGroupByStudy.containsKey(dbgapAccession)) {
+                participantsByConsentGroupByStudy.put(dbgapAccession, new HashMap<String, List<Map<String, Object>>>());
+            }
+
+            // Make sure mappings exist for the consent group
+            if (!consentGroupsByStudy.get(dbgapAccession).containsKey(consentGroupName)) {
+                Map<String, Object> consentGroup = new HashMap<String, Object>();
+
+                consentGroup.put("consent_group_name", consentGroupName);
+                consentGroup.put("consent_group_number", consentGroupNumber);
+                consentGroup.put("participants", new ArrayList<Map<String, Object>>());
+                consentGroupsByStudy.get(dbgapAccession).put(consentGroupName, consentGroup);
+            }
+
+            if (!participantsByConsentGroupByStudy.get(dbgapAccession).containsKey(consentGroupName)) {
+                participantsByConsentGroupByStudy.get(dbgapAccession).put(consentGroupName, new ArrayList<Map<String, Object>>());
+            }
+
+            participantsByConsentGroupByStudy.get(dbgapAccession).get(consentGroupName).add(participant);
         });
 
-        // Restructure the map to a list
-        participantsByStudy.forEach((accession, people) -> {
-            listOfParticipantsByStudy.add(Map.ofEntries(
+        // Add participants to consent group objects
+        participantsByConsentGroupByStudy.forEach((accession, participantsByConsentGroup) -> {
+            participantsByConsentGroup.forEach((consentGroupName, participantsList) -> {
+                consentGroupsByStudy.get(accession).get(consentGroupName).put("participants", participantsList);
+            });
+        });
+
+        // Structure a list of studies to return
+        // Study->Consent Group->Participant
+        consentGroupsByStudy.forEach((accession, consentGroups) -> {
+            listOfConsentGroupsByStudy.add(Map.ofEntries(
                 Map.entry("dbgap_accession", accession),
-                Map.entry("participants", people)
+                Map.entry("consent_groups", consentGroups.values())
             ));
         });
 
-        return listOfParticipantsByStudy;
+        return listOfConsentGroupsByStudy;
     }
 
     private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
