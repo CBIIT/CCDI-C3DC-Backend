@@ -788,9 +788,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<Map<String, Object>> cohortMetadata(Map<String, Object> params) throws IOException {
         List<Map<String, Object>> participants;
-        Map<String, Map<String, List<Map<String, Object>>>> participantsByConsentGroupByStudy = new HashMap<String, Map<String, List<Map<String, Object>>>>();
         Map<String, Map<String, Map<String, Object>>> consentGroupsByStudy = new HashMap<String, Map<String, Map<String, Object>>>();
-        List<Map<String, Object>> listOfConsentGroupsByStudy = new ArrayList<Map<String, Object>>();
+        List<Map<String, Object>> listOfStudies = new ArrayList<Map<String, Object>>();
 
         final List<Map<String, Object>> PROPERTIES = List.of(
             // Studies
@@ -956,22 +955,18 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         participants = overview(COHORTS_END_POINT, params, PROPERTIES, defaultSort, mapping, "participants");
 
-        // Group participants by consent group and prepare final mapping
+        // Group participants by consent group and then by study
         participants.forEach((Map<String, Object> participant) -> {
             String dbgapAccession = (String) participant.get("dbgap_accession");
             String consentGroupName = (String) participant.get("consent_group_name");
             String consentGroupNumber = (String) participant.get("consent_group_number");
 
-            // Make sure mappings exist for the study
+            // Make sure a mapping exists for the study
             if (!consentGroupsByStudy.containsKey(dbgapAccession)) {
                 consentGroupsByStudy.put(dbgapAccession, new HashMap<String, Map<String, Object>>());
             }
 
-            if (!participantsByConsentGroupByStudy.containsKey(dbgapAccession)) {
-                participantsByConsentGroupByStudy.put(dbgapAccession, new HashMap<String, List<Map<String, Object>>>());
-            }
-
-            // Make sure mappings exist for the consent group
+            // Make sure a mapping exists for the consent group
             if (!consentGroupsByStudy.get(dbgapAccession).containsKey(consentGroupName)) {
                 Map<String, Object> consentGroup = new HashMap<String, Object>();
 
@@ -981,30 +976,22 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 consentGroupsByStudy.get(dbgapAccession).put(consentGroupName, consentGroup);
             }
 
-            if (!participantsByConsentGroupByStudy.get(dbgapAccession).containsKey(consentGroupName)) {
-                participantsByConsentGroupByStudy.get(dbgapAccession).put(consentGroupName, new ArrayList<Map<String, Object>>());
-            }
-
-            participantsByConsentGroupByStudy.get(dbgapAccession).get(consentGroupName).add(participant);
-        });
-
-        // Add participants to consent group objects
-        participantsByConsentGroupByStudy.forEach((accession, participantsByConsentGroup) -> {
-            participantsByConsentGroup.forEach((consentGroupName, participantsList) -> {
-                consentGroupsByStudy.get(accession).get(consentGroupName).put("participants", participantsList);
-            });
+            // Add to the consent group's list of participants
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> participantsList = (List<Map<String, Object>>) consentGroupsByStudy.get(dbgapAccession).get(consentGroupName).get("participants");
+            participantsList.add(participant);
         });
 
         // Structure a list of studies to return
         // Study->Consent Group->Participant
         consentGroupsByStudy.forEach((accession, consentGroups) -> {
-            listOfConsentGroupsByStudy.add(Map.ofEntries(
+            listOfStudies.add(Map.ofEntries(
                 Map.entry("dbgap_accession", accession),
                 Map.entry("consent_groups", consentGroups.values())
             ));
         });
 
-        return listOfConsentGroupsByStudy;
+        return listOfStudies;
     }
 
     private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
