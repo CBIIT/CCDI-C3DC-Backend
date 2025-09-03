@@ -788,14 +788,24 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<Map<String, Object>> cohortMetadata(Map<String, Object> params) throws IOException {
         List<Map<String, Object>> participants;
-        Map<String, List<Map<String, Object>>> participantsByStudy = new HashMap<String, List<Map<String, Object>>>();
-        List<Map<String, Object>> listOfParticipantsByStudy = new ArrayList<Map<String, Object>>();
+        Map<String, Map<String, Map<String, Object>>> consentGroupsByStudy = new HashMap<String, Map<String, Map<String, Object>>>();
+        List<Map<String, Object>> listOfStudies = new ArrayList<Map<String, Object>>();
 
         final List<Map<String, Object>> PROPERTIES = List.of(
             // Studies
             Map.ofEntries(
                 Map.entry("gqlName", "dbgap_accession"),
                 Map.entry("osName", "dbgap_accession")
+            ),
+
+            // Consent Groups
+            Map.ofEntries(
+                Map.entry("gqlName", "consent_group_name"),
+                Map.entry("osName", "consent_group_name")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "consent_group_number"),
+                Map.entry("osName", "consent_group_number")
             ),
 
             // Demographics
@@ -882,6 +892,16 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("isNested", false)
             )),
 
+            // Consent Groups
+            Map.entry("consent_group_name", Map.ofEntries(
+                Map.entry("osName", "consent_group_name"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("consent_group_number", Map.ofEntries(
+                Map.entry("osName", "consent_group_number"),
+                Map.entry("isNested", false)
+            )),
+
             // Demographics
             Map.entry("participant_pk", Map.ofEntries(
                 Map.entry("osName", "id"),
@@ -935,28 +955,43 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         participants = overview(COHORTS_END_POINT, params, PROPERTIES, defaultSort, mapping, "participants");
 
-        // Restructure the data to a map, keyed by dbgap_accession
+        // Group participants by consent group and then by study
         participants.forEach((Map<String, Object> participant) -> {
             String dbgapAccession = (String) participant.get("dbgap_accession");
+            String consentGroupName = (String) participant.get("consent_group_name");
+            String consentGroupNumber = (String) participant.get("consent_group_number");
 
-            if (participantsByStudy.containsKey(dbgapAccession)) {
-                participantsByStudy.get(dbgapAccession).add(participant);
-            } else {
-                participantsByStudy.put(dbgapAccession, new ArrayList<Map<String, Object>>(
-                    List.of(participant)
-                ));
+            // Make sure a mapping exists for the study
+            if (!consentGroupsByStudy.containsKey(dbgapAccession)) {
+                consentGroupsByStudy.put(dbgapAccession, new HashMap<String, Map<String, Object>>());
             }
+
+            // Make sure a mapping exists for the consent group
+            if (!consentGroupsByStudy.get(dbgapAccession).containsKey(consentGroupName)) {
+                Map<String, Object> consentGroup = new HashMap<String, Object>();
+
+                consentGroup.put("consent_group_name", consentGroupName);
+                consentGroup.put("consent_group_number", consentGroupNumber);
+                consentGroup.put("participants", new ArrayList<Map<String, Object>>());
+                consentGroupsByStudy.get(dbgapAccession).put(consentGroupName, consentGroup);
+            }
+
+            // Add to the consent group's list of participants
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> participantsList = (List<Map<String, Object>>) consentGroupsByStudy.get(dbgapAccession).get(consentGroupName).get("participants");
+            participantsList.add(participant);
         });
 
-        // Restructure the map to a list
-        participantsByStudy.forEach((accession, people) -> {
-            listOfParticipantsByStudy.add(Map.ofEntries(
+        // Structure a list of studies to return
+        // Study->Consent Group->Participant
+        consentGroupsByStudy.forEach((accession, consentGroups) -> {
+            listOfStudies.add(Map.ofEntries(
                 Map.entry("dbgap_accession", accession),
-                Map.entry("participants", people)
+                Map.entry("consent_groups", consentGroups.values())
             ));
         });
 
-        return listOfParticipantsByStudy;
+        return listOfStudies;
     }
 
     private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
@@ -1277,14 +1312,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
             // Additional fields for download
             Map.ofEntries(
-                Map.entry("gqlName", "consent"),
-                Map.entry("osName", "consent")
-            ),
-            Map.ofEntries(
-                Map.entry("gqlName", "consent_number"),
-                Map.entry("osName", "consent_number_str")
-            ),
-            Map.ofEntries(
                 Map.entry("gqlName", "external_url"),
                 Map.entry("osName", "external_url")
             ),
@@ -1316,14 +1343,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             )),
 
             // Additional fields for download
-            Map.entry("consent", Map.ofEntries(
-                Map.entry("osName", "consent"),
-                Map.entry("isNested", false)
-            )),
-            Map.entry("consent_number", Map.ofEntries(
-                Map.entry("osName", "consent_number"),
-                Map.entry("isNested", false)
-            )),
             Map.entry("external_url", Map.ofEntries(
                 Map.entry("osName", "external_url"),
                 Map.entry("isNested", false)
