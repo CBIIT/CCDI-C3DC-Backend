@@ -209,6 +209,26 @@ type DiagnosisOverviewResult {
     tumor_stage_clinical_t: String
 }
 
+type GeneticAnalysisOverviewResult {
+    # Demographics
+    participant: NestedParticipant
+
+    # Genetic Analysis
+    id: String # For selecting record
+    genetic_analysis_id: String
+    alteration: String
+    cytoband: String
+    gene_symbol: String
+    genomic_source_category: String
+    hgvs_coding: String
+    hgvs_genome: String
+    hgvs_protein: String
+    status: String
+    test: String
+    reported_significance: String
+    reported_significance_system: String
+}
+
 type StudyOverviewResult {
     # Study
     id: String # For selecting record
@@ -456,6 +476,50 @@ type QueryType {
         sort_direction: String = ""
     ): [DiagnosisOverviewResult]
     
+    geneticAnalysisOverview(
+        # Demographics
+        participant_pk: [String]
+        participant_id: [String] = [""],
+        race: [String] = [""],
+        sex_at_birth: [String] = [""],
+
+        # Diagnoses
+        age_at_diagnosis: [Int] = [0],
+        anatomic_site: [String] = [""],
+        diagnosis: [String] = [""],
+        diagnosis_classification_system: [String] = [""],
+        diagnosis_basis: [String] = [""],
+        disease_phase: [String] = [""]
+
+        # Studies
+        dbgap_accession: [String] = [""],
+        study_name: [String] = [""],
+
+        # Survivals
+        age_at_last_known_survival_status: [Int] = [0],
+        cause_of_death: [String] = [""],
+        first_event: [String] = [""],
+        last_known_survival_status: [String] = [""]
+
+        # Treatments
+        age_at_treatment_start: [Int] = [0],
+        age_at_treatment_end: [Int] = [0],
+        treatment_type: [String] = [""],
+        treatment_agent: [String] = [""],
+
+        # Treatment Responses
+        response: [String] = [""],
+        age_at_response: [Int] = [0],
+        response_category: [String] = [""],
+        response_system: [String] = [""]
+
+        # Table config
+        first: Int = 10,
+        offset: Int = 0,
+        order_by: String = "",
+        sort_direction: String = ""
+    ): [GeneticAnalysisOverviewResult]
+
     studyOverview(
         # Demographics
         participant_pk: [String]

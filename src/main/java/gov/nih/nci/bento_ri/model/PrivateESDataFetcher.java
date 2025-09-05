@@ -52,6 +52,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     final String STUDIES_FACET_END_POINT = "/study_participants/_search";
     final String COHORTS_END_POINT = "/cohorts/_search";
+    final String GENETIC_ANALYSES_END_POINT = "/genetic_analyses/_search";
     final String PARTICIPANTS_END_POINT = "/participants/_search";
     final String SURVIVALS_END_POINT = "/survivals/_search";
     final String SYNONYMS_END_POINT = "/synonyms/_search";
@@ -63,6 +64,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String SAMPLES_END_POINT = "/samples/_search";
     final Map<String, String> ENDPOINTS = Map.ofEntries(
         Map.entry("diagnoses", DIAGNOSES_END_POINT),
+        Map.entry("genetic_analyses", GENETIC_ANALYSES_END_POINT),
         Map.entry("participants", PARTICIPANTS_END_POINT),
         Map.entry("studies", STUDIES_END_POINT),
         Map.entry("survivals", SURVIVALS_END_POINT),
@@ -150,6 +152,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         .dataFetcher("diagnosisOverview", env -> {
                             Map<String, Object> args = env.getArguments();
                             return diagnosisOverview(args);
+                        })
+                        .dataFetcher("geneticAnalysisOverview", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return geneticAnalysisOverview(args);
                         })
                         .dataFetcher("studyOverview", env -> {
                             Map<String, Object> args = env.getArguments();
@@ -1292,6 +1298,157 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         );
 
         return overview(DIAGNOSES_END_POINT, params, PROPERTIES, defaultSort, mapping, "diagnoses");
+    }
+
+    private List<Map<String, Object>> geneticAnalysisOverview(Map<String, Object> params) throws IOException {
+        final List<Map<String, Object>> PROPERTIES = List.of(
+            // Genetic Analysis
+            Map.ofEntries(
+                Map.entry("gqlName", "id"),
+                Map.entry("osName", "id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "genetic_analysis_id"),
+                Map.entry("osName", "genetic_analysis_id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "alteration"),
+                Map.entry("osName", "alteration")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "cytoband"),
+                Map.entry("osName", "cytoband")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "gene_symbol"),
+                Map.entry("osName", "gene_symbol")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "genomic_source_category"),
+                Map.entry("osName", "genomic_source_category")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "hgvs_coding"),
+                Map.entry("osName", "hgvs_coding")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "hgvs_genome"),
+                Map.entry("osName", "hgvs_genome")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "hgvs_protein"),
+                Map.entry("osName", "hgvs_protein")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "status"),
+                Map.entry("osName", "status")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "test"),
+                Map.entry("osName", "test")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "reported_significance"),
+                Map.entry("osName", "reported_significance")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "reported_significance_system"),
+                Map.entry("osName", "reported_significance_system")
+            ),
+
+            // Demographics
+            Map.ofEntries(
+                Map.entry("gqlName", "participant"),
+                Map.entry("osName", "participant"),
+                Map.entry("nested", List.of(
+                    Map.ofEntries(
+                        Map.entry("gqlName", "id"),
+                        Map.entry("osName", "id")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "participant_id"),
+                        Map.entry("osName", "participant_id")
+                    ),
+
+                    // Additional fields for Cohort manifest download
+                    Map.ofEntries(
+                        Map.entry("gqlName", "race"),
+                        Map.entry("osName", "race_str")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "sex_at_birth"),
+                        Map.entry("osName", "sex_at_birth")
+                    )
+                ))
+            )
+        );
+
+        String defaultSort = "genetic_analysis_id"; // Default sort order
+
+        Map<String, Map<String, Object>> mapping = Map.ofEntries(
+            // Genetic Analysis
+            Map.entry("id", Map.ofEntries(
+                Map.entry("osName", "id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("genetic_analysis_id", Map.ofEntries(
+                Map.entry("osName", "genetic_analysis_id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("alteration", Map.ofEntries(
+                Map.entry("osName", "alteration"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("cytoband", Map.ofEntries(
+                Map.entry("osName", "cytoband"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("gene_symbol", Map.ofEntries(
+                Map.entry("osName", "gene_symbol"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("genomic_source_category", Map.ofEntries(
+                Map.entry("osName", "genomic_source_category"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("hgvs_coding", Map.ofEntries(
+                Map.entry("osName", "hgvs_coding"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("hgvs_genome", Map.ofEntries(
+                Map.entry("osName", "hgvs_genome"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("hgvs_protein", Map.ofEntries(
+                Map.entry("osName", "hgvs_protein"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("status", Map.ofEntries(
+                Map.entry("osName", "status"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("test", Map.ofEntries(
+                Map.entry("osName", "test"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("reported_significance", Map.ofEntries(
+                Map.entry("osName", "reported_significance"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("reported_significance_system", Map.ofEntries(
+                Map.entry("osName", "reported_significance_system"),
+                Map.entry("isNested", false)
+            )),
+
+            // Demographics
+            Map.entry("participant.participant_id", Map.ofEntries(
+                Map.entry("osName", "participant_id"),
+                Map.entry("isNested", true),
+                Map.entry("path", "participant")
+            ))
+        );
+
+        return overview(GENETIC_ANALYSES_END_POINT, params, PROPERTIES, defaultSort, mapping, "genetic_analyses");
     }
 
     private List<Map<String, Object>> studyOverview(Map<String, Object> params) throws IOException {
