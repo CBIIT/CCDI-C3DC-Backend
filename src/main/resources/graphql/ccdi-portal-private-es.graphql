@@ -43,7 +43,7 @@ type SearchParticipantsReturnObject {
 type NestedParticipant {
     id: String
     participant_id: String
-    race: String
+    race: [String]
     sex_at_birth: String
 }
 
@@ -161,7 +161,7 @@ type ParticipantOverviewResult {
     # Demographics
     id: String # For adding to cohort
     participant_id: String # For display
-    race: String
+    race: [String]
     sex_at_birth: String
 
     # CPI Data
@@ -199,9 +199,9 @@ type DiagnosisOverviewResult {
     id: String # For selecting record
     age_at_diagnosis: String
     anatomic_site: String
-    diagnosis_basis: String
+    diagnosis_basis: [String]
     diagnosis: String
-    diagnosis_classification_system: String
+    diagnosis_classification_system: [String]
     disease_phase: String
     tumor_classification: String
 
@@ -287,7 +287,6 @@ type TreatmentOverviewResult {
     age_at_treatment_end: String
     treatment_type: String
     treatment_agent: [String]
-    treatment_agent_str: String
 }
 
 type TreatmentResponseOverviewResult {

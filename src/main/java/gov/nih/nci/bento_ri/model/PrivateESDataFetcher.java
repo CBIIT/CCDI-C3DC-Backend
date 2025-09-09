@@ -1018,7 +1018,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             ),
             Map.ofEntries(
                 Map.entry("gqlName", "race"),
-                Map.entry("osName", "race_str")
+                Map.entry("osName", "race")
             ),
             Map.ofEntries(
                 Map.entry("gqlName", "sex_at_birth"),
@@ -1132,7 +1132,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     // Additional fields for Cohort manifest download
                     Map.ofEntries(
                         Map.entry("gqlName", "race"),
-                        Map.entry("osName", "race_str")
+                        Map.entry("osName", "race")
                     ),
                     Map.ofEntries(
                         Map.entry("gqlName", "sex_at_birth"),
@@ -1378,7 +1378,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     // Additional fields for Cohort manifest download
                     Map.ofEntries(
                         Map.entry("gqlName", "race"),
-                        Map.entry("osName", "race_str")
+                        Map.entry("osName", "race")
                     ),
                     Map.ofEntries(
                         Map.entry("gqlName", "sex_at_birth"),
@@ -1570,7 +1570,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     // Additional fields for Cohort manifest download
                     Map.ofEntries(
                         Map.entry("gqlName", "race"),
-                        Map.entry("osName", "race_str")
+                        Map.entry("osName", "race")
                     ),
                     Map.ofEntries(
                         Map.entry("gqlName", "sex_at_birth"),
@@ -1705,7 +1705,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     // Additional fields for Cohort manifest download
                     Map.ofEntries(
                         Map.entry("gqlName", "race"),
-                        Map.entry("osName", "race_str")
+                        Map.entry("osName", "race")
                     ),
                     Map.ofEntries(
                         Map.entry("gqlName", "sex_at_birth"),
@@ -1744,10 +1744,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.ofEntries(
                 Map.entry("gqlName", "treatment_type"),
                 Map.entry("osName", "treatment_type")
-            ),
-            Map.ofEntries(
-                Map.entry("gqlName", "treatment_agent_str"),
-                Map.entry("osName", "treatment_agent_str")
             ),
             Map.ofEntries(
                 Map.entry("gqlName", "treatment_agent"),
@@ -1797,10 +1793,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("isNested", false)
             )),
             Map.entry("treatment_agent", Map.ofEntries(
-                Map.entry("osName", "treatment_agent"),
-                Map.entry("isNested", false)
-            )),
-            Map.entry("treatment_agent_str", Map.ofEntries(
                 Map.entry("osName", "treatment_agent_str"),
                 Map.entry("isNested", false)
             ))
@@ -1828,7 +1820,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     // Additional fields for Cohort manifest download
                     Map.ofEntries(
                         Map.entry("gqlName", "race"),
-                        Map.entry("osName", "race_str")
+                        Map.entry("osName", "race")
                     ),
                     Map.ofEntries(
                         Map.entry("gqlName", "sex_at_birth"),
