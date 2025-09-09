@@ -29,6 +29,35 @@ diagnoses:
     cardinality_agg_name: participant.id
     filter_count_name: filterParticipantCountByDiseasePhase
     widget_count_name: null
+genetic_analyses:
+  - agg_name: alteration
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByAlteration
+    widget_count_name: null
+  - agg_name: alteration_type
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByAlterationType
+    widget_count_name: null
+  - agg_name: fusion_partner_gene
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByFusionPartnerGene
+    widget_count_name: null
+  - agg_name: gene_symbol
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByGeneSymbol
+    widget_count_name: null
+  - agg_name: reported_significance
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByReportedSignificance
+    widget_count_name: null
+  - agg_name: reported_significance_system
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByReportedSignificanceSystem
+    widget_count_name: null
+  - agg_name: status
+    cardinality_agg_name: participant.id
+    filter_count_name: filterParticipantCountByStatus
+    widget_count_name: null
 participants:
   - agg_name: race
     cardinality_agg_name: null

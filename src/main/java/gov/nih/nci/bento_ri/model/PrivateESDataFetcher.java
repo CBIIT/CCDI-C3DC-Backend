@@ -469,6 +469,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map<String, Object> diagnosesQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), "diagnoses");
         int numberOfDiagnoses = inventoryESService.getCount(diagnosesQuery, "diagnoses");
 
+        // Get Diagnosis counts for Explore page stats bar
+        Map<String, Object> geneticAnalysesQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), "genetic_analyses");
+        int numberOfGeneticAnalyses = inventoryESService.getCount(geneticAnalysesQuery, "genetic_analyses");
+
         // Get Survival counts for Explore page stats bar
         Map<String, Object> survivalsQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), "survivals");
         int numberOfSurvivals = inventoryESService.getCount(survivalsQuery, "survivals");
@@ -490,6 +494,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         data.put("numberOfStudies", numberOfStudies);
         data.put("numberOfDiagnoses", numberOfDiagnoses);
         data.put("numberOfDiseases", numberOfDiseases);
+        data.put("numberOfGeneticAnalyses", numberOfGeneticAnalyses);
         data.put("numberOfParticipants", numberOfParticipants);
         data.put("numberOfSurvivals", numberOfSurvivals);
         data.put("numberOfTreatments", numberOfTreatments);
