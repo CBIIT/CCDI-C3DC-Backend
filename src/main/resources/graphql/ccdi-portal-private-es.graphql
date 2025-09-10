@@ -238,6 +238,15 @@ type GeneticAnalysisOverviewResult {
     test: String
     reported_significance: String
     reported_significance_system: String
+
+    # Additional properties for download
+    alteration_effect: String
+    alteration_type: String
+    chromosome: String
+    exon: String
+    fusion_partner_exon: String
+    fusion_partner_gene: String
+    reference_genome: String
 }
 
 type StudyOverviewResult {

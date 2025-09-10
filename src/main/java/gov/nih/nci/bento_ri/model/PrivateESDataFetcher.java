@@ -1391,6 +1391,36 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         Map.entry("osName", "sex_at_birth")
                     )
                 ))
+            ),
+
+            // Additional fields for download
+            Map.ofEntries(
+                Map.entry("gqlName", "alteration_effect"),
+                Map.entry("osName", "alteration_effect")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "alteration_type"),
+                Map.entry("osName", "alteration_type")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "chromosome"),
+                Map.entry("osName", "chromosome")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "exon"),
+                Map.entry("osName", "exon")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "fusion_partner_exon"),
+                Map.entry("osName", "fusion_partner_exon")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "fusion_partner_gene"),
+                Map.entry("osName", "fusion_partner_gene")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "reference_genome"),
+                Map.entry("osName", "reference_genome")
             )
         );
 
@@ -1456,6 +1486,36 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("osName", "participant_id"),
                 Map.entry("isNested", true),
                 Map.entry("path", "participant")
+            )),
+
+            // Additional fields for download
+            Map.entry("alteration_effect", Map.ofEntries(
+                Map.entry("osName", "alteration_effect"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("alteration_type", Map.ofEntries(
+                Map.entry("osName", "alteration_type"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("chromosome", Map.ofEntries(
+                Map.entry("osName", "chromosome"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("exon", Map.ofEntries(
+                Map.entry("osName", "exon"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("fusion_partner_exon", Map.ofEntries(
+                Map.entry("osName", "fusion_partner_exon"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("fusion_partner_gene", Map.ofEntries(
+                Map.entry("osName", "fusion_partner_gene"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("reference_genome", Map.ofEntries(
+                Map.entry("osName", "reference_genome"),
+                Map.entry("isNested", false)
             ))
         );
 
