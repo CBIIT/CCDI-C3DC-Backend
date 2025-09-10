@@ -43,7 +43,7 @@ type SearchParticipantsReturnObject {
 type NestedParticipant {
     id: String
     participant_id: String
-    race: String
+    race: [String]
     sex_at_birth: String
 }
 
@@ -55,6 +55,7 @@ type CohortMetadataReturnObject {
 
     # CPI Data
     diagnoses: [DiagnosisOverviewResult]
+    genetic_analyses: [GeneticAnalysisOverviewResult]
     survivals: [SurvivalOverviewResult]
     synonyms: [NestedSynonym]
     treatments: [TreatmentOverviewResult]
@@ -99,6 +100,7 @@ type GetParticipantsResult {
     numberOfParticipants: Int
     numberOfDiagnoses: Int
     numberOfDiseases: Int
+    numberOfGeneticAnalyses: Int
     numberOfStudies: Int
     numberOfSurvivals: Int
     numberOfTreatments: Int
@@ -115,6 +117,15 @@ type GetParticipantsResult {
     filterParticipantCountByDiagnosisClassificationSystem: [SearchParticipantsReturnObject]
     filterParticipantCountByDiagnosisBasis: [SearchParticipantsReturnObject]
     filterParticipantCountByDiseasePhase: [SearchParticipantsReturnObject]
+
+    # Genetic Analyses
+    filterParticipantCountByAlteration: [SearchParticipantsReturnObject]
+    filterParticipantCountByAlterationType: [SearchParticipantsReturnObject]
+    filterParticipantCountByFusionPartnerGene: [SearchParticipantsReturnObject]
+    filterParticipantCountByGeneSymbol: [SearchParticipantsReturnObject]
+    filterParticipantCountByReportedSignificance: [SearchParticipantsReturnObject]
+    filterParticipantCountByReportedSignificanceSystem: [SearchParticipantsReturnObject]
+    filterParticipantCountByStatus: [SearchParticipantsReturnObject]
 
     # Studies
     filterParticipantCountByDbgapAccession: [SearchParticipantsReturnObject]
@@ -151,7 +162,7 @@ type ParticipantOverviewResult {
     # Demographics
     id: String # For adding to cohort
     participant_id: String # For display
-    race: String
+    race: [String]
     sex_at_birth: String
 
     # CPI Data
@@ -189,9 +200,9 @@ type DiagnosisOverviewResult {
     id: String # For selecting record
     age_at_diagnosis: String
     anatomic_site: String
-    diagnosis_basis: String
+    diagnosis_basis: [String]
     diagnosis: String
-    diagnosis_classification_system: String
+    diagnosis_classification_system: [String]
     disease_phase: String
     tumor_classification: String
 
@@ -210,6 +221,9 @@ type DiagnosisOverviewResult {
 }
 
 type GeneticAnalysisOverviewResult {
+    # Study
+    dbgap_accession: String
+
     # Demographics
     participant: NestedParticipant
 
@@ -227,6 +241,15 @@ type GeneticAnalysisOverviewResult {
     test: String
     reported_significance: String
     reported_significance_system: String
+
+    # Additional properties for download
+    alteration_effect: String
+    alteration_type: String
+    chromosome: String
+    exon: String
+    fusion_partner_exon: String
+    fusion_partner_gene: String
+    reference_genome: String
 }
 
 type StudyOverviewResult {
@@ -277,7 +300,6 @@ type TreatmentOverviewResult {
     age_at_treatment_end: String
     treatment_type: String
     treatment_agent: [String]
-    treatment_agent_str: String
 }
 
 type TreatmentResponseOverviewResult {
@@ -365,6 +387,15 @@ type QueryType {
         diagnosis_basis: [String] = [""],
         disease_phase: [String] = [""]
 
+        # Genetic Analyses
+        alteration: [String] = [""],
+        alteration_type: [String] = [""],
+        fusion_partner_gene: [String] = [""],
+        gene_symbol: [String] = [""],
+        reported_significance: [String] = [""],
+        reported_significance_system: [String] = [""],
+        status: [String] = [""]
+
         # Studies
         dbgap_accession: [String] = [""],
         study_name: [String] = [""],
@@ -402,6 +433,15 @@ type QueryType {
         diagnosis_classification_system: [String] = [""],
         diagnosis_basis: [String] = [""],
         disease_phase: [String] = [""]
+
+        # Genetic Analyses
+        alteration: [String] = [""],
+        alteration_type: [String] = [""],
+        fusion_partner_gene: [String] = [""],
+        gene_symbol: [String] = [""],
+        reported_significance: [String] = [""],
+        reported_significance_system: [String] = [""],
+        status: [String] = [""]
 
         # Studies
         dbgap_accession: [String] = [""],
@@ -447,6 +487,15 @@ type QueryType {
         diagnosis_basis: [String] = [""],
         disease_phase: [String] = [""]
 
+        # Genetic Analyses
+        alteration: [String] = [""],
+        alteration_type: [String] = [""],
+        fusion_partner_gene: [String] = [""],
+        gene_symbol: [String] = [""],
+        reported_significance: [String] = [""],
+        reported_significance_system: [String] = [""],
+        status: [String] = [""]
+
         # Studies
         dbgap_accession: [String] = [""],
         study_name: [String] = [""],
@@ -490,6 +539,15 @@ type QueryType {
         diagnosis_classification_system: [String] = [""],
         diagnosis_basis: [String] = [""],
         disease_phase: [String] = [""]
+
+        # Genetic Analyses
+        alteration: [String] = [""],
+        alteration_type: [String] = [""],
+        fusion_partner_gene: [String] = [""],
+        gene_symbol: [String] = [""],
+        reported_significance: [String] = [""],
+        reported_significance_system: [String] = [""],
+        status: [String] = [""]
 
         # Studies
         dbgap_accession: [String] = [""],
@@ -535,6 +593,15 @@ type QueryType {
         diagnosis_basis: [String] = [""],
         disease_phase: [String] = [""]
 
+        # Genetic Analyses
+        alteration: [String] = [""],
+        alteration_type: [String] = [""],
+        fusion_partner_gene: [String] = [""],
+        gene_symbol: [String] = [""],
+        reported_significance: [String] = [""],
+        reported_significance_system: [String] = [""],
+        status: [String] = [""]
+
         # Studies
         dbgap_accession: [String] = [""],
         study_name: [String] = [""],
@@ -578,6 +645,15 @@ type QueryType {
         diagnosis_classification_system: [String] = [""],
         diagnosis_basis: [String] = [""],
         disease_phase: [String] = [""]
+
+        # Genetic Analyses
+        alteration: [String] = [""],
+        alteration_type: [String] = [""],
+        fusion_partner_gene: [String] = [""],
+        gene_symbol: [String] = [""],
+        reported_significance: [String] = [""],
+        reported_significance_system: [String] = [""],
+        status: [String] = [""]
 
         # Studies
         dbgap_accession: [String] = [""],
@@ -623,6 +699,15 @@ type QueryType {
         diagnosis_basis: [String] = [""],
         disease_phase: [String] = [""]
 
+        # Genetic Analyses
+        alteration: [String] = [""],
+        alteration_type: [String] = [""],
+        fusion_partner_gene: [String] = [""],
+        gene_symbol: [String] = [""],
+        reported_significance: [String] = [""],
+        reported_significance_system: [String] = [""],
+        status: [String] = [""]
+
         # Studies
         dbgap_accession: [String] = [""],
         study_name: [String] = [""],
@@ -666,6 +751,15 @@ type QueryType {
         diagnosis_classification_system: [String] = [""],
         diagnosis_basis: [String] = [""],
         disease_phase: [String] = [""]
+
+        # Genetic Analyses
+        alteration: [String] = [""],
+        alteration_type: [String] = [""],
+        fusion_partner_gene: [String] = [""],
+        gene_symbol: [String] = [""],
+        reported_significance: [String] = [""],
+        reported_significance_system: [String] = [""],
+        status: [String] = [""]
 
         # Studies
         dbgap_accession: [String] = [""],

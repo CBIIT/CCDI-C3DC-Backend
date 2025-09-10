@@ -30,6 +30,11 @@ public class InventoryESService extends ESService {
         "diagnosis", "diagnosis_classification_system",
         "disease_phase"
     );
+    final Set<String> GENETIC_ANALYSIS_PARAMS = Set.of(
+        "alteration", "alteration_type", "fusion_partner_gene",
+        "gene_symbol", "reported_significance",
+        "reported_significance_system", "status"
+    );
     final Set<String> STUDY_PARAMS = Set.of(
         "dbgap_accession", "study_name"
     );
@@ -99,6 +104,7 @@ public class InventoryESService extends ESService {
         List<Object> filter = new ArrayList<>();
         List<Object> participant_filters = new ArrayList<>();
         List<Object> diagnosis_filters = new ArrayList<>();
+        List<Object> genetic_analysis_filters = new ArrayList<>();
         List<Object> survival_filters = new ArrayList<>();
         List<Object> treatment_filters = new ArrayList<>();
         List<Object> treatment_response_filters = new ArrayList<>();
@@ -177,6 +183,10 @@ public class InventoryESService extends ESService {
                         diagnosis_filters.add(Map.of(
                             "terms", Map.of("diagnoses." + key, valueSet)
                         ));
+                    } else if (GENETIC_ANALYSIS_PARAMS.contains(key) && !indexType.equals("genetic_analyses")) {
+                        genetic_analysis_filters.add(Map.of(
+                            "terms", Map.of("genetic_analyses." + key, valueSet)
+                        ));
                     } else if (SURVIVAL_PARAMS.contains(key) && !indexType.equals("survivals")) {
                         survival_filters.add(Map.of(
                             "terms", Map.of("survivals." + key, valueSet)
@@ -205,10 +215,11 @@ public class InventoryESService extends ESService {
         int FilterLen = filter.size();
         int participantFilterLen = participant_filters.size();
         int diagnosisFilterLen = diagnosis_filters.size();
+        int geneticAnalysisFilterLen = genetic_analysis_filters.size();
         int survivalFilterLen = survival_filters.size();
         int treatmentFilterLen = treatment_filters.size();
         int treatmentResponseFilterLen = treatment_response_filters.size();
-        if (FilterLen + participantFilterLen + diagnosisFilterLen + survivalFilterLen + treatmentFilterLen + treatmentResponseFilterLen == 0) {
+        if (FilterLen + participantFilterLen + diagnosisFilterLen + geneticAnalysisFilterLen + survivalFilterLen + treatmentFilterLen + treatmentResponseFilterLen == 0) {
             result.put("query", Map.of("match_all", Map.of()));
         } else {
             if (participantFilterLen > 0) {
@@ -216,6 +227,9 @@ public class InventoryESService extends ESService {
             }
             if (diagnosisFilterLen > 0) {
                 filter.add(Map.of("nested", Map.of("path", "diagnoses", "query", Map.of("bool", Map.of("filter", diagnosis_filters)), "inner_hits", Map.of())));
+            }
+            if (geneticAnalysisFilterLen > 0) {
+                filter.add(Map.of("nested", Map.of("path", "genetic_analyses", "query", Map.of("bool", Map.of("filter", genetic_analysis_filters)), "inner_hits", Map.of())));
             }
             if (survivalFilterLen > 0) {
                 filter.add(Map.of("nested", Map.of("path", "survivals", "query", Map.of("bool", Map.of("filter", survival_filters)), "inner_hits", Map.of())));

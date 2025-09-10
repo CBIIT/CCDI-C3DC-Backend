@@ -10,6 +10,7 @@ diagnoses:
     Not Reported: 5000
   disease_phase:
     Initial Diagnosis: 5700
+genetic_analyses: {}
 participants: {}
 studies: {}
 survivals: 

@@ -469,6 +469,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map<String, Object> diagnosesQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), "diagnoses");
         int numberOfDiagnoses = inventoryESService.getCount(diagnosesQuery, "diagnoses");
 
+        // Get Diagnosis counts for Explore page stats bar
+        Map<String, Object> geneticAnalysesQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), "genetic_analyses");
+        int numberOfGeneticAnalyses = inventoryESService.getCount(geneticAnalysesQuery, "genetic_analyses");
+
         // Get Survival counts for Explore page stats bar
         Map<String, Object> survivalsQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), "survivals");
         int numberOfSurvivals = inventoryESService.getCount(survivalsQuery, "survivals");
@@ -490,6 +494,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         data.put("numberOfStudies", numberOfStudies);
         data.put("numberOfDiagnoses", numberOfDiagnoses);
         data.put("numberOfDiseases", numberOfDiseases);
+        data.put("numberOfGeneticAnalyses", numberOfGeneticAnalyses);
         data.put("numberOfParticipants", numberOfParticipants);
         data.put("numberOfSurvivals", numberOfSurvivals);
         data.put("numberOfTreatments", numberOfTreatments);
@@ -838,6 +843,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("osName", "diagnoses")
             ),
 
+            // Genetic Analyses
+            Map.ofEntries(
+                Map.entry("gqlName", "genetic_analyses"),
+                Map.entry("osName", "genetic_analyses")
+            ),
+
             // Survivals
             Map.ofEntries(
                 Map.entry("gqlName", "survivals"),
@@ -1013,7 +1024,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             ),
             Map.ofEntries(
                 Map.entry("gqlName", "race"),
-                Map.entry("osName", "race_str")
+                Map.entry("osName", "race")
             ),
             Map.ofEntries(
                 Map.entry("gqlName", "sex_at_birth"),
@@ -1127,7 +1138,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     // Additional fields for Cohort manifest download
                     Map.ofEntries(
                         Map.entry("gqlName", "race"),
-                        Map.entry("osName", "race_str")
+                        Map.entry("osName", "race")
                     ),
                     Map.ofEntries(
                         Map.entry("gqlName", "sex_at_birth"),
@@ -1302,6 +1313,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<Map<String, Object>> geneticAnalysisOverview(Map<String, Object> params) throws IOException {
         final List<Map<String, Object>> PROPERTIES = List.of(
+            // Study
+            Map.ofEntries(
+                Map.entry("gqlName", "dbgap_accession"),
+                Map.entry("osName", "dbgap_accession")
+            ),
+
             // Genetic Analysis
             Map.ofEntries(
                 Map.entry("gqlName", "id"),
@@ -1373,19 +1390,55 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     // Additional fields for Cohort manifest download
                     Map.ofEntries(
                         Map.entry("gqlName", "race"),
-                        Map.entry("osName", "race_str")
+                        Map.entry("osName", "race")
                     ),
                     Map.ofEntries(
                         Map.entry("gqlName", "sex_at_birth"),
                         Map.entry("osName", "sex_at_birth")
                     )
                 ))
+            ),
+
+            // Additional fields for download
+            Map.ofEntries(
+                Map.entry("gqlName", "alteration_effect"),
+                Map.entry("osName", "alteration_effect")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "alteration_type"),
+                Map.entry("osName", "alteration_type")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "chromosome"),
+                Map.entry("osName", "chromosome")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "exon"),
+                Map.entry("osName", "exon")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "fusion_partner_exon"),
+                Map.entry("osName", "fusion_partner_exon")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "fusion_partner_gene"),
+                Map.entry("osName", "fusion_partner_gene")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "reference_genome"),
+                Map.entry("osName", "reference_genome")
             )
         );
 
         String defaultSort = "genetic_analysis_id"; // Default sort order
 
         Map<String, Map<String, Object>> mapping = Map.ofEntries(
+            // Study
+            Map.entry("dbgap_accession", Map.ofEntries(
+                Map.entry("osName", "dbgap_accession"),
+                Map.entry("isNested", false)
+            )),
+
             // Genetic Analysis
             Map.entry("id", Map.ofEntries(
                 Map.entry("osName", "id"),
@@ -1445,6 +1498,36 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("osName", "participant_id"),
                 Map.entry("isNested", true),
                 Map.entry("path", "participant")
+            )),
+
+            // Additional fields for download
+            Map.entry("alteration_effect", Map.ofEntries(
+                Map.entry("osName", "alteration_effect"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("alteration_type", Map.ofEntries(
+                Map.entry("osName", "alteration_type"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("chromosome", Map.ofEntries(
+                Map.entry("osName", "chromosome"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("exon", Map.ofEntries(
+                Map.entry("osName", "exon"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("fusion_partner_exon", Map.ofEntries(
+                Map.entry("osName", "fusion_partner_exon"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("fusion_partner_gene", Map.ofEntries(
+                Map.entry("osName", "fusion_partner_gene"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("reference_genome", Map.ofEntries(
+                Map.entry("osName", "reference_genome"),
+                Map.entry("isNested", false)
             ))
         );
 
@@ -1565,7 +1648,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     // Additional fields for Cohort manifest download
                     Map.ofEntries(
                         Map.entry("gqlName", "race"),
-                        Map.entry("osName", "race_str")
+                        Map.entry("osName", "race")
                     ),
                     Map.ofEntries(
                         Map.entry("gqlName", "sex_at_birth"),
@@ -1700,7 +1783,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     // Additional fields for Cohort manifest download
                     Map.ofEntries(
                         Map.entry("gqlName", "race"),
-                        Map.entry("osName", "race_str")
+                        Map.entry("osName", "race")
                     ),
                     Map.ofEntries(
                         Map.entry("gqlName", "sex_at_birth"),
@@ -1739,10 +1822,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.ofEntries(
                 Map.entry("gqlName", "treatment_type"),
                 Map.entry("osName", "treatment_type")
-            ),
-            Map.ofEntries(
-                Map.entry("gqlName", "treatment_agent_str"),
-                Map.entry("osName", "treatment_agent_str")
             ),
             Map.ofEntries(
                 Map.entry("gqlName", "treatment_agent"),
@@ -1792,10 +1871,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("isNested", false)
             )),
             Map.entry("treatment_agent", Map.ofEntries(
-                Map.entry("osName", "treatment_agent"),
-                Map.entry("isNested", false)
-            )),
-            Map.entry("treatment_agent_str", Map.ofEntries(
                 Map.entry("osName", "treatment_agent_str"),
                 Map.entry("isNested", false)
             ))
@@ -1823,7 +1898,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     // Additional fields for Cohort manifest download
                     Map.ofEntries(
                         Map.entry("gqlName", "race"),
-                        Map.entry("osName", "race_str")
+                        Map.entry("osName", "race")
                     ),
                     Map.ofEntries(
                         Map.entry("gqlName", "sex_at_birth"),
