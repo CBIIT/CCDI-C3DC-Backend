@@ -186,10 +186,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return numberOfParticipants(args);
                         })
-                        .dataFetcher("numberOfReferenceFiles", env -> {
-                            Map<String, Object> args = env.getArguments();
-                            return numberOfReferenceFiles(args);
-                        })
                         .dataFetcher("numberOfStudies", env -> {
                             Map<String, Object> args = env.getArguments();
                             return numberOfStudies(args);
@@ -2209,22 +2205,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         JsonObject counts = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
         int count = counts.get("num_participants").getAsInt();
-
-        return count;
-    }
-
-    private Integer numberOfReferenceFiles(Map<String, Object> params) throws Exception {
-        Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
-        JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
-        JsonArray hits = homeStatsResult.getAsJsonObject("hits").getAsJsonArray("hits");
-        Iterator<JsonElement> hitsIter = hits.iterator();
-
-        if (!hitsIter.hasNext()) {
-            throw new Exception("Error: no results for homepage stats!");
-        }
-
-        JsonObject counts = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
-        int count = counts.get("num_reference_files").getAsInt();
 
         return count;
     }
