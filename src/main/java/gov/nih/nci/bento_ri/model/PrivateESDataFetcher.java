@@ -843,6 +843,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("osName", "diagnoses")
             ),
 
+            // Genetic Analyses
+            Map.ofEntries(
+                Map.entry("gqlName", "genetic_analyses"),
+                Map.entry("osName", "genetic_analyses")
+            ),
+
             // Survivals
             Map.ofEntries(
                 Map.entry("gqlName", "survivals"),

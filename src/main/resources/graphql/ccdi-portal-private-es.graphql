@@ -55,6 +55,7 @@ type CohortMetadataReturnObject {
 
     # CPI Data
     diagnoses: [DiagnosisOverviewResult]
+    genetic_analyses: [GeneticAnalysisOverviewResult]
     survivals: [SurvivalOverviewResult]
     synonyms: [NestedSynonym]
     treatments: [TreatmentOverviewResult]
