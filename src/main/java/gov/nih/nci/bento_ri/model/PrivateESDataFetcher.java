@@ -1313,6 +1313,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<Map<String, Object>> geneticAnalysisOverview(Map<String, Object> params) throws IOException {
         final List<Map<String, Object>> PROPERTIES = List.of(
+            // Study
+            Map.ofEntries(
+                Map.entry("gqlName", "dbgap_accession"),
+                Map.entry("osName", "dbgap_accession")
+            ),
+
             // Genetic Analysis
             Map.ofEntries(
                 Map.entry("gqlName", "id"),
@@ -1427,6 +1433,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         String defaultSort = "genetic_analysis_id"; // Default sort order
 
         Map<String, Map<String, Object>> mapping = Map.ofEntries(
+            // Study
+            Map.entry("dbgap_accession", Map.ofEntries(
+                Map.entry("osName", "dbgap_accession"),
+                Map.entry("isNested", false)
+            )),
+
             // Genetic Analysis
             Map.entry("id", Map.ofEntries(
                 Map.entry("osName", "id"),

@@ -221,6 +221,9 @@ type DiagnosisOverviewResult {
 }
 
 type GeneticAnalysisOverviewResult {
+    # Study
+    dbgap_accession: String
+
     # Demographics
     participant: NestedParticipant
 
