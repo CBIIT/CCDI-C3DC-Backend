@@ -1453,7 +1453,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("isNested", false)
             )),
             Map.entry("gene_symbol", Map.ofEntries(
-                Map.entry("osName", "gene_symbol"),
+                Map.entry("osName", "gene_symbol_str"),
                 Map.entry("isNested", false)
             )),
             Map.entry("genomic_source_category", Map.ofEntries(

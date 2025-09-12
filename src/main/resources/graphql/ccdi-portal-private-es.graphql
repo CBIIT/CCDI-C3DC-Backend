@@ -232,7 +232,7 @@ type GeneticAnalysisOverviewResult {
     genetic_analysis_id: String
     alteration: String
     cytoband: String
-    gene_symbol: String
+    gene_symbol: [String]
     genomic_source_category: String
     hgvs_coding: String
     hgvs_genome: String
