@@ -336,7 +336,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private Map<String, List<Object>> idsLists() throws IOException {
-        String cacheKey = "participantIDs";
+        String cacheKey = "idsLists";
         Map<String, List<Object>> results = new HashMap<>();
         Map<String, List<Object>> data = null;
         Object dataRaw = caffeineCache.asMap().get(cacheKey);
@@ -353,65 +353,73 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             return data;
         }
 
-        Map<String, Object> participantParams = Map.ofEntries(
+        Map<String, Object> idsListsParams = Map.ofEntries(
             Map.entry(OFFSET, 0),
-            Map.entry(ORDER_BY, "participant_id"),
+            Map.entry(ORDER_BY, "participant_ids"),
             Map.entry(PAGE_SIZE, ESService.MAX_ES_SIZE),
             Map.entry(SORT_DIRECTION, "asc")
         );
-        Map<String, Object> synonymParams = Map.ofEntries(
-            Map.entry(OFFSET, 0),
-            Map.entry(ORDER_BY, "associated_id"),
-            Map.entry(PAGE_SIZE, ESService.MAX_ES_SIZE),
-            Map.entry(SORT_DIRECTION, "asc")
-        );
-        final List<Map<String, Object>> participantProperties = List.of(
+        final List<Map<String, Object>> idsListsProperties = List.of(
             Map.ofEntries(
-                Map.entry("gqlName", "participant_id"),
-                Map.entry("osName", "participant_id")
-            )
-        );
-        final List<Map<String, Object>> synonymProperties = List.of(
-            Map.ofEntries(
-                Map.entry("gqlName", "associated_id"),
-                Map.entry("osName", "associated_id")
+                Map.entry("gqlName", "participant_ids"),
+                Map.entry("osName", "participant_ids")
             ),
             Map.ofEntries(
-                Map.entry("gqlName", "participant_id"),
-                Map.entry("osName", "participant_id")
+                Map.entry("gqlName", "associated_ids"),
+                Map.entry("osName", "associated_ids"),
+                Map.entry("nested", List.of(
+                    Map.ofEntries(
+                        Map.entry("gqlName", "associated_id"),
+                        Map.entry("osName", "associated_id")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "participant_id"),
+                        Map.entry("osName", "participant_id")
+                    )
+                ))
             )
         );
 
-        Map<String, Map<String, Object>> participantMapping = Map.ofEntries(// field -> sort field
-            Map.entry("participant_id", Map.ofEntries(
-                Map.entry("osName", "participant_id"),
-                Map.entry("isNested", false)
-            ))
-        );
-        Map<String, Map<String, Object>> synonymMapping = Map.ofEntries(// field -> sort field
-            Map.entry("associated_id", Map.ofEntries(
-                Map.entry("osName", "associated_id"),
+        Map<String, Map<String, Object>> idsListsMapping = Map.ofEntries(// field -> sort field
+            Map.entry("participant_ids", Map.ofEntries(
+                Map.entry("osName", "participant_ids"),
                 Map.entry("isNested", false)
             )),
-            Map.entry("participant_id", Map.ofEntries(
+            Map.entry("associated_ids.associated_id", Map.ofEntries(
+                Map.entry("osName", "associated_ids"),
+                Map.entry("isNested", true),
+                Map.entry("path", "associated_ids")
+            )),
+            Map.entry("associated_ids.participant_id", Map.ofEntries(
                 Map.entry("osName", "participant_id"),
-                Map.entry("isNested", false)
+                Map.entry("isNested", true),
+                Map.entry("path", "associated_ids")
             ))
         );
 
-        List<Map<String, Object>> participantResults = overview(PARTICIPANTS_END_POINT, participantParams, participantProperties, "participant_id", participantMapping, "participants");
-        List<Map<String, Object>> synonymResults = overview(SYNONYMS_END_POINT, synonymParams, synonymProperties, "associated_id", synonymMapping, "synonyms");
+        List<Map<String, Object>> idsListsResults = overview("/participant_ids_lists/_search", idsListsParams, idsListsProperties, "participant_ids", idsListsMapping, "participants");
+        List<Object> participantIds = List.of();
+        List<Object> associatedIds = List.of();
+
+        if (TypeChecker.isOfType(idsListsResults.get(0).get("participant_ids"), new TypeToken<List<Object>>() {})) {
+            @SuppressWarnings("unchecked")
+            List<Object> castedParticipantIds = (List<Object>) idsListsResults.get(0).get("participant_ids");
+            participantIds = castedParticipantIds;
+        }
+
+        if (TypeChecker.isOfType(idsListsResults.get(0).get("associated_ids"), new TypeToken<List<Object>>() {})) {
+            @SuppressWarnings("unchecked")
+            List<Object> castedAssociatedIds = (List<Object>) idsListsResults.get(0).get("associated_ids");
+            associatedIds = castedAssociatedIds;
+        }
 
         results.put(
             "participantIds",
-            participantResults.stream().map(participant -> participant.get("participant_id")).collect(Collectors.toList())
+            participantIds
         );
         results.put(
             "associatedIds",
-            synonymResults.stream().map(synonym -> Map.ofEntries(
-                Map.entry("associated_id", synonym.get("associated_id")),
-                Map.entry("participant_id", synonym.get("participant_id"))
-            )).collect(Collectors.toList())
+            associatedIds
         );
 
         caffeineCache.put(cacheKey, results);
