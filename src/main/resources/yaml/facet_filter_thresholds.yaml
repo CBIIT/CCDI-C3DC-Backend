@@ -12,8 +12,8 @@ diagnoses:
   # diagnosis_basis:
   #   Clinical: 5700
   #   Not Reported: 5000
-  # disease_phase:
-  #   Initial Diagnosis: 5700
+  disease_phase:
+    Initial Diagnosis: 8800
 genetic_analyses:
   alteration:
     MLL Other partner: 2800
@@ -26,14 +26,14 @@ studies: {}
 survivals: 
   last_known_survival_status:
     Alive: 9500
-    Not Reported: 2000
-  # cause_of_death:
-  #   Not Reported: 5700
+    Not reported: 2000
+  cause_of_death:
+    Not Reported: 11600
   # first_event:
   #   Not Reported: 5700
 treatments: {}
-  # treatment_agent:
-  #   Not Reported: 2400
+  treatment_agent:
+    Not Reported: 3000
   # treatment_type:
   #   Surgical Procedure: 1500
 treatment_responses: {}
