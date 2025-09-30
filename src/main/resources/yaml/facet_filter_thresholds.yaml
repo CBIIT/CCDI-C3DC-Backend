@@ -23,6 +23,8 @@ genetic_analyses:
     Unknown: 2900
     Translocation: 2900
     Chromosomal Gain: 2900
+  fusion_partner_gene:
+    Other: 2900
   gene_symbol:
     Not Reported: 2000
     MLL: 2000
