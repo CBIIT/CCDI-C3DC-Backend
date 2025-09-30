@@ -1,6 +1,7 @@
 # Opensearch bucket aggregation counts are approximate, not exact
 # They're more likely to be inaccurate for higher counts
 # Beyond curated thresholds, count results with /_count instead
+# Commented thresholds were previously needed, but are no longer
 
 diagnoses:
   anatomic_site:
@@ -31,7 +32,7 @@ survivals:
     Not Reported: 11600
   # first_event:
   #   Not Reported: 5700
-treatments: {}
+treatments:
   treatment_agent:
     Not Reported: 3000
   # treatment_type:
