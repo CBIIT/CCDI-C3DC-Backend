@@ -19,6 +19,10 @@ genetic_analyses:
   alteration:
     MLL Other partner: 2800
     Trisomy 21: 2700
+  alteration_type:
+    Unknown: 2900
+    Translocation: 2900
+    Chromosomal Gain: 2900
   gene_symbol:
     Not Reported: 2000
     MLL: 2000
