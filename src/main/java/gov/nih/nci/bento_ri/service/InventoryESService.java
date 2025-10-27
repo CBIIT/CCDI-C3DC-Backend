@@ -173,10 +173,6 @@ public class InventoryESService extends ESService {
                     valueSet = castedValueSet;
                 }
                 
-                if (key.equals("participant_pk")) {
-                    key = "id";
-                }
-
                 // list with only one empty string [""] means return all records
                 if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
                     if (DIAGNOSIS_PARAMS.contains(key) && !indexType.equals("diagnoses")) {
