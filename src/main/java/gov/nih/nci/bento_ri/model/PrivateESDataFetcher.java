@@ -12,6 +12,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Request;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.yaml.snakeyaml.Yaml;
@@ -36,6 +37,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private InventoryESService inventoryESService;
     @Autowired
     private Cache<String, Object> caffeineCache;
+
+    @Value("${page_size:10000}")
+    private int pageSize;
 
     private Map<String, Map<String, Map<String, Integer>>> facetFilterThresholds;
     private Map<String, List<Map<String, String>>> facetFilters;
@@ -503,6 +507,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         data.put("numberOfSurvivals", numberOfSurvivals);
         data.put("numberOfTreatments", numberOfTreatments);
         data.put("numberOfTreatmentResponses", numberOfTreatmentResponses);
+        data.put("pageSize", pageSize);
 
         // Iterate through facet filters to query their counts
         for (Map.Entry<String, List<Map<String, String>>> entry : facetFilters.entrySet()) {
