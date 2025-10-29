@@ -18,7 +18,8 @@ public class CacheService {
                 // The initial cache size 5MB
                 .initialCapacity(5000000)
                 // The maximum of cached entries: 10MB
-                .maximumSize(10000000)
+                // .maximumSize(10000000)
+                .maximumSize(0)
                 .build();
     }
 }
