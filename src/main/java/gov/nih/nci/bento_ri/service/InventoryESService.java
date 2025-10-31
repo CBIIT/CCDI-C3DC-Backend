@@ -173,7 +173,7 @@ public class InventoryESService extends ESService {
                     valueSet = castedValueSet;
                 }
                 
-                if (key.equals("participant_pk")) {
+                if (key.equals("participant_pk") && indexType.equals("participants")) {
                     key = "id";
                 }
 
