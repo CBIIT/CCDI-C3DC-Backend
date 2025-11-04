@@ -38,7 +38,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     @Autowired
     private Cache<String, Object> caffeineCache;
 
-    @Value("${page_size:10000}")
+    @Value("${page_size:5000}")
     private int pageSize;
 
     private Map<String, Map<String, Map<String, Integer>>> facetFilterThresholds;
