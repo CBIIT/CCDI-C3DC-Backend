@@ -29,6 +29,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
+import jakarta.annotation.PostConstruct;
 
 @Component
 public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
@@ -345,17 +346,17 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map<String, List<Object>> data = null;
         Object dataRaw = caffeineCache.asMap().get(cacheKey);
 
-        if (TypeChecker.isOfType(dataRaw, new TypeToken<Map<String, List<Object>>>() {})) {
-            @SuppressWarnings("unchecked")
-            Map<String, List<Object>> castedData = (Map<String, List<Object>>) dataRaw;
-            data = castedData;
-        }
+        // if (TypeChecker.isOfType(dataRaw, new TypeToken<Map<String, List<Object>>>() {})) {
+        //     @SuppressWarnings("unchecked")
+        //     Map<String, List<Object>> castedData = (Map<String, List<Object>>) dataRaw;
+        //     data = castedData;
+        // }
 
-        // Early return if cached
-        if (data != null) {
-            logger.info("hit cache!");
-            return data;
-        }
+        // // Early return if cached
+        // if (data != null) {
+        //     logger.info("hit cache!");
+        //     return data;
+        // }
 
         Map<String, Object> idsListsParams = Map.ofEntries(
             Map.entry(OFFSET, 0),
@@ -2299,4 +2300,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             return keys.toString();
         }
     }
+
+    // @PostConstruct
+    // private void preloadIdsListsCache() {
+    //     try {
+    //         idsLists();
+    //         logger.info("idsLists cache pre-populated at startup");
+    //     } catch (Exception e) {
+    //         logger.error("Failed to preload idsLists cache at startup:", e);
+    //     }
+    // }
 }
