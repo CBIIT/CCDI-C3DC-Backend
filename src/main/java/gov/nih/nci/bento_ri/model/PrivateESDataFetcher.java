@@ -29,6 +29,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
+import jakarta.annotation.PostConstruct;
 
 @Component
 public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
@@ -2297,6 +2298,16 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             return "all";
         } else {
             return keys.toString();
+        }
+    }
+
+    @PostConstruct
+    private void preloadIdsListsCache() {
+        try {
+            idsLists();
+            logger.info("idsLists cache pre-populated at startup");
+        } catch (Exception e) {
+            logger.error("Failed to preload idsLists cache at startup:", e);
         }
     }
 }
