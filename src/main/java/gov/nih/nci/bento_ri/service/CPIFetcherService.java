@@ -39,13 +39,13 @@ public class CPIFetcherService {
     @Value("${cpi.oauth2.token.uri:#{environment.OAUTH2_TOKEN_URI}}")
     private String tokenUri;
     
-    @Value("${cpi.api.url:https://participantindex.ccdi.cancer.gov/v1/associated_participant_ids}")
+    @Value("${cpi.api.url:#{environment.API_URL}}")
     private String apiUrl;
     
-    @Value("${cpi.domains.url:https://participantindex.ccdi.cancer.gov/v1/domains}")
+    @Value("${cpi.domains.url:#{environment.DOMAINS_URL}}")
     private String domainsUrl;
     
-    @Value("${cpi.oauth2.scope:custom}")
+    @Value("${cpi.oauth2.scope:#{environment.OAUTH2_SCOPE}}")
     private String scope;
     
     private final ObjectMapper objectMapper;
