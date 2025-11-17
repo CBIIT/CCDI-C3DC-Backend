@@ -4,17 +4,12 @@ import com.google.gson.*;
 
 import gov.nih.nci.bento.model.ConfigurationDAO;
 import gov.nih.nci.bento.service.ESService;
-import gov.nih.nci.bento.service.RedisService;
-import gov.nih.nci.bento.service.connector.AWSClient;
-import gov.nih.nci.bento.service.connector.AbstractClient;
-import gov.nih.nci.bento.service.connector.DefaultClient;
+import gov.nih.nci.bento.utility.TypeChecker;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.client.*;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.google.common.reflect.TypeToken;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -35,6 +30,11 @@ public class InventoryESService extends ESService {
         "diagnosis", "diagnosis_classification_system",
         "disease_phase"
     );
+    final Set<String> GENETIC_ANALYSIS_PARAMS = Set.of(
+        "alteration", "alteration_type", "fusion_partner_gene",
+        "gene_symbol", "reported_significance",
+        "reported_significance_system", "status"
+    );
     final Set<String> STUDY_PARAMS = Set.of(
         "dbgap_accession", "study_name"
     );
@@ -53,22 +53,11 @@ public class InventoryESService extends ESService {
 
     static final AWSCredentialsProvider credentialsProvider = new DefaultAWSCredentialsProviderChain();
 
-    private static final Logger logger = LogManager.getLogger(RedisService.class);
-
-    @Autowired
-    private ConfigurationDAO config;
-
-    private RestClient client;
-
     private Gson gson = new GsonBuilder().serializeNulls().create();
 
     private InventoryESService(ConfigurationDAO config) {
         super(config);
         this.gson = new GsonBuilder().serializeNulls().create();
-        logger.info("Initializing Elasticsearch client");
-        // Base on host name to use signed request (AWS) or not (local)
-        AbstractClient abstractClient = config.isEsSignRequests() ? new AWSClient(config) : new DefaultClient(config);
-        client = abstractClient.getLowLevelElasticClient();
     }
 
     /**
@@ -115,6 +104,7 @@ public class InventoryESService extends ESService {
         List<Object> filter = new ArrayList<>();
         List<Object> participant_filters = new ArrayList<>();
         List<Object> diagnosis_filters = new ArrayList<>();
+        List<Object> genetic_analysis_filters = new ArrayList<>();
         List<Object> survival_filters = new ArrayList<>();
         List<Object> treatment_filters = new ArrayList<>();
         List<Object> treatment_response_filters = new ArrayList<>();
@@ -128,7 +118,15 @@ public class InventoryESService extends ESService {
             if (rangeParams.contains(key)) {
                 // Range parameters, should contain two doubles, first lower bound, then upper bound
                 // Any other values after those two will be ignored
-                List<Integer> bounds = (List<Integer>) params.get(key);
+                List<Integer> bounds = null;
+                Object boundsRaw = params.get(key);
+
+                if (TypeChecker.isOfType(boundsRaw, new TypeToken<List<Integer>>() {})) {
+                    @SuppressWarnings("unchecked")
+                    List<Integer> castedBounds = (List<Integer>) boundsRaw;
+                    bounds = castedBounds;
+                }
+
                 if (bounds.size() >= 2) {
                     Integer lower = bounds.get(0);
                     Integer higher = bounds.get(1);
@@ -166,9 +164,16 @@ public class InventoryESService extends ESService {
                 }
             } else {
                 // Term parameters (default)
-                List<String> valueSet = (List<String>) params.get(key);
+                List<String> valueSet = null;
+                Object valueSetRaw = params.get(key);
+
+                if (TypeChecker.isOfType(valueSetRaw, new TypeToken<List<String>>() {})) {
+                    @SuppressWarnings("unchecked")
+                    List<String> castedValueSet = (List<String>) valueSetRaw;
+                    valueSet = castedValueSet;
+                }
                 
-                if (key.equals("participant_pk")) {
+                if (key.equals("participant_pk") && indexType.equals("participants")) {
                     key = "id";
                 }
 
@@ -177,6 +182,10 @@ public class InventoryESService extends ESService {
                     if (DIAGNOSIS_PARAMS.contains(key) && !indexType.equals("diagnoses")) {
                         diagnosis_filters.add(Map.of(
                             "terms", Map.of("diagnoses." + key, valueSet)
+                        ));
+                    } else if (GENETIC_ANALYSIS_PARAMS.contains(key) && !indexType.equals("genetic_analyses")) {
+                        genetic_analysis_filters.add(Map.of(
+                            "terms", Map.of("genetic_analyses." + key, valueSet)
                         ));
                     } else if (SURVIVAL_PARAMS.contains(key) && !indexType.equals("survivals")) {
                         survival_filters.add(Map.of(
@@ -206,10 +215,11 @@ public class InventoryESService extends ESService {
         int FilterLen = filter.size();
         int participantFilterLen = participant_filters.size();
         int diagnosisFilterLen = diagnosis_filters.size();
+        int geneticAnalysisFilterLen = genetic_analysis_filters.size();
         int survivalFilterLen = survival_filters.size();
         int treatmentFilterLen = treatment_filters.size();
         int treatmentResponseFilterLen = treatment_response_filters.size();
-        if (FilterLen + participantFilterLen + diagnosisFilterLen + survivalFilterLen + treatmentFilterLen + treatmentResponseFilterLen == 0) {
+        if (FilterLen + participantFilterLen + diagnosisFilterLen + geneticAnalysisFilterLen + survivalFilterLen + treatmentFilterLen + treatmentResponseFilterLen == 0) {
             result.put("query", Map.of("match_all", Map.of()));
         } else {
             if (participantFilterLen > 0) {
@@ -217,6 +227,9 @@ public class InventoryESService extends ESService {
             }
             if (diagnosisFilterLen > 0) {
                 filter.add(Map.of("nested", Map.of("path", "diagnoses", "query", Map.of("bool", Map.of("filter", diagnosis_filters)), "inner_hits", Map.of())));
+            }
+            if (geneticAnalysisFilterLen > 0) {
+                filter.add(Map.of("nested", Map.of("path", "genetic_analyses", "query", Map.of("bool", Map.of("filter", genetic_analysis_filters)), "inner_hits", Map.of())));
             }
             if (survivalFilterLen > 0) {
                 filter.add(Map.of("nested", Map.of("path", "survivals", "query", Map.of("bool", Map.of("filter", survival_filters)), "inner_hits", Map.of())));
@@ -231,6 +244,37 @@ public class InventoryESService extends ESService {
         }
         
         return result;
+    }
+
+    public List<String> getBucketNames(String property, Map<String, Object> params, Set<String> rangeParams, String cardinalityAggName, String index, String endpoint) throws IOException {
+        List<String> bucketNames = new ArrayList<String>();
+        Map<String, Object> query = buildFacetFilterQuery(params, rangeParams, Set.of(), index);
+
+        // TODO: buckets for numeric ranges, when such a feature is needed
+        // stub
+
+        // Add aggs clause to Opensearch query
+        String[] aggNames = new String[] {property};
+        query = addAggregations(query, aggNames, cardinalityAggName, List.of());
+
+        // Send Opensearch request and retrieve list of buckets
+        Request request = new Request("GET", endpoint);
+        String jsonizedRequest = gson.toJson(query);
+        request.setJsonEntity(jsonizedRequest);
+        JsonObject jsonObject = send(request);
+        Map<String, JsonArray> aggs = collectTermAggs(jsonObject, aggNames);
+        JsonArray buckets = aggs.get(property);
+
+        if (buckets != null) {
+            for (JsonElement bucket : buckets) {
+                JsonObject bucketObj = bucket.getAsJsonObject();
+                if (bucketObj.has("key")) {
+                    bucketNames.add(bucketObj.get("key").getAsString());
+                }
+            }
+        }
+
+        return bucketNames;
     }
 
     /**
@@ -303,7 +347,34 @@ public class InventoryESService extends ESService {
         Map<String, Object> subField_ranges = new HashMap<String, Object>();
 
         subField_ranges.put("field", rangeAggName);
-        subField_ranges.put("ranges", Set.of(Map.of("key", "0 - 4", "from", 0, "to", 4 * 365), Map.of("key", "5 - 9", "from", 4 * 365, "to", 9 * 365), Map.of("key", "10 - 14", "from", 9 * 365, "to", 14 * 365), Map.of("key", "15 - 19", "from", 14 * 365, "to", 19 * 365), Map.of("key", "20 - 29", "from", 19 * 365, "to", 29 * 365), Map.of("key", "> 29", "from", 29 * 365)));
+
+        // Opensearch ranges are [from, to)
+        subField_ranges.put("ranges", Set.of(
+            Map.of(
+                "key", "0 - 4",
+                "from", 0,
+                "to", 5 * 365
+            ), Map.of(
+                "key", "5 - 9",
+                "from", 5 * 365,
+                "to", 10 * 365
+            ), Map.of(
+                "key", "10 - 14",
+                "from", 10 * 365,
+                "to", 15 * 365
+            ), Map.of(
+                "key", "15 - 19",
+                "from", 15 * 365,
+                "to", 20 * 365
+            ), Map.of(
+                "key", "20 - 29",
+                "from", 20 * 365,
+                "to", 30 * 365
+            ), Map.of(
+                "key", "> 29",
+                "from", 30 * 365
+            )
+        ));
         subField.put("range", subField_ranges);
 
         if (cardinalityAggName != null) {

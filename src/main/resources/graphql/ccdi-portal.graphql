@@ -6,8 +6,6 @@ type Study {
     study_short_title: String
     study_acronym: String
     study_description: String
-    consent: String
-    consent_number: Int
     external_url: String
     experimental_strategy_and_data_subtype: String
     study_data_types: String

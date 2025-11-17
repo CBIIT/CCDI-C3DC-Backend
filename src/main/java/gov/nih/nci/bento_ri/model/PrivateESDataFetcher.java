@@ -4,8 +4,10 @@ import gov.nih.nci.bento.constants.Const;
 import gov.nih.nci.bento.model.AbstractPrivateESDataFetcher;
 import gov.nih.nci.bento.model.search.yaml.YamlQueryFactory;
 import gov.nih.nci.bento.service.ESService;
+import gov.nih.nci.bento.utility.TypeChecker;
 import gov.nih.nci.bento_ri.service.InventoryESService;
 import graphql.schema.idl.RuntimeWiring;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Request;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.yaml.snakeyaml.Yaml;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -25,7 +28,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
-import static org.junit.Assert.fail;
 
 @Component
 public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
@@ -44,8 +46,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String ORDER_BY = "order_by";
     final String SORT_DIRECTION = "sort_direction";
 
+    // Maximum numbers of buckets to show in cohort analyzer charts
+    final int COHORT_CHART_BUCKET_LIMIT_HIGH = 20;
+    final int COHORT_CHART_BUCKET_LIMIT_LOW = 5;
+
     final String STUDIES_FACET_END_POINT = "/study_participants/_search";
     final String COHORTS_END_POINT = "/cohorts/_search";
+    final String GENETIC_ANALYSES_END_POINT = "/genetic_analyses/_search";
     final String PARTICIPANTS_END_POINT = "/participants/_search";
     final String SURVIVALS_END_POINT = "/survivals/_search";
     final String SYNONYMS_END_POINT = "/synonyms/_search";
@@ -57,6 +64,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String SAMPLES_END_POINT = "/samples/_search";
     final Map<String, String> ENDPOINTS = Map.ofEntries(
         Map.entry("diagnoses", DIAGNOSES_END_POINT),
+        Map.entry("genetic_analyses", GENETIC_ANALYSES_END_POINT),
         Map.entry("participants", PARTICIPANTS_END_POINT),
         Map.entry("studies", STUDIES_END_POINT),
         Map.entry("survivals", SURVIVALS_END_POINT),
@@ -129,6 +137,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return getParticipants(args);
                         })
+                        .dataFetcher("cohortCharts", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return cohortCharts(args);
+                        })
                         .dataFetcher("cohortMetadata", env -> {
                             Map<String, Object> args = env.getArguments();
                             return cohortMetadata(args);
@@ -140,6 +152,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         .dataFetcher("diagnosisOverview", env -> {
                             Map<String, Object> args = env.getArguments();
                             return diagnosisOverview(args);
+                        })
+                        .dataFetcher("geneticAnalysisOverview", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return geneticAnalysisOverview(args);
                         })
                         .dataFetcher("studyOverview", env -> {
                             Map<String, Object> args = env.getArguments();
@@ -170,10 +186,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return numberOfParticipants(args);
                         })
-                        .dataFetcher("numberOfReferenceFiles", env -> {
-                            Map<String, Object> args = env.getArguments();
-                            return numberOfReferenceFiles(args);
-                        })
                         .dataFetcher("numberOfStudies", env -> {
                             Map<String, Object> args = env.getArguments();
                             return numberOfStudies(args);
@@ -197,7 +209,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private List<Map<String, Object>> subjectCountBy(String category, Map<String, Object> params, String endpoint, Map<String, Object> additionalParams, String cardinalityAggName, String indexType) throws IOException {
         Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE), indexType);
         List<String> only_includes;
-        List<String> valueSet = INCLUDE_PARAMS.contains(category) ? (List<String>)params.get(category) : List.of();
+        List<String> valueSet = null;
+        Object valueSetRaw = params.get(category);
+
+        if (TypeChecker.isOfType(valueSetRaw, new TypeToken<List<String>>() {})) {
+            @SuppressWarnings("unchecked")
+            List<String> castedValueSet = (List<String>) params.get(category);
+            valueSet = INCLUDE_PARAMS.contains(category) ? castedValueSet : List.of();
+        }
+
         if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))){
             only_includes = valueSet;
         } else {
@@ -289,19 +309,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return data;
     }
 
-    private List<Map<String, Object>> getBooleanGroupCountHelper(JsonObject filters) throws IOException {
-        List<Map<String, Object>> data = new ArrayList<>();
-        for (Map.Entry<String, JsonElement> group: filters.entrySet()) {
-            int count = group.getValue().getAsJsonObject().get("parent").getAsJsonObject().get("doc_count").getAsInt();
-            if (count > 0) {
-                data.add(Map.of("group", group.getKey(),
-                    "subjects", count
-                ));
-            }
-        }
-        return data;
-    }
-
     private List<Map<String, Object>> getGroupCountHelper(JsonArray buckets, String cardinalityAggName) throws IOException {
         int dotIndex = cardinalityAggName == null ? -1 : cardinalityAggName.indexOf("."); // Look for period (.) in cardinal property's name
         boolean isNested = (dotIndex != -1); // Determine whether the cardinal property is nested
@@ -329,9 +336,16 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private Map<String, List<Object>> idsLists() throws IOException {
-        String cacheKey = "participantIDs";
+        String cacheKey = "idsLists";
         Map<String, List<Object>> results = new HashMap<>();
-        Map<String, List<Object>> data = (Map<String, List<Object>>)caffeineCache.asMap().get(cacheKey);
+        Map<String, List<Object>> data = null;
+        Object dataRaw = caffeineCache.asMap().get(cacheKey);
+
+        if (TypeChecker.isOfType(dataRaw, new TypeToken<Map<String, List<Object>>>() {})) {
+            @SuppressWarnings("unchecked")
+            Map<String, List<Object>> castedData = (Map<String, List<Object>>) dataRaw;
+            data = castedData;
+        }
 
         // Early return if cached
         if (data != null) {
@@ -339,65 +353,73 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             return data;
         }
 
-        Map<String, Object> participantParams = Map.ofEntries(
+        Map<String, Object> idsListsParams = Map.ofEntries(
             Map.entry(OFFSET, 0),
-            Map.entry(ORDER_BY, "participant_id"),
+            Map.entry(ORDER_BY, "participant_ids"),
             Map.entry(PAGE_SIZE, ESService.MAX_ES_SIZE),
             Map.entry(SORT_DIRECTION, "asc")
         );
-        Map<String, Object> synonymParams = Map.ofEntries(
-            Map.entry(OFFSET, 0),
-            Map.entry(ORDER_BY, "associated_id"),
-            Map.entry(PAGE_SIZE, ESService.MAX_ES_SIZE),
-            Map.entry(SORT_DIRECTION, "asc")
-        );
-        final List<Map<String, Object>> participantProperties = List.of(
+        final List<Map<String, Object>> idsListsProperties = List.of(
             Map.ofEntries(
-                Map.entry("gqlName", "participant_id"),
-                Map.entry("osName", "participant_id")
-            )
-        );
-        final List<Map<String, Object>> synonymProperties = List.of(
-            Map.ofEntries(
-                Map.entry("gqlName", "associated_id"),
-                Map.entry("osName", "associated_id")
+                Map.entry("gqlName", "participant_ids"),
+                Map.entry("osName", "participant_ids")
             ),
             Map.ofEntries(
-                Map.entry("gqlName", "participant_id"),
-                Map.entry("osName", "participant_id")
+                Map.entry("gqlName", "associated_ids"),
+                Map.entry("osName", "associated_ids"),
+                Map.entry("nested", List.of(
+                    Map.ofEntries(
+                        Map.entry("gqlName", "associated_id"),
+                        Map.entry("osName", "associated_id")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "participant_id"),
+                        Map.entry("osName", "participant_id")
+                    )
+                ))
             )
         );
 
-        Map<String, Map<String, Object>> participantMapping = Map.ofEntries(// field -> sort field
-            Map.entry("participant_id", Map.ofEntries(
-                Map.entry("osName", "participant_id"),
-                Map.entry("isNested", false)
-            ))
-        );
-        Map<String, Map<String, Object>> synonymMapping = Map.ofEntries(// field -> sort field
-            Map.entry("associated_id", Map.ofEntries(
-                Map.entry("osName", "associated_id"),
+        Map<String, Map<String, Object>> idsListsMapping = Map.ofEntries(// field -> sort field
+            Map.entry("participant_ids", Map.ofEntries(
+                Map.entry("osName", "participant_ids"),
                 Map.entry("isNested", false)
             )),
-            Map.entry("participant_id", Map.ofEntries(
+            Map.entry("associated_ids.associated_id", Map.ofEntries(
+                Map.entry("osName", "associated_ids"),
+                Map.entry("isNested", true),
+                Map.entry("path", "associated_ids")
+            )),
+            Map.entry("associated_ids.participant_id", Map.ofEntries(
                 Map.entry("osName", "participant_id"),
-                Map.entry("isNested", false)
+                Map.entry("isNested", true),
+                Map.entry("path", "associated_ids")
             ))
         );
 
-        List<Map<String, Object>> participantResults = overview(PARTICIPANTS_END_POINT, participantParams, participantProperties, "participant_id", participantMapping, "participants");
-        List<Map<String, Object>> synonymResults = overview(SYNONYMS_END_POINT, synonymParams, synonymProperties, "associated_id", synonymMapping, "synonyms");
+        List<Map<String, Object>> idsListsResults = overview("/participant_ids_lists/_search", idsListsParams, idsListsProperties, "participant_ids", idsListsMapping, "participants");
+        List<Object> participantIds = List.of();
+        List<Object> associatedIds = List.of();
+
+        if (TypeChecker.isOfType(idsListsResults.get(0).get("participant_ids"), new TypeToken<List<Object>>() {})) {
+            @SuppressWarnings("unchecked")
+            List<Object> castedParticipantIds = (List<Object>) idsListsResults.get(0).get("participant_ids");
+            participantIds = castedParticipantIds;
+        }
+
+        if (TypeChecker.isOfType(idsListsResults.get(0).get("associated_ids"), new TypeToken<List<Object>>() {})) {
+            @SuppressWarnings("unchecked")
+            List<Object> castedAssociatedIds = (List<Object>) idsListsResults.get(0).get("associated_ids");
+            associatedIds = castedAssociatedIds;
+        }
 
         results.put(
             "participantIds",
-            participantResults.stream().map(participant -> participant.get("participant_id")).collect(Collectors.toList())
+            participantIds
         );
         results.put(
             "associatedIds",
-            synonymResults.stream().map(synonym -> Map.ofEntries(
-                Map.entry("associated_id", synonym.get("associated_id")),
-                Map.entry("participant_id", synonym.get("participant_id"))
-            )).collect(Collectors.toList())
+            associatedIds
         );
 
         caffeineCache.put(cacheKey, results);
@@ -414,7 +436,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
      */
     private Map<String, Object> getParticipants(Map<String, Object> params) throws IOException {
         String cacheKey = generateCacheKey(params);
-        Map<String, Object> data = (Map<String, Object>)caffeineCache.asMap().get(cacheKey);
+        Map<String, Object> data = null;
+        Object dataRaw = caffeineCache.asMap().get(cacheKey);
+
+        if (TypeChecker.isOfType(dataRaw, new TypeToken<Map<String, Object>>() {})) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> castedData = (Map<String, Object>) dataRaw;
+            data = castedData;
+        }
 
         if (data != null) {
             logger.info("hit cache!");
@@ -444,6 +473,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map<String, Object> diagnosesQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), "diagnoses");
         int numberOfDiagnoses = inventoryESService.getCount(diagnosesQuery, "diagnoses");
 
+        // Get Diagnosis counts for Explore page stats bar
+        Map<String, Object> geneticAnalysesQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), "genetic_analyses");
+        int numberOfGeneticAnalyses = inventoryESService.getCount(geneticAnalysesQuery, "genetic_analyses");
+
         // Get Survival counts for Explore page stats bar
         Map<String, Object> survivalsQuery = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), "survivals");
         int numberOfSurvivals = inventoryESService.getCount(survivalsQuery, "survivals");
@@ -465,6 +498,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         data.put("numberOfStudies", numberOfStudies);
         data.put("numberOfDiagnoses", numberOfDiagnoses);
         data.put("numberOfDiseases", numberOfDiseases);
+        data.put("numberOfGeneticAnalyses", numberOfGeneticAnalyses);
         data.put("numberOfParticipants", numberOfParticipants);
         data.put("numberOfSurvivals", numberOfSurvivals);
         data.put("numberOfTreatments", numberOfTreatments);
@@ -481,6 +515,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 String cardinalityAggName = filter.get(CARDINALITY_AGG_NAME);
                 String field = filter.get(AGG_NAME);
                 String filterCountQueryName = filter.get(FILTER_COUNT_QUERY);
+                List<String> values = null;
+                Object valuesRaw = params.get(field);
                 String widgetQueryName = filter.get(WIDGET_QUERY);
                 boolean shouldCheckThreshold = facetFilterThresholds.get(index).containsKey(field);
                 List<Map<String, Object>> filterCounts = filterSubjectCountBy(field, params, endpoint, cardinalityAggName, index);
@@ -493,13 +529,19 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     data.put(filterCountQueryName, filterCounts);
                 }
 
+                if (TypeChecker.isOfType(valuesRaw, new TypeToken<List<String>>() {})) {
+                    @SuppressWarnings("unchecked")
+                    List<String> castedValues = (List<String>) valuesRaw;
+                    values = castedValues;
+                }
+
                 // Get widget counts
                 if (widgetQueryName != null) {
                     // Fetch data for widgets
                     if (RANGE_PARAMS.contains(field)) {
                         List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, endpoint, cardinalityAggName, index);
                         data.put(widgetQueryName, subjectCount);
-                    } else if (params.containsKey(field) && ((List<String>) params.get(field)).size() > 0) {
+                    } else if (params.containsKey(field) && values.size() > 0) {
                         List<Map<String, Object>> subjectCount = subjectCountBy(field, params, endpoint, cardinalityAggName, index);
                         data.put(widgetQueryName, subjectCount);
                     } else {
@@ -548,16 +590,237 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return data;
     }
 
+    private List<Map<String, Object>> cohortCharts(Map<String, Object> params) throws IOException {
+        List<Map<String, Object>> chartConfigs = null;
+        Object chartConfigsRaw;
+        List<Map<String, Object>> charts = new ArrayList<Map<String, Object>>();
+        Map<String, Object> cohorts = new HashMap<String, Object>();
+        List<String> cohortsCombined = new ArrayList<String>();
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+
+        if (params == null || !params.containsKey("charts")) {
+            return List.of(); // No charts specified
+        }
+
+        if (!(params.containsKey("c1") || params.containsKey("c2") || params.containsKey("c3"))) {
+            return List.of(); // No cohorts specified
+        }
+
+        // Combine cohorts from c1, c2, c3 into a single list
+        for (String key : List.of("c1", "c2", "c3")) {
+            if (!params.containsKey(key)) {
+                continue;
+            }
+
+            Object cohortRaw = params.get(key);
+            List<String> cohort;
+
+            if (TypeChecker.isOfType(cohortRaw, new TypeToken<List<String>>() {})) {
+                @SuppressWarnings("unchecked")
+                List<String> castedCohort = (List<String>) cohortRaw;
+                cohort = castedCohort;
+
+                if (!cohort.isEmpty()) {
+                    // Add cohort to combined list
+                    cohortsCombined.addAll(cohort);
+                    cohorts.put(key, cohort);
+                }
+            }
+        }
+
+        if (cohortsCombined.isEmpty()) {
+            return result;
+        }
+
+        chartConfigsRaw = params.get("charts");
+        if (TypeChecker.isOfType(chartConfigsRaw, new TypeToken<List<Map<String, Object>>>() {})) {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> castedChartConfigs = (List<Map<String, Object>>) chartConfigsRaw;
+            chartConfigs = castedChartConfigs;
+        }
+
+        if (chartConfigs == null || chartConfigs.isEmpty()) {
+            return result;
+        }
+
+        // Allocate a map of Opensearch details for each property
+        HashMap<String, HashMap<String, String>> groupConfigs = new HashMap<>();
+        for (Map<String, Object> chartConfig : chartConfigs) {
+            String property = (String) chartConfig.get("property");
+            groupConfigs.put(property, new HashMap<String, String>());
+        }
+
+        // Retrieve Opensearch details for each property
+        for (String index : facetFilters.keySet()) {
+            List<Map<String, String>> facetFilterConfigs = facetFilters.get(index);
+            for (Map<String, String> facetFilterConfig : facetFilterConfigs) {
+                String aggName = facetFilterConfig.get("agg_name");
+                if (aggName != null && groupConfigs.containsKey(aggName)) {
+                    HashMap<String, String> groupConfig = new HashMap<>(facetFilterConfig);
+                    groupConfig.put("index", index);
+                    groupConfigs.put(aggName, groupConfig);
+                }
+            }
+        }
+
+        // Generate charts for each configuration
+        for (Map<String, Object> chartConfig : chartConfigs) {
+            // Prepare map that represents the entire chart
+            String property = (String) chartConfig.get("property");
+            String type = (String) chartConfig.get("type");
+            Map<String, Object> chartData = new HashMap<String, Object>();
+            chartData.put("property", property);
+            int totalNumberOfParticipants = 0;
+            List<String> bucketNames;
+            List<String> bucketNamesTopFew;
+            List<String> bucketNamesTopMany;
+
+            // Obtain details for querying Opensearch
+            Map<String, String> groupConfig = groupConfigs.get(property);
+            String cardinalityAggName = groupConfig.get("cardinality_agg_name");
+            String endpoint = ENDPOINTS.get(groupConfig.get("index"));
+            String indexName = groupConfig.get("index");
+
+            // Determine most populous buckets
+            Map<String, Object> combinedCohortParams = Map.of("participant_pk", cohortsCombined);
+            bucketNames = inventoryESService.getBucketNames(property, combinedCohortParams, RANGE_PARAMS, cardinalityAggName, indexName, endpoint);
+
+            if (bucketNames.size() > COHORT_CHART_BUCKET_LIMIT_LOW) {
+                bucketNamesTopFew = new ArrayList<>(bucketNames.subList(0, COHORT_CHART_BUCKET_LIMIT_LOW));
+            } else {
+                bucketNamesTopFew = new ArrayList<>(bucketNames);
+            }
+
+            if (bucketNames.size() > COHORT_CHART_BUCKET_LIMIT_HIGH) {
+                bucketNamesTopMany = new ArrayList<>(bucketNames.subList(0, COHORT_CHART_BUCKET_LIMIT_HIGH));
+            } else {
+                bucketNamesTopMany = new ArrayList<>(bucketNames);
+            }
+
+            // If chart type is percentage, then count the total number of participants
+            if (type.equals("percentage")) {
+                Map<String, Object> combinedCohortsQuery = inventoryESService.buildFacetFilterQuery(combinedCohortParams, RANGE_PARAMS, Set.of(), "participants");
+
+                totalNumberOfParticipants = inventoryESService.getCount(combinedCohortsQuery, "participants");
+            }
+
+            // Prepare list of data for each cohort
+            List<Map<String, Object>> cohortsData = new ArrayList<Map<String, Object>>();
+
+            // Retrieve data for each cohort
+            for (String cohortName : cohorts.keySet()) {
+                // Prepare map of data for the cohort
+                Map<String, Object> cohortData = new HashMap<String, Object>();
+                Map<String, Object> cohortParams = Map.of("participant_pk", cohorts.get(cohortName));
+                cohortData.put("cohort", cohortName);
+
+                // Retrieve data for the cohort
+                List<Map<String, Object>> cohortGroupCounts = filterSubjectCountBy(property, cohortParams, endpoint, cardinalityAggName, indexName);
+                List<Map<String, Object>> cohortGroupCountsTruncated = new ArrayList<Map<String, Object>>();
+                int otherMany = 0;
+                int otherFew = 0;
+
+                // Format for efficient retrieval
+                Map<String, Object> groupsToSubjects = new HashMap<>();
+                for (Map<String, Object> groupCount : cohortGroupCounts) {
+                    String group = (String) groupCount.get("group");
+                    Object subjects = groupCount.get("subjects");
+                    groupsToSubjects.put(group, subjects);
+                }
+
+                // Add buckets and their counts to a truncated list of results
+                for (String bucketName : bucketNames) {
+                    Integer subjects = (Integer) groupsToSubjects.getOrDefault(bucketName, 0);
+
+                    if (bucketNamesTopMany.contains(bucketName)) {
+                        cohortGroupCountsTruncated.add(Map.of("group", bucketName, "subjects", subjects));
+
+                    } else {
+                        otherMany += subjects;
+                    }
+
+                    if (!bucketNamesTopFew.contains(bucketName)) {
+                        otherFew += subjects;
+                    }
+                }
+
+                if (bucketNames.size() > COHORT_CHART_BUCKET_LIMIT_LOW) {
+                    cohortGroupCountsTruncated.add(Map.of("group", "OtherFew", "subjects", otherFew));
+                }
+
+                if (bucketNames.size() > COHORT_CHART_BUCKET_LIMIT_HIGH) {
+                    cohortGroupCountsTruncated.add(Map.of("group", "OtherMany", "subjects", otherMany));
+                }
+
+                // If chart type is percentage, then replace counts with percentages
+                if (type.equals("percentage")) {
+                    List<Map<String, Object>> cohortGroupPercentages = new ArrayList<Map<String, Object>>();
+
+                    for (Map<String, Object> groupCount : cohortGroupCountsTruncated) {
+                        String group = (String) groupCount.get("group");
+                        int count = (Integer) groupCount.get("subjects");
+                        double percentage = totalNumberOfParticipants > 0 ? ((double) count / totalNumberOfParticipants) * 100 : 0.0;
+
+                        cohortGroupPercentages.add(Map.of("group", group, "subjects", percentage));
+                    }
+
+                    cohortData.put("participantsByGroup", cohortGroupPercentages);
+                } else if (type.equals("count")) {
+                    cohortData.put("participantsByGroup", cohortGroupCountsTruncated);
+                }
+
+                // Add cohort data to the list of cohorts
+                cohortsData.add(cohortData);
+            }
+
+            // Add list of all cohorts' data to the chart
+            chartData.put("cohorts", cohortsData);
+
+            // Add chart to the list of charts
+            charts.add(chartData);
+        }
+
+        return charts;
+    }
+
+    private Map<String, String> getGroupConfig(String propertyName) {
+        for (String index : facetFilters.keySet()) {
+            List<Map<String, String>> groupConfigs = facetFilters.get(index);
+
+            for (Map<String, String> groupConfig : groupConfigs) {
+                String aggName = groupConfig.get("agg_name");
+
+                if (aggName != null && aggName.equals(propertyName)) {
+                    Map<String, String> modifiedGroupConfig = new HashMap<>(groupConfig);
+                    modifiedGroupConfig.put("index", index);
+                    return modifiedGroupConfig;
+                }
+            }
+        }
+
+        return null;
+    }
+
     private List<Map<String, Object>> cohortMetadata(Map<String, Object> params) throws IOException {
         List<Map<String, Object>> participants;
-        Map<String, List<Map<String, Object>>> participantsByStudy = new HashMap<String, List<Map<String, Object>>>();
-        List<Map<String, Object>> listOfParticipantsByStudy = new ArrayList<Map<String, Object>>();
+        Map<String, Map<String, Map<String, Object>>> consentGroupsByStudy = new HashMap<String, Map<String, Map<String, Object>>>();
+        List<Map<String, Object>> listOfStudies = new ArrayList<Map<String, Object>>();
 
         final List<Map<String, Object>> PROPERTIES = List.of(
             // Studies
             Map.ofEntries(
                 Map.entry("gqlName", "dbgap_accession"),
                 Map.entry("osName", "dbgap_accession")
+            ),
+
+            // Consent Groups
+            Map.ofEntries(
+                Map.entry("gqlName", "consent_group_name"),
+                Map.entry("osName", "consent_group_name")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "consent_group_number"),
+                Map.entry("osName", "consent_group_number")
             ),
 
             // Demographics
@@ -584,10 +847,48 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("osName", "diagnoses")
             ),
 
+            // Genetic Analyses
+            Map.ofEntries(
+                Map.entry("gqlName", "genetic_analyses"),
+                Map.entry("osName", "genetic_analyses")
+            ),
+
             // Survivals
             Map.ofEntries(
                 Map.entry("gqlName", "survivals"),
                 Map.entry("osName", "survivals")
+            ),
+
+            // CPI data
+            Map.ofEntries(
+                Map.entry("gqlName", "synonyms"),
+                Map.entry("osName", "synonyms"),
+                Map.entry("nested", List.of(
+                    Map.ofEntries(
+                        Map.entry("gqlName", "id"),
+                        Map.entry("osName", "id")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "associated_id"),
+                        Map.entry("osName", "associated_id")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "data_location"),
+                        Map.entry("osName", "data_location")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "domain_category"),
+                        Map.entry("osName", "domain_category")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "domain_description"),
+                        Map.entry("osName", "domain_description")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "repository_of_synonym_id"),
+                        Map.entry("osName", "repository_of_synonym_id")
+                    )
+                ))
             ),
 
             // Treatments
@@ -612,6 +913,16 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("isNested", false)
             )),
 
+            // Consent Groups
+            Map.entry("consent_group_name", Map.ofEntries(
+                Map.entry("osName", "consent_group_name"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("consent_group_number", Map.ofEntries(
+                Map.entry("osName", "consent_group_number"),
+                Map.entry("isNested", false)
+            )),
+
             // Demographics
             Map.entry("participant_pk", Map.ofEntries(
                 Map.entry("osName", "id"),
@@ -628,33 +939,80 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("sex_at_birth", Map.ofEntries(
                 Map.entry("osName", "sex_at_birth"),
                 Map.entry("isNested", false)
+            )),
+
+            // CPI Data
+            Map.entry("synonyms.id", Map.ofEntries(
+                Map.entry("osName", "id"),
+                Map.entry("isNested", true),
+                Map.entry("path", "synonyms")
+            )),
+            Map.entry("synonyms.associated_id", Map.ofEntries(
+                Map.entry("osName", "associated_id"),
+                Map.entry("isNested", true),
+                Map.entry("path", "synonyms")
+            )),
+            Map.entry("synonyms.data_location", Map.ofEntries(
+                Map.entry("osName", "data_location"),
+                Map.entry("isNested", true),
+                Map.entry("path", "synonyms")
+            )),
+            Map.entry("synonyms.domain_category", Map.ofEntries(
+                Map.entry("osName", "domain_category"),
+                Map.entry("isNested", true),
+                Map.entry("path", "synonyms")
+            )),
+            Map.entry("synonyms.domain_description", Map.ofEntries(
+                Map.entry("osName", "domain_description"),
+                Map.entry("isNested", true),
+                Map.entry("path", "synonyms")
+            )),
+            Map.entry("synonyms.repository_of_synonym_id", Map.ofEntries(
+                Map.entry("osName", "repository_of_synonym_id"),
+                Map.entry("isNested", true),
+                Map.entry("path", "synonyms")
             ))
         );
 
         participants = overview(COHORTS_END_POINT, params, PROPERTIES, defaultSort, mapping, "participants");
 
-        // Restructure the data to a map, keyed by dbgap_accession
+        // Group participants by consent group and then by study
         participants.forEach((Map<String, Object> participant) -> {
             String dbgapAccession = (String) participant.get("dbgap_accession");
+            String consentGroupName = (String) participant.get("consent_group_name");
+            String consentGroupNumber = (String) participant.get("consent_group_number");
 
-            if (participantsByStudy.containsKey(dbgapAccession)) {
-                participantsByStudy.get(dbgapAccession).add(participant);
-            } else {
-                participantsByStudy.put(dbgapAccession, new ArrayList<Map<String, Object>>(
-                    List.of(participant)
-                ));
+            // Make sure a mapping exists for the study
+            if (!consentGroupsByStudy.containsKey(dbgapAccession)) {
+                consentGroupsByStudy.put(dbgapAccession, new HashMap<String, Map<String, Object>>());
             }
+
+            // Make sure a mapping exists for the consent group
+            if (!consentGroupsByStudy.get(dbgapAccession).containsKey(consentGroupName)) {
+                Map<String, Object> consentGroup = new HashMap<String, Object>();
+
+                consentGroup.put("consent_group_name", consentGroupName);
+                consentGroup.put("consent_group_number", consentGroupNumber);
+                consentGroup.put("participants", new ArrayList<Map<String, Object>>());
+                consentGroupsByStudy.get(dbgapAccession).put(consentGroupName, consentGroup);
+            }
+
+            // Add to the consent group's list of participants
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> participantsList = (List<Map<String, Object>>) consentGroupsByStudy.get(dbgapAccession).get(consentGroupName).get("participants");
+            participantsList.add(participant);
         });
 
-        // Restructure the map to a list
-        participantsByStudy.forEach((accession, people) -> {
-            listOfParticipantsByStudy.add(Map.ofEntries(
+        // Structure a list of studies to return
+        // Study->Consent Group->Participant
+        consentGroupsByStudy.forEach((accession, consentGroups) -> {
+            listOfStudies.add(Map.ofEntries(
                 Map.entry("dbgap_accession", accession),
-                Map.entry("participants", people)
+                Map.entry("consent_groups", consentGroups.values())
             ));
         });
 
-        return listOfParticipantsByStudy;
+        return listOfStudies;
     }
 
     private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
@@ -670,7 +1028,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             ),
             Map.ofEntries(
                 Map.entry("gqlName", "race"),
-                Map.entry("osName", "race_str")
+                Map.entry("osName", "race")
             ),
             Map.ofEntries(
                 Map.entry("gqlName", "sex_at_birth"),
@@ -784,7 +1142,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     // Additional fields for Cohort manifest download
                     Map.ofEntries(
                         Map.entry("gqlName", "race"),
-                        Map.entry("osName", "race_str")
+                        Map.entry("osName", "race")
                     ),
                     Map.ofEntries(
                         Map.entry("gqlName", "sex_at_birth"),
@@ -957,6 +1315,229 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return overview(DIAGNOSES_END_POINT, params, PROPERTIES, defaultSort, mapping, "diagnoses");
     }
 
+    private List<Map<String, Object>> geneticAnalysisOverview(Map<String, Object> params) throws IOException {
+        final List<Map<String, Object>> PROPERTIES = List.of(
+            // Study
+            Map.ofEntries(
+                Map.entry("gqlName", "dbgap_accession"),
+                Map.entry("osName", "dbgap_accession")
+            ),
+
+            // Genetic Analysis
+            Map.ofEntries(
+                Map.entry("gqlName", "id"),
+                Map.entry("osName", "id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "genetic_analysis_id"),
+                Map.entry("osName", "genetic_analysis_id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "alteration"),
+                Map.entry("osName", "alteration")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "cytoband"),
+                Map.entry("osName", "cytoband")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "gene_symbol"),
+                Map.entry("osName", "gene_symbol")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "genomic_source_category"),
+                Map.entry("osName", "genomic_source_category")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "hgvs_coding"),
+                Map.entry("osName", "hgvs_coding")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "hgvs_genome"),
+                Map.entry("osName", "hgvs_genome")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "hgvs_protein"),
+                Map.entry("osName", "hgvs_protein")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "status"),
+                Map.entry("osName", "status")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "test"),
+                Map.entry("osName", "test")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "reported_significance"),
+                Map.entry("osName", "reported_significance")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "reported_significance_system"),
+                Map.entry("osName", "reported_significance_system")
+            ),
+
+            // Demographics
+            Map.ofEntries(
+                Map.entry("gqlName", "participant"),
+                Map.entry("osName", "participant"),
+                Map.entry("nested", List.of(
+                    Map.ofEntries(
+                        Map.entry("gqlName", "id"),
+                        Map.entry("osName", "id")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "participant_id"),
+                        Map.entry("osName", "participant_id")
+                    ),
+
+                    // Additional fields for Cohort manifest download
+                    Map.ofEntries(
+                        Map.entry("gqlName", "race"),
+                        Map.entry("osName", "race")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "sex_at_birth"),
+                        Map.entry("osName", "sex_at_birth")
+                    )
+                ))
+            ),
+
+            // Additional fields for download
+            Map.ofEntries(
+                Map.entry("gqlName", "alteration_effect"),
+                Map.entry("osName", "alteration_effect")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "alteration_type"),
+                Map.entry("osName", "alteration_type")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "chromosome"),
+                Map.entry("osName", "chromosome")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "exon"),
+                Map.entry("osName", "exon")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "fusion_partner_exon"),
+                Map.entry("osName", "fusion_partner_exon")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "fusion_partner_gene"),
+                Map.entry("osName", "fusion_partner_gene")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "reference_genome"),
+                Map.entry("osName", "reference_genome")
+            )
+        );
+
+        String defaultSort = "genetic_analysis_id"; // Default sort order
+
+        Map<String, Map<String, Object>> mapping = Map.ofEntries(
+            // Study
+            Map.entry("dbgap_accession", Map.ofEntries(
+                Map.entry("osName", "dbgap_accession"),
+                Map.entry("isNested", false)
+            )),
+
+            // Genetic Analysis
+            Map.entry("id", Map.ofEntries(
+                Map.entry("osName", "id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("genetic_analysis_id", Map.ofEntries(
+                Map.entry("osName", "genetic_analysis_id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("alteration", Map.ofEntries(
+                Map.entry("osName", "alteration"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("cytoband", Map.ofEntries(
+                Map.entry("osName", "cytoband"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("gene_symbol", Map.ofEntries(
+                Map.entry("osName", "gene_symbol_str"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("genomic_source_category", Map.ofEntries(
+                Map.entry("osName", "genomic_source_category"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("hgvs_coding", Map.ofEntries(
+                Map.entry("osName", "hgvs_coding"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("hgvs_genome", Map.ofEntries(
+                Map.entry("osName", "hgvs_genome"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("hgvs_protein", Map.ofEntries(
+                Map.entry("osName", "hgvs_protein"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("status", Map.ofEntries(
+                Map.entry("osName", "status"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("test", Map.ofEntries(
+                Map.entry("osName", "test"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("reported_significance", Map.ofEntries(
+                Map.entry("osName", "reported_significance"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("reported_significance_system", Map.ofEntries(
+                Map.entry("osName", "reported_significance_system"),
+                Map.entry("isNested", false)
+            )),
+
+            // Demographics
+            Map.entry("participant.participant_id", Map.ofEntries(
+                Map.entry("osName", "participant_id"),
+                Map.entry("isNested", true),
+                Map.entry("path", "participant")
+            )),
+
+            // Additional fields for download
+            Map.entry("alteration_effect", Map.ofEntries(
+                Map.entry("osName", "alteration_effect"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("alteration_type", Map.ofEntries(
+                Map.entry("osName", "alteration_type"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("chromosome", Map.ofEntries(
+                Map.entry("osName", "chromosome"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("exon", Map.ofEntries(
+                Map.entry("osName", "exon"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("fusion_partner_exon", Map.ofEntries(
+                Map.entry("osName", "fusion_partner_exon"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("fusion_partner_gene", Map.ofEntries(
+                Map.entry("osName", "fusion_partner_gene"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("reference_genome", Map.ofEntries(
+                Map.entry("osName", "reference_genome"),
+                Map.entry("isNested", false)
+            ))
+        );
+
+        return overview(GENETIC_ANALYSES_END_POINT, params, PROPERTIES, defaultSort, mapping, "genetic_analyses");
+    }
+
     private List<Map<String, Object>> studyOverview(Map<String, Object> params) throws IOException {
         final List<Map<String, Object>> PROPERTIES = List.of(
             // Studies
@@ -974,14 +1555,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             ),
 
             // Additional fields for download
-            Map.ofEntries(
-                Map.entry("gqlName", "consent"),
-                Map.entry("osName", "consent")
-            ),
-            Map.ofEntries(
-                Map.entry("gqlName", "consent_number"),
-                Map.entry("osName", "consent_number_str")
-            ),
             Map.ofEntries(
                 Map.entry("gqlName", "external_url"),
                 Map.entry("osName", "external_url")
@@ -1014,14 +1587,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             )),
 
             // Additional fields for download
-            Map.entry("consent", Map.ofEntries(
-                Map.entry("osName", "consent"),
-                Map.entry("isNested", false)
-            )),
-            Map.entry("consent_number", Map.ofEntries(
-                Map.entry("osName", "consent_number"),
-                Map.entry("isNested", false)
-            )),
             Map.entry("external_url", Map.ofEntries(
                 Map.entry("osName", "external_url"),
                 Map.entry("isNested", false)
@@ -1087,7 +1652,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     // Additional fields for Cohort manifest download
                     Map.ofEntries(
                         Map.entry("gqlName", "race"),
-                        Map.entry("osName", "race_str")
+                        Map.entry("osName", "race")
                     ),
                     Map.ofEntries(
                         Map.entry("gqlName", "sex_at_birth"),
@@ -1222,7 +1787,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     // Additional fields for Cohort manifest download
                     Map.ofEntries(
                         Map.entry("gqlName", "race"),
-                        Map.entry("osName", "race_str")
+                        Map.entry("osName", "race")
                     ),
                     Map.ofEntries(
                         Map.entry("gqlName", "sex_at_birth"),
@@ -1261,10 +1826,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.ofEntries(
                 Map.entry("gqlName", "treatment_type"),
                 Map.entry("osName", "treatment_type")
-            ),
-            Map.ofEntries(
-                Map.entry("gqlName", "treatment_agent_str"),
-                Map.entry("osName", "treatment_agent_str")
             ),
             Map.ofEntries(
                 Map.entry("gqlName", "treatment_agent"),
@@ -1314,10 +1875,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("isNested", false)
             )),
             Map.entry("treatment_agent", Map.ofEntries(
-                Map.entry("osName", "treatment_agent"),
-                Map.entry("isNested", false)
-            )),
-            Map.entry("treatment_agent_str", Map.ofEntries(
                 Map.entry("osName", "treatment_agent_str"),
                 Map.entry("isNested", false)
             ))
@@ -1345,7 +1902,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     // Additional fields for Cohort manifest download
                     Map.ofEntries(
                         Map.entry("gqlName", "race"),
-                        Map.entry("osName", "race_str")
+                        Map.entry("osName", "race")
                     ),
                     Map.ofEntries(
                         Map.entry("gqlName", "sex_at_birth"),
@@ -1660,22 +2217,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return count;
     }
 
-    private Integer numberOfReferenceFiles(Map<String, Object> params) throws Exception {
-        Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
-        JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
-        JsonArray hits = homeStatsResult.getAsJsonObject("hits").getAsJsonArray("hits");
-        Iterator<JsonElement> hitsIter = hits.iterator();
-
-        if (!hitsIter.hasNext()) {
-            throw new Exception("Error: no results for homepage stats!");
-        }
-
-        JsonObject counts = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
-        int count = counts.get("num_reference_files").getAsInt();
-
-        return count;
-    }
-
     private Integer numberOfStudies(Map<String, Object> params) throws Exception {
         Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
         JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
@@ -1714,7 +2255,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             if (RANGE_PARAMS.contains(key)) {
                 // Range parameters, should contain two doubles, first lower bound, then upper bound
                 // Any other values after those two will be ignored
-                List<Integer> bounds = (List<Integer>) params.get(key);
+                List<Integer> bounds = null;
+                Object boundsRaw = params.get(key);
+
+                if (TypeChecker.isOfType(boundsRaw, new TypeToken<List<Integer>>() {})) {
+                    @SuppressWarnings("unchecked")
+                    List<Integer> castedBounds = (List<Integer>) boundsRaw;
+                    bounds = castedBounds;
+                }
+
                 if (bounds.size() >= 2) {
                     Integer lower = bounds.get(0);
                     Integer higher = bounds.get(1);
@@ -1724,7 +2273,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     keys.add(key.concat(lower.toString()).concat(higher.toString()));
                 }
             } else {
-                List<String> valueSet = (List<String>) params.get(key);
+                List<String> valueSet = null;
+                Object valueSetRaw = params.get(key);
+
+                if (TypeChecker.isOfType(valueSetRaw, new TypeToken<List<String>>() {})) {
+                    @SuppressWarnings("unchecked")
+                    List<String> castedValueSet = (List<String>) valueSetRaw;
+                    valueSet = castedValueSet;
+                }
+            
                 // list with only one empty string [""] means return all records
                 if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
                     keys.add(key.concat(valueSet.toString()));

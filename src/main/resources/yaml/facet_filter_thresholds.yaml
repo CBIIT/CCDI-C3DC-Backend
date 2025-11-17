@@ -1,25 +1,46 @@
 # Opensearch bucket aggregation counts are approximate, not exact
 # They're more likely to be inaccurate for higher counts
 # Beyond curated thresholds, count results with /_count instead
+# Commented thresholds were previously needed, but are no longer
 
 diagnoses:
-  diagnosis_classification_system:
-    ICD-O-3.2: 5000
-  diagnosis_basis:
-    Clinical: 5700
-    Not Reported: 5000
+  anatomic_site:
+    Not Reported: 2900
+    'C71.9 : Posterior cranial fossa': 1200
+    'C42.0 : Blood': 1900
+  # diagnosis_classification_system:
+  #   ICD-O-3.2: 5000
+  # diagnosis_basis:
+  #   Clinical: 5700
+  #   Not Reported: 5000
   disease_phase:
-    Initial Diagnosis: 5700
+    Initial Diagnosis: 8800
+genetic_analyses:
+  alteration:
+    MLL Other partner: 2800
+    Trisomy 21: 2700
+  alteration_type:
+    Unknown: 2900
+    Translocation: 2900
+    Chromosomal Gain: 2900
+  fusion_partner_gene:
+    Other: 2900
+  gene_symbol:
+    Not Reported: 2000
+    MLL: 2000
 participants: {}
 studies: {}
 survivals: 
+  last_known_survival_status:
+    Alive: 9500
+    Not reported: 2000
   cause_of_death:
-    Not Reported: 5700
-  first_event:
-    Not Reported: 5700
+    Not Reported: 11600
+  # first_event:
+  #   Not Reported: 5700
 treatments:
   treatment_agent:
-    Not Reported: 2400
-  treatment_type:
-    Surgical Procedure: 1500
+    Not Reported: 3000
+  # treatment_type:
+  #   Surgical Procedure: 1500
 treatment_responses: {}
