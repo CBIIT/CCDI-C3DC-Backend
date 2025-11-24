@@ -66,7 +66,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String GENETIC_ANALYSES_END_POINT = "/genetic_analyses/_search";
     final String PARTICIPANTS_END_POINT = "/participants/_search";
     final String SURVIVALS_END_POINT = "/survivals/_search";
-    final String SYNONYMS_END_POINT = "/synonyms/_search";
     final String TREATMENTS_END_POINT = "/treatments/_search";
     final String TREATMENT_RESPONSES_END_POINT = "/treatment_responses/_search";
     final String DIAGNOSES_END_POINT = "/diagnoses/_search";
@@ -79,7 +78,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map.entry("participants", PARTICIPANTS_END_POINT),
         Map.entry("studies", STUDIES_END_POINT),
         Map.entry("survivals", SURVIVALS_END_POINT),
-        Map.entry("synonyms", SURVIVALS_END_POINT),
         Map.entry("treatments", TREATMENTS_END_POINT),
         Map.entry("treatment_responses", TREATMENT_RESPONSES_END_POINT)
     );
@@ -756,26 +754,48 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     /**
      * Updates the participant_list with enriched CPI data by matching participant_id and study_id
      */
-    private void updateParticipantListWithEnrichedCPIData(List<Map<String, Object>> participant_list, List<FormattedCPIResponse> enriched_cpi_data) {
+    private void updateParticipantListWithEnrichedCPIData(
+            List<Map<String, Object>> participant_list,
+            List<FormattedCPIResponse> enriched_cpi_data
+    ) {
+        updateParticipantListWithEnrichedCPIData(participant_list, enriched_cpi_data, null);
+    }
+
+    /**
+     * Updates the participant_list with enriched CPI data by matching participant_id and study_id
+     * @param participant_list List of participant objects
+     * @param enriched_cpi_data List of enriched CPI data objects
+     * @param synPropName The name of the synonyms property in the participant record; fallback to "synonyms" if not provided.
+     * @return void
+     * @throws Exception If an error occurs while updating the participant_list with enriched CPI data
+     */
+    private void updateParticipantListWithEnrichedCPIData(
+            List<Map<String, Object>> participant_list,
+            List<FormattedCPIResponse> enriched_cpi_data,
+            String synPropName
+    ) {
         if (participant_list == null || participant_list.isEmpty() || enriched_cpi_data == null || enriched_cpi_data.isEmpty()) {
             return;
         }
 
+        // The synonyms property name in the participant record; fallback to "cpi_data" if not provided.
+        String synonymsPropertyKey = (synPropName != null && !synPropName.isEmpty()) ? synPropName : "cpi_data";
+
         // Create a map for quick lookup of enriched CPI data by participant_id + study_id combination
         Map<String, Object> enrichedCPILookup = new HashMap<>();
-        
+
         for (FormattedCPIResponse cpiResponse : enriched_cpi_data) {
             try {
                 // Extract participant_id and study_id from the CPI response
                 Object participantIdObj = getFieldValue(cpiResponse, "participantId");
                 Object studyIdObj = getFieldValue(cpiResponse, "studyId");
-                
+
                 String participantId = participantIdObj != null ? participantIdObj.toString() : null;
                 String studyId = studyIdObj != null ? studyIdObj.toString() : null;
-                
+
                 if (participantId != null && studyId != null) {
                     String lookupKey = participantId + "_" + studyId;
-                    
+
                     // Extract the enriched cpiData array from the response (this is the array with enriched objects)
                     Object enrichedCpiDataArray = getFieldValue(cpiResponse, "cpiData");
                     if (enrichedCpiDataArray != null) {
@@ -793,16 +813,16 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             try {
                 String participantId = getStringValue(participant, "participant_id");
                 String studyId = getStringValue(participant, "study_id");
-                
+
                 if (participantId != null && studyId != null) {
                     String lookupKey = participantId + "_" + studyId;
-                    
+
                     // Check if we have enriched CPI data for this participant
                     if (enrichedCPILookup.containsKey(lookupKey)) {
                         Object enrichedCpiDataArray = enrichedCPILookup.get(lookupKey);
-                        
-                        // Update the cpi_data field in the participant record with the enriched array
-                        participant.put("cpi_data", enrichedCpiDataArray);
+
+                        // Update the cpi_data field (or user-provided field) in the participant record with the enriched array
+                        participant.put(synonymsPropertyKey, enrichedCpiDataArray);
                         // System.out.println("Updated participant " + participantId + " with enriched CPI data array");
                     } else {
                         // System.out.println("No enriched CPI data found for participant: " + participantId + ", study: " + studyId);
@@ -812,8 +832,60 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 logger.error("Error updating participant with enriched CPI data: " + e.getMessage(), e);
             }
         }
-        
+
         // System.out.println("Completed updating participant_list with enriched CPI data");
+    }
+
+    /**
+     * Puts CPI data into participants
+     */
+    private void insertCPIDataIntoParticipants(List<Map<String, Object>> participants) {
+        insertCPIDataIntoParticipants(participants, null);
+    }
+
+    /**
+     * Puts CPI data into participants
+     * @param participants List of participant objects
+     * @param synPropName The name of the synonyms property in the participant record
+     * @return void
+     * @throws Exception If an error occurs while putting CPI data into participants
+     */
+    private void insertCPIDataIntoParticipants(List<Map<String, Object>> participants, String synPropName) {
+        List<ParticipantRequest> cpiIDs = extractIDs(participants);
+
+        // Check if CPIFetcherService is properly injected
+        if (cpiFetcherService == null) {
+            logger.warn("CPIFetcherService is not properly injected. CPI integration will be skipped.");
+        } else {
+            try {
+                List<FormattedCPIResponse> cpiData = cpiFetcherService.fetchAssociatedParticipantIds(cpiIDs);
+                logger.info("CPI data received: " + cpiData.size() + " records");
+
+                // Print the first value as JSON
+                if (cpiData != null && !cpiData.isEmpty()) {
+                    // System.out.println("First CPI data value BEFORE enrichment: " + gson.toJson(cpi_data.get(0)));
+
+                    // Enrich CPI data with additional participant information
+                    enrichCPIDataWithParticipantInfo(cpiData);
+
+                    // Print the first enriched CPI data value
+                    // System.out.println("First enriched CPI data value AFTER enrichment: " + gson.toJson(cpi_data.get(0)));
+
+                    // Update the participant_list with the enriched CPI data
+                    if (synPropName == null) {
+                        updateParticipantListWithEnrichedCPIData(participants, cpiData);
+                    } else {
+                        updateParticipantListWithEnrichedCPIData(participants, cpiData, synPropName);
+                    }
+
+                } else {
+                    // System.out.println("CPI data is empty or null");
+                }
+            } catch (Exception e) {
+                // System.err.println("Error fetching CPI data: " + e.getMessage());
+                logger.error("Error fetching CPI data", e);
+            }
+        }
     }
 
     /**
@@ -1222,6 +1294,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         final List<Map<String, Object>> PROPERTIES = List.of(
             // Studies
             Map.ofEntries(
+                Map.entry("gqlName", "study_id"),
+                Map.entry("osName", "study_id")
+            ),
+            Map.ofEntries(
                 Map.entry("gqlName", "dbgap_accession"),
                 Map.entry("osName", "dbgap_accession")
             ),
@@ -1278,10 +1354,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("osName", "synonyms"),
                 Map.entry("nested", List.of(
                     Map.ofEntries(
-                        Map.entry("gqlName", "id"),
-                        Map.entry("osName", "id")
-                    ),
-                    Map.ofEntries(
                         Map.entry("gqlName", "associated_id"),
                         Map.entry("osName", "associated_id")
                     ),
@@ -1321,6 +1393,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         Map<String, Map<String, Object>> mapping = Map.ofEntries(
             // Studies
+            Map.entry("study_id", Map.ofEntries(
+                Map.entry("osName", "study_id"),
+                Map.entry("isNested", false)
+            )),
             Map.entry("dbgap_accession", Map.ofEntries(
                 Map.entry("osName", "dbgap_accession"),
                 Map.entry("isNested", false)
@@ -1355,11 +1431,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             )),
 
             // CPI Data
-            Map.entry("synonyms.id", Map.ofEntries(
-                Map.entry("osName", "id"),
-                Map.entry("isNested", true),
-                Map.entry("path", "synonyms")
-            )),
             Map.entry("synonyms.associated_id", Map.ofEntries(
                 Map.entry("osName", "associated_id"),
                 Map.entry("isNested", true),
@@ -1388,6 +1459,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         );
 
         participants = overview(COHORTS_END_POINT, params, PROPERTIES, defaultSort, mapping, "participants");
+        insertCPIDataIntoParticipants(participants, "synonyms");
 
         // Group participants by consent group and then by study
         participants.forEach((Map<String, Object> participant) -> {
@@ -1498,38 +1570,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         );
 
         participants = overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, "participants");
-
-        List<ParticipantRequest> cpiIDs = extractIDs(participants);
-
-        // Check if CPIFetcherService is properly injected
-        if (cpiFetcherService == null) {
-            logger.warn("CPIFetcherService is not properly injected. CPI integration will be skipped.");
-        } else {
-            try {
-                List<FormattedCPIResponse> cpiData = cpiFetcherService.fetchAssociatedParticipantIds(cpiIDs);
-                logger.info("CPI data received: " + cpiData.size() + " records");
-                
-                // Print the first value as JSON
-                if (cpiData != null && !cpiData.isEmpty()) {
-                    // System.out.println("First CPI data value BEFORE enrichment: " + gson.toJson(cpi_data.get(0)));
-                    
-                    // Enrich CPI data with additional participant information
-                    enrichCPIDataWithParticipantInfo(cpiData);
-                    
-                    // Print the first enriched CPI data value
-                    // System.out.println("First enriched CPI data value AFTER enrichment: " + gson.toJson(cpi_data.get(0)));
-                    
-                    // Update the participant_list with the enriched CPI data
-                    updateParticipantListWithEnrichedCPIData(participants, cpiData);
-                    
-                } else {
-                    // System.out.println("CPI data is empty or null");
-                }
-            } catch (Exception e) {
-                // System.err.println("Error fetching CPI data: " + e.getMessage());
-                logger.error("Error fetching CPI data", e);
-            }   
-        }
+        insertCPIDataIntoParticipants(participants);
 
         return participants;
     }
