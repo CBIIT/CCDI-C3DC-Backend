@@ -154,6 +154,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return cohortMetadata(args);
                         })
+                        .dataFetcher("kMPlot", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return kMPlot(args);
+                        })
                         .dataFetcher("participantOverview", env -> {
                             Map<String, Object> args = env.getArguments();
                             return participantOverview(args);
@@ -1266,6 +1270,71 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
 
         return charts;
+    }
+
+    private List<Map<String, Object>> kMPlot(Map<String, Object> params) throws Exception, IOException {
+        List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
+        Map<String, Object> survivalAggs = Map.of(
+            "by_participant", Map.of(
+                "terms", Map.of(
+                    "field", "participant_pk",
+                    "size", 10000
+                ),
+                "aggs", Map.of(
+                    "time", Map.of(
+                        "max", Map.of(
+                            "field", "age_at_last_known_survival_status"
+                        )
+                    ),
+                    "status", Map.of(
+                        "top_hits", Map.of(
+                            "size", 1,
+                            "_source", List.of("last_known_survival_status")
+                        )
+                    )
+                )
+            )
+        );
+
+        if (!(params.containsKey("c1") || params.containsKey("c2") || params.containsKey("c3"))) {
+            return List.of(); // No cohorts specified
+        }
+
+        // Iterate through values of "c1", "c2", and "c3" in params
+        for (String cohortKey : List.of("c1", "c2", "c3")) {
+            Object cohort = params.get(cohortKey);
+            Map<String, Object> cohortParams = Map.of("participant_pk", cohort);
+            Map<String, Object> survivalsQuery = inventoryESService.buildFacetFilterQuery(cohortParams, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), "survivals");
+            survivalsQuery.put("aggs", survivalAggs);
+
+            Request request = new Request("GET", SURVIVALS_END_POINT);
+            String jsonizedRequest = gson.toJson(survivalsQuery);
+            request.setJsonEntity(jsonizedRequest);
+            JsonObject response = inventoryESService.send(request);
+            // Assuming 'response' is a JsonObject received from Elasticsearch 
+            JsonObject aggregations = response.getAsJsonObject("aggregations");
+            JsonObject byParticipant = aggregations.getAsJsonObject("by_participant");
+            JsonArray buckets = byParticipant.getAsJsonArray("buckets");
+
+            for (JsonElement elem : buckets) {
+                JsonObject b = elem.getAsJsonObject();
+                String status = b.getAsJsonObject("status")
+                                .getAsJsonObject("hits")
+                                .getAsJsonArray("hits")
+                                .get(0).getAsJsonObject()
+                                .getAsJsonObject("_source")
+                                .get("last_known_survival_status").getAsString();
+                int event = "Dead".equals(status) ? 1 : 0;
+                Map<String, Object> data = new HashMap<>();
+                data.put("id", b.get("key").getAsString());
+                data.put("time", b.getAsJsonObject("time").get("value").getAsInt());
+                data.put("event", event);
+                data.put("group", cohortKey);
+                results.add(data);
+            }
+        }
+
+        return results;
     }
 
     private Map<String, String> getGroupConfig(String propertyName) {
