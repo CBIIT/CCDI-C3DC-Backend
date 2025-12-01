@@ -1291,7 +1291,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         final List<Map<String, Object>> PROPERTIES = List.of(
             // Studies
-            Map.ofEntries(
+            Map.ofEntries( // study_id needed for CPI data
                 Map.entry("gqlName", "study_id"),
                 Map.entry("osName", "study_id")
             ),
@@ -1391,7 +1391,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         Map<String, Map<String, Object>> mapping = Map.ofEntries(
             // Studies
-            Map.entry("study_id", Map.ofEntries(
+            Map.entry("study_id", Map.ofEntries( // study_id needed for CPI data
                 Map.entry("osName", "study_id"),
                 Map.entry("isNested", false)
             )),
