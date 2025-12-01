@@ -832,14 +832,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 logger.error("Error updating participant with enriched CPI data: " + e.getMessage(), e);
             }
         }
-
-        // System.out.println("Completed updating participant_list with enriched CPI data");
     }
 
     /**
      * Puts CPI data into participants
      */
-    private void insertCPIDataIntoParticipants(List<Map<String, Object>> participants) {
+    private void insertCPIDataIntoParticipants(List<Map<String, Object>> participants) throws Exception {
         insertCPIDataIntoParticipants(participants, null);
     }
 
@@ -850,7 +848,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
      * @return void
      * @throws Exception If an error occurs while putting CPI data into participants
      */
-    private void insertCPIDataIntoParticipants(List<Map<String, Object>> participants, String synPropName) {
+    private void insertCPIDataIntoParticipants(List<Map<String, Object>> participants, String synPropName) throws Exception {
         List<ParticipantRequest> cpiIDs = extractIDs(participants);
 
         // Check if CPIFetcherService is properly injected
@@ -1286,7 +1284,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return null;
     }
 
-    private List<Map<String, Object>> cohortMetadata(Map<String, Object> params) throws IOException {
+    private List<Map<String, Object>> cohortMetadata(Map<String, Object> params) throws Exception {
         List<Map<String, Object>> participants;
         Map<String, Map<String, Map<String, Object>>> consentGroupsByStudy = new HashMap<String, Map<String, Map<String, Object>>>();
         List<Map<String, Object>> listOfStudies = new ArrayList<Map<String, Object>>();
@@ -1500,7 +1498,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return listOfStudies;
     }
 
-    private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws Exception, IOException {
+    private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws Exception {
         List<Map<String, Object>> participants;
 
         final List<Map<String, Object>> PROPERTIES = List.of(
