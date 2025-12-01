@@ -767,7 +767,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
      * @param enriched_cpi_data List of enriched CPI data objects
      * @param synPropName The name of the synonyms property in the participant record; fallback to "synonyms" if not provided.
      * @return void
-     * @throws Exception If an error occurs while updating the participant_list with enriched CPI data
      */
     private void updateParticipantListWithEnrichedCPIData(
             List<Map<String, Object>> participant_list,
@@ -837,7 +836,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     /**
      * Puts CPI data into participants
      */
-    private void insertCPIDataIntoParticipants(List<Map<String, Object>> participants) throws Exception {
+    private void insertCPIDataIntoParticipants(List<Map<String, Object>> participants) {
         insertCPIDataIntoParticipants(participants, null);
     }
 
@@ -846,9 +845,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
      * @param participants List of participant objects
      * @param synPropName The name of the synonyms property in the participant record
      * @return void
-     * @throws Exception If an error occurs while putting CPI data into participants
      */
-    private void insertCPIDataIntoParticipants(List<Map<String, Object>> participants, String synPropName) throws Exception {
+    private void insertCPIDataIntoParticipants(List<Map<String, Object>> participants, String synPropName) {
         List<ParticipantRequest> cpiIDs = extractIDs(participants);
 
         // Check if CPIFetcherService is properly injected
@@ -1284,7 +1282,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return null;
     }
 
-    private List<Map<String, Object>> cohortMetadata(Map<String, Object> params) throws Exception {
+    private List<Map<String, Object>> cohortMetadata(Map<String, Object> params) throws IOException {
         List<Map<String, Object>> participants;
         Map<String, Map<String, Map<String, Object>>> consentGroupsByStudy = new HashMap<String, Map<String, Map<String, Object>>>();
         List<Map<String, Object>> listOfStudies = new ArrayList<Map<String, Object>>();
@@ -1498,7 +1496,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return listOfStudies;
     }
 
-    private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws Exception {
+    private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
         List<Map<String, Object>> participants;
 
         final List<Map<String, Object>> PROPERTIES = List.of(
@@ -2625,7 +2623,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return Map.of(propName, sortPredicate);
     }
 
-    private Integer numberOfDiseases(Map<String, Object> params) throws Exception {
+    private Integer numberOfDiseases(Map<String, Object> params) throws IOException {
         // String cacheKey = generateCacheKey(params);
         // Integer data = (Integer)caffeineCache.asMap().get(cacheKey);
 
@@ -2640,7 +2638,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Iterator<JsonElement> hitsIter = hits.iterator();
 
         if (!hitsIter.hasNext()) {
-            throw new Exception("Error: no results for homepage stats!");
+            logger.error("Error: no results for homepage stats!");
+            return 0;
         }
 
         JsonObject counts = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
@@ -2651,14 +2650,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return count;
     }
 
-    private Integer numberOfParticipants(Map<String, Object> params) throws Exception {
+    private Integer numberOfParticipants(Map<String, Object> params) throws IOException {
         Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
         JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
         JsonArray hits = homeStatsResult.getAsJsonObject("hits").getAsJsonArray("hits");
         Iterator<JsonElement> hitsIter = hits.iterator();
 
         if (!hitsIter.hasNext()) {
-            throw new Exception("Error: no results for homepage stats!");
+            logger.error("Error: no results for homepage stats!");
+            return 0;
         }
 
         JsonObject counts = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
@@ -2667,14 +2667,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return count;
     }
 
-    private Integer numberOfStudies(Map<String, Object> params) throws Exception {
+    private Integer numberOfStudies(Map<String, Object> params) throws IOException {
         Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
         JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
         JsonArray hits = homeStatsResult.getAsJsonObject("hits").getAsJsonArray("hits");
         Iterator<JsonElement> hitsIter = hits.iterator();
 
         if (!hitsIter.hasNext()) {
-            throw new Exception("Error: no results for homepage stats!");
+            logger.error("Error: no results for homepage stats!");
+            return 0;
         }
 
         JsonObject counts = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
@@ -2683,14 +2684,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return count;
     }
 
-    private Integer numberOfSurvivals(Map<String, Object> params) throws Exception {
+    private Integer numberOfSurvivals(Map<String, Object> params) throws IOException {
         Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
         JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
         JsonArray hits = homeStatsResult.getAsJsonObject("hits").getAsJsonArray("hits");
         Iterator<JsonElement> hitsIter = hits.iterator();
 
         if (!hitsIter.hasNext()) {
-            throw new Exception("Error: no results for homepage stats!");
+            logger.error("Error: no results for homepage stats!");
+            return 0;
         }
 
         JsonObject counts = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
