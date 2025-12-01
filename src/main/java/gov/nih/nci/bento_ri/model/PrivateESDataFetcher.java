@@ -520,7 +520,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
     }
 
-        /**
+    /**
      * Builds a HashMap mapping study_id (repository_of_synonym_id) to participant_ids (associated_id)
      */
     private Map<String, Set<String>> buildStudyToParticipantsMap(List<FormattedCPIResponse> recordsWithCpiData) {
@@ -597,7 +597,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return null;
     }
 
-        /**
+    /**
      * Executes batch OpenSearch query for all study/participant combinations
      */
     private List<Map<String, Object>> executeBatchQuery(Map<String, Set<String>> studyToParticipantsMap) throws IOException {
