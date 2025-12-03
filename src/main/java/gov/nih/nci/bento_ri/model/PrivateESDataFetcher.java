@@ -66,6 +66,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String GENETIC_ANALYSES_END_POINT = "/genetic_analyses/_search";
     final String PARTICIPANTS_END_POINT = "/participants/_search";
     final String SURVIVALS_END_POINT = "/survivals/_search";
+    final String SURVIVALS_KM_END_POINT = "/survivals_km/_search";
     final String TREATMENTS_END_POINT = "/treatments/_search";
     final String TREATMENT_RESPONSES_END_POINT = "/treatment_responses/_search";
     final String DIAGNOSES_END_POINT = "/diagnoses/_search";
@@ -78,6 +79,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map.entry("participants", PARTICIPANTS_END_POINT),
         Map.entry("studies", STUDIES_END_POINT),
         Map.entry("survivals", SURVIVALS_END_POINT),
+        Map.entry("survivals_km", SURVIVALS_KM_END_POINT),
         Map.entry("treatments", TREATMENTS_END_POINT),
         Map.entry("treatment_responses", TREATMENT_RESPONSES_END_POINT)
     );
@@ -1303,7 +1305,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map<String, Object> survivalsQuery = inventoryESService.buildFacetFilterQuery(cohortParams, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), "survivals");
             survivalsQuery.put("aggs", survivalAggs);
 
-            Request request = new Request("GET", SURVIVALS_END_POINT);
+            Request request = new Request("GET", SURVIVALS_KM_END_POINT);
             String jsonizedRequest = gson.toJson(survivalsQuery);
             request.setJsonEntity(jsonizedRequest);
             JsonObject response = inventoryESService.send(request);
