@@ -1310,11 +1310,29 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         // Iterate through "c1", "c2", and "c3" in params
         for (String cohortKey : List.of("c1", "c2", "c3")) {
+            List<String> cohort = new ArrayList<String>();
+            Object cohortRaw;
+
             if (!params.containsKey(cohortKey)) {
                 continue;
             }
 
-            Object cohort = params.get(cohortKey);
+            cohortRaw = params.get(cohortKey);
+
+            if (cohortRaw == null) {
+                continue;
+            }
+
+            if (TypeChecker.isOfType(cohortRaw, new TypeToken<List<String>>() {})) {
+                @SuppressWarnings("unchecked")
+                List<String> castedCohort = (List<String>) cohortRaw;
+                cohort = castedCohort;
+            }
+
+            if (cohort.isEmpty()) {
+                continue;
+            }
+
             Map<String, Object> cohortParams = Map.ofEntries(
                 Map.entry("id", cohort),
                 Map.entry(ORDER_BY, "time"),
