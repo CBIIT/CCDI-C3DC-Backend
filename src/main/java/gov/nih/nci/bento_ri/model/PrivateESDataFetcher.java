@@ -1270,7 +1270,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return charts;
     }
 
-    private List<Map<String, Object>> kMPlot(Map<String, Object> params) throws Exception, IOException {
+    private List<Map<String, Object>> kMPlot(Map<String, Object> params) throws Exception {
         List<Map<String, Object>> dataPoints = new ArrayList<Map<String, Object>>();
         final List<Map<String, Object>> PROPERTIES = List.of(
             Map.ofEntries( // Participant ID
