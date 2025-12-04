@@ -66,7 +66,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String GENETIC_ANALYSES_END_POINT = "/genetic_analyses/_search";
     final String PARTICIPANTS_END_POINT = "/participants/_search";
     final String SURVIVALS_END_POINT = "/survivals/_search";
-    final String SURVIVALS_KM_END_POINT = "/survivals_km/_search";
+    final String KM_PLOT_DATA_END_POINT = "/km_plot_data/_search";
     final String TREATMENTS_END_POINT = "/treatments/_search";
     final String TREATMENT_RESPONSES_END_POINT = "/treatment_responses/_search";
     final String DIAGNOSES_END_POINT = "/diagnoses/_search";
@@ -79,7 +79,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map.entry("participants", PARTICIPANTS_END_POINT),
         Map.entry("studies", STUDIES_END_POINT),
         Map.entry("survivals", SURVIVALS_END_POINT),
-        Map.entry("survivals_km", SURVIVALS_KM_END_POINT),
+        Map.entry("km_plot_data", KM_PLOT_DATA_END_POINT),
         Map.entry("treatments", TREATMENTS_END_POINT),
         Map.entry("treatment_responses", TREATMENT_RESPONSES_END_POINT)
     );
@@ -1271,68 +1271,67 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private List<Map<String, Object>> kMPlot(Map<String, Object> params) throws Exception, IOException {
-        List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
-        Map<String, Object> survivalAggs = Map.of(
-            "by_participant", Map.of(
-                "terms", Map.of(
-                    "field", "participant_pk",
-                    "size", 10000
-                ),
-                "aggs", Map.of(
-                    "time", Map.of(
-                        "max", Map.of(
-                            "field", "age_at_last_known_survival_status"
-                        )
-                    ),
-                    "status", Map.of(
-                        "top_hits", Map.of(
-                            "size", 1,
-                            "_source", List.of("last_known_survival_status")
-                        )
-                    )
-                )
+        List<Map<String, Object>> dataPoints = new ArrayList<Map<String, Object>>();
+        final List<Map<String, Object>> PROPERTIES = List.of(
+            Map.ofEntries( // Participant ID
+                Map.entry("gqlName", "id"),
+                Map.entry("osName", "id")
+            ),
+            Map.ofEntries( // Difference between participant's highest age_at_diagnosis and highest age_at_last_known_survival_status
+                Map.entry("gqlName", "time"),
+                Map.entry("osName", "time")
+            ),
+            Map.ofEntries( // 1 if participant is dead, and 0 if participant is alive
+                Map.entry("gqlName", "event"),
+                Map.entry("osName", "event")
             )
+        );
+
+        String defaultSort = "time"; // Default sort order
+
+        Map<String, Map<String, Object>> mapping = Map.ofEntries(
+            Map.entry("id", Map.ofEntries(
+                Map.entry("osName", "id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("time", Map.ofEntries(
+                Map.entry("osName", "time"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("event", Map.ofEntries(
+                Map.entry("osName", "event"),
+                Map.entry("isNested", false)
+            ))
         );
 
         if (!(params.containsKey("c1") || params.containsKey("c2") || params.containsKey("c3"))) {
             return List.of(); // No cohorts specified
         }
 
-        // Iterate through values of "c1", "c2", and "c3" in params
+        // Iterate through "c1", "c2", and "c3" in params
         for (String cohortKey : List.of("c1", "c2", "c3")) {
-            Object cohort = params.get(cohortKey);
-            Map<String, Object> cohortParams = Map.of("participant_pk", cohort);
-            Map<String, Object> survivalsQuery = inventoryESService.buildFacetFilterQuery(cohortParams, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), "survivals");
-            survivalsQuery.put("aggs", survivalAggs);
-
-            Request request = new Request("GET", SURVIVALS_KM_END_POINT);
-            String jsonizedRequest = gson.toJson(survivalsQuery);
-            request.setJsonEntity(jsonizedRequest);
-            JsonObject response = inventoryESService.send(request);
-            // Assuming 'response' is a JsonObject received from Elasticsearch 
-            JsonObject aggregations = response.getAsJsonObject("aggregations");
-            JsonObject byParticipant = aggregations.getAsJsonObject("by_participant");
-            JsonArray buckets = byParticipant.getAsJsonArray("buckets");
-
-            for (JsonElement elem : buckets) {
-                JsonObject b = elem.getAsJsonObject();
-                String status = b.getAsJsonObject("status")
-                                .getAsJsonObject("hits")
-                                .getAsJsonArray("hits")
-                                .get(0).getAsJsonObject()
-                                .getAsJsonObject("_source")
-                                .get("last_known_survival_status").getAsString();
-                int event = "Dead".equals(status) ? 1 : 0;
-                Map<String, Object> data = new HashMap<>();
-                data.put("id", b.get("key").getAsString());
-                data.put("time", b.getAsJsonObject("time").get("value").getAsInt());
-                data.put("event", event);
-                data.put("group", cohortKey);
-                results.add(data);
+            if (!params.containsKey(cohortKey)) {
+                continue;
             }
+
+            Object cohort = params.get(cohortKey);
+            Map<String, Object> cohortParams = Map.ofEntries(
+                Map.entry("id", cohort),
+                Map.entry(ORDER_BY, "time"),
+                Map.entry(SORT_DIRECTION, "ASC"),
+                Map.entry(PAGE_SIZE, ESService.MAX_ES_SIZE),
+                Map.entry(OFFSET, 0)
+            );
+            List<Map<String, Object>> cohortKMPlotData = overview(KM_PLOT_DATA_END_POINT, cohortParams, PROPERTIES, defaultSort, mapping, "participants");
+
+            // Specify cohort for each data point
+            cohortKMPlotData.forEach(data -> {
+                data.put("group", cohortKey);
+                dataPoints.add(data);
+            });
         }
 
-        return results;
+        return dataPoints;
     }
 
     private Map<String, String> getGroupConfig(String propertyName) {
