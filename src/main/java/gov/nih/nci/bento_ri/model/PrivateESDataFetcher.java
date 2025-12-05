@@ -66,6 +66,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String GENETIC_ANALYSES_END_POINT = "/genetic_analyses/_search";
     final String PARTICIPANTS_END_POINT = "/participants/_search";
     final String SURVIVALS_END_POINT = "/survivals/_search";
+    final String KM_PLOT_DATA_END_POINT = "/km_plot_data/_search";
     final String TREATMENTS_END_POINT = "/treatments/_search";
     final String TREATMENT_RESPONSES_END_POINT = "/treatment_responses/_search";
     final String DIAGNOSES_END_POINT = "/diagnoses/_search";
@@ -78,6 +79,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map.entry("participants", PARTICIPANTS_END_POINT),
         Map.entry("studies", STUDIES_END_POINT),
         Map.entry("survivals", SURVIVALS_END_POINT),
+        Map.entry("km_plot_data", KM_PLOT_DATA_END_POINT),
         Map.entry("treatments", TREATMENTS_END_POINT),
         Map.entry("treatment_responses", TREATMENT_RESPONSES_END_POINT)
     );
@@ -153,6 +155,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         .dataFetcher("cohortMetadata", env -> {
                             Map<String, Object> args = env.getArguments();
                             return cohortMetadata(args);
+                        })
+                        .dataFetcher("kMPlot", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return kMPlot(args);
                         })
                         .dataFetcher("participantOverview", env -> {
                             Map<String, Object> args = env.getArguments();
@@ -1262,6 +1268,88 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
 
         return charts;
+    }
+
+    private List<Map<String, Object>> kMPlot(Map<String, Object> params) throws Exception {
+        List<Map<String, Object>> dataPoints = new ArrayList<Map<String, Object>>();
+        final List<Map<String, Object>> PROPERTIES = List.of(
+            Map.ofEntries( // Participant ID
+                Map.entry("gqlName", "id"),
+                Map.entry("osName", "id")
+            ),
+            Map.ofEntries( // Difference between participant's highest age_at_diagnosis and highest age_at_last_known_survival_status
+                Map.entry("gqlName", "time"),
+                Map.entry("osName", "time")
+            ),
+            Map.ofEntries( // 1 if participant is dead, and 0 if participant is alive
+                Map.entry("gqlName", "event"),
+                Map.entry("osName", "event")
+            )
+        );
+
+        String defaultSort = "time"; // Default sort order
+
+        Map<String, Map<String, Object>> mapping = Map.ofEntries(
+            Map.entry("id", Map.ofEntries(
+                Map.entry("osName", "id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("time", Map.ofEntries(
+                Map.entry("osName", "time"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("event", Map.ofEntries(
+                Map.entry("osName", "event"),
+                Map.entry("isNested", false)
+            ))
+        );
+
+        if (!(params.containsKey("c1") || params.containsKey("c2") || params.containsKey("c3"))) {
+            return List.of(); // No cohorts specified
+        }
+
+        // Iterate through "c1", "c2", and "c3" in params
+        for (String cohortKey : List.of("c1", "c2", "c3")) {
+            List<String> cohort = new ArrayList<String>();
+            Object cohortRaw;
+
+            if (!params.containsKey(cohortKey)) {
+                continue;
+            }
+
+            cohortRaw = params.get(cohortKey);
+
+            if (cohortRaw == null) {
+                continue;
+            }
+
+            if (TypeChecker.isOfType(cohortRaw, new TypeToken<List<String>>() {})) {
+                @SuppressWarnings("unchecked")
+                List<String> castedCohort = (List<String>) cohortRaw;
+                cohort = castedCohort;
+            }
+
+            if (cohort.isEmpty()) {
+                continue;
+            }
+
+            Map<String, Object> cohortParams = Map.ofEntries(
+                Map.entry("id", cohort),
+                Map.entry(ORDER_BY, "time"),
+                Map.entry(SORT_DIRECTION, "ASC"),
+                Map.entry(PAGE_SIZE, ESService.MAX_ES_SIZE),
+                Map.entry(OFFSET, 0)
+            );
+            List<Map<String, Object>> cohortKMPlotData = overview(KM_PLOT_DATA_END_POINT, cohortParams, PROPERTIES, defaultSort, mapping, "participants");
+
+            // Specify cohort for each data point
+            cohortKMPlotData.forEach(data -> {
+                data.put("group", cohortKey);
+                dataPoints.add(data);
+            });
+        }
+
+        return dataPoints;
     }
 
     private Map<String, String> getGroupConfig(String propertyName) {
