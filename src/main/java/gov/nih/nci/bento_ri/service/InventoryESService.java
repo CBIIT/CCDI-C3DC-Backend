@@ -264,7 +264,7 @@ public class InventoryESService extends ESService {
 
                 // list with only one empty string [""] means return all records
                 if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
-                    if (INDEX_TO_PARAMS.get(indexType).contains(key)) { // Key is a top-level param for index
+                    if (indexType.equals("studies") || INDEX_TO_PARAMS.get(indexType).contains(key)) { // Key is a top-level param for index
                         filter.add(Map.of(
                             "terms", Map.of(key, valueSet)
                         ));
