@@ -395,6 +395,7 @@ type QueryType {
 
         # Diagnoses
         age_at_diagnosis: [Int] = [0],
+        age_at_diagnosis_unknownAges: [String] = [""],
         anatomic_site: [String] = [""],
         diagnosis: [String] = [""],
         diagnosis_classification_system: [String] = [""],
@@ -416,19 +417,23 @@ type QueryType {
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        age_at_last_known_survival_status_unknownAges: [String] = [""],
         cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
         # Treatments
         age_at_treatment_start: [Int] = [0],
+        age_at_treatment_start_unknownAges: [String] = [""],
         age_at_treatment_end: [Int] = [0],
+        age_at_treatment_end_unknownAges: [String] = [""],
         treatment_type: [String] = [""],
         treatment_agent: [String] = [""],
 
         # Treatment Responses
         response: [String] = [""],
         age_at_response: [Int] = [0],
+        age_at_response_unknownAges: [String] = [""],
         response_category: [String] = [""],
         response_system: [String] = [""]
     ): GetParticipantsResult
@@ -442,6 +447,7 @@ type QueryType {
 
         # Diagnoses
         age_at_diagnosis: [Int] = [0],
+        age_at_diagnosis_unknownAges: [String] = [""],
         anatomic_site: [String] = [""],
         diagnosis: [String] = [""],
         diagnosis_classification_system: [String] = [""],
@@ -463,19 +469,23 @@ type QueryType {
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        age_at_last_known_survival_status_unknownAges: [String] = [""],
         cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
         # Treatments
         age_at_treatment_start: [Int] = [0],
+        age_at_treatment_start_unknownAges: [String] = [""],
         age_at_treatment_end: [Int] = [0],
+        age_at_treatment_end_unknownAges: [String] = [""],
         treatment_type: [String] = [""],
         treatment_agent: [String] = [""],
 
         # Treatment Responses
         response: [String] = [""],
         age_at_response: [Int] = [0],
+        age_at_response_unknownAges: [String] = [""],
         response_category: [String] = [""],
         response_system: [String] = [""]
 
@@ -495,6 +505,7 @@ type QueryType {
 
         # Diagnoses
         age_at_diagnosis: [Int] = [0],
+        age_at_diagnosis_unknownAges: [String] = [""],
         anatomic_site: [String] = [""],
         diagnosis: [String] = [""],
         diagnosis_classification_system: [String] = [""],
@@ -516,19 +527,23 @@ type QueryType {
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        age_at_last_known_survival_status_unknownAges: [String] = [""],
         cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
         # Treatments
         age_at_treatment_start: [Int] = [0],
+        age_at_treatment_start_unknownAges: [String] = [""],
         age_at_treatment_end: [Int] = [0],
+        age_at_treatment_end_unknownAges: [String] = [""],
         treatment_type: [String] = [""],
         treatment_agent: [String] = [""],
 
         # Treatment Responses
         response: [String] = [""],
         age_at_response: [Int] = [0],
+        age_at_response_unknownAges: [String] = [""],
         response_category: [String] = [""],
         response_system: [String] = [""]
 
@@ -548,6 +563,7 @@ type QueryType {
 
         # Diagnoses
         age_at_diagnosis: [Int] = [0],
+        age_at_diagnosis_unknownAges: [String] = [""],
         anatomic_site: [String] = [""],
         diagnosis: [String] = [""],
         diagnosis_classification_system: [String] = [""],
@@ -569,19 +585,23 @@ type QueryType {
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        age_at_last_known_survival_status_unknownAges: [String] = [""],
         cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
         # Treatments
         age_at_treatment_start: [Int] = [0],
+        age_at_treatment_start_unknownAges: [String] = [""],
         age_at_treatment_end: [Int] = [0],
+        age_at_treatment_end_unknownAges: [String] = [""],
         treatment_type: [String] = [""],
         treatment_agent: [String] = [""],
 
         # Treatment Responses
         response: [String] = [""],
         age_at_response: [Int] = [0],
+        age_at_response_unknownAges: [String] = [""],
         response_category: [String] = [""],
         response_system: [String] = [""]
 
@@ -601,6 +621,7 @@ type QueryType {
 
         # Diagnoses
         age_at_diagnosis: [Int] = [0],
+        age_at_diagnosis_unknownAges: [String] = [""],
         anatomic_site: [String] = [""],
         diagnosis: [String] = [""],
         diagnosis_classification_system: [String] = [""],
@@ -622,19 +643,23 @@ type QueryType {
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        age_at_last_known_survival_status_unknownAges: [String] = [""],
         cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
         # Treatments
         age_at_treatment_start: [Int] = [0],
+        age_at_treatment_start_unknownAges: [String] = [""],
         age_at_treatment_end: [Int] = [0],
+        age_at_treatment_end_unknownAges: [String] = [""],
         treatment_type: [String] = [""],
         treatment_agent: [String] = [""],
 
         # Treatment Responses
         response: [String] = [""],
         age_at_response: [Int] = [0],
+        age_at_response_unknownAges: [String] = [""],
         response_category: [String] = [""],
         response_system: [String] = [""]
 
@@ -654,6 +679,7 @@ type QueryType {
 
         # Diagnoses
         age_at_diagnosis: [Int] = [0],
+        age_at_diagnosis_unknownAges: [String] = [""],
         anatomic_site: [String] = [""],
         diagnosis: [String] = [""],
         diagnosis_classification_system: [String] = [""],
@@ -675,19 +701,23 @@ type QueryType {
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        age_at_last_known_survival_status_unknownAges: [String] = [""],
         cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
         # Treatments
         age_at_treatment_start: [Int] = [0],
+        age_at_treatment_start_unknownAges: [String] = [""],
         age_at_treatment_end: [Int] = [0],
+        age_at_treatment_end_unknownAges: [String] = [""],
         treatment_type: [String] = [""],
         treatment_agent: [String] = [""],
 
         # Treatment Responses
         response: [String] = [""],
         age_at_response: [Int] = [0],
+        age_at_response_unknownAges: [String] = [""],
         response_category: [String] = [""],
         response_system: [String] = [""]
 
@@ -707,6 +737,7 @@ type QueryType {
 
         # Diagnoses
         age_at_diagnosis: [Int] = [0],
+        age_at_diagnosis_unknownAges: [String] = [""],
         anatomic_site: [String] = [""],
         diagnosis: [String] = [""],
         diagnosis_classification_system: [String] = [""],
@@ -728,19 +759,23 @@ type QueryType {
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        age_at_last_known_survival_status_unknownAges: [String] = [""],
         cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
         # Treatments
         age_at_treatment_start: [Int] = [0],
+        age_at_treatment_start_unknownAges: [String] = [""],
         age_at_treatment_end: [Int] = [0],
+        age_at_treatment_end_unknownAges: [String] = [""],
         treatment_type: [String] = [""],
         treatment_agent: [String] = [""],
 
         # Treatment Responses
         response: [String] = [""],
         age_at_response: [Int] = [0],
+        age_at_response_unknownAges: [String] = [""],
         response_category: [String] = [""],
         response_system: [String] = [""]
 
@@ -760,6 +795,7 @@ type QueryType {
 
         # Diagnoses
         age_at_diagnosis: [Int] = [0],
+        age_at_diagnosis_unknownAges: [String] = [""],
         anatomic_site: [String] = [""],
         diagnosis: [String] = [""],
         diagnosis_classification_system: [String] = [""],
@@ -781,19 +817,23 @@ type QueryType {
 
         # Survivals
         age_at_last_known_survival_status: [Int] = [0],
+        age_at_last_known_survival_status_unknownAges: [String] = [""],
         cause_of_death: [String] = [""],
         first_event: [String] = [""],
         last_known_survival_status: [String] = [""]
 
         # Treatments
         age_at_treatment_start: [Int] = [0],
+        age_at_treatment_start_unknownAges: [String] = [""],
         age_at_treatment_end: [Int] = [0],
+        age_at_treatment_end_unknownAges: [String] = [""],
         treatment_type: [String] = [""],
         treatment_agent: [String] = [""],
 
         # Treatment Responses
         response: [String] = [""],
         age_at_response: [Int] = [0],
+        age_at_response_unknownAges: [String] = [""],
         response_category: [String] = [""],
         response_system: [String] = [""]
 
