@@ -1,0 +1,37 @@
+name: Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "*.*.*"
+      - "main"
+      - "master"
+  pull_request:
+    branches:
+      - "*"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test Changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: "maven"
+
+      - name: Run Tests
+        run: mvn -Dmaven.test.failure.ignore=true test
+
+      - name: Coveralls GitHub Action
+        uses: coverallsapp/github-action@v2
+        continue-on-error: true
