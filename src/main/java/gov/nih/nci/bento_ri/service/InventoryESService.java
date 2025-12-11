@@ -1,3 +1,9 @@
+/**
+ * When a new node is added to C3DC and we'll filter by its properties, 
+ * make a new _PARAMS set for it, and add it to the INDEX_TO_PARAMS map.
+ * Add a mapping for any new nested properties to the NESTED_FILTERS map.
+ */
+
 package gov.nih.nci.bento_ri.service;
 
 import com.google.gson.*;
@@ -139,7 +145,7 @@ public class InventoryESService extends ESService {
                 continue;
             }
 
-            // Determine the nested property for the key, if it's nested
+            // Determine the nested property for the key, in case it's nested
             String nestedProperty = null;
             String formattedNestedProperty = null;
             for (String index : INDEX_TO_PARAMS.keySet()) {
@@ -176,8 +182,8 @@ public class InventoryESService extends ESService {
                     List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
                     // Only consider unknownAges parameter if it has a meaningful value
                     if (!(unknownAgesValues == null || unknownAgesValues.isEmpty() || unknownAgesValues.get(0).equals(""))) {
-                        includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
                         unknownAgesValue = unknownAgesValues.get(0).toLowerCase();
+                        includeUnknown = unknownAgesValue.equals("include") ? true : false; // Use normal range filtering when unknownAges parameter is specified
                     }
                 }
 
