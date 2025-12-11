@@ -22,33 +22,33 @@ public class InventoryESService extends ESService {
     public static final String AGGS = "aggs";
     public static final int MAX_ES_SIZE = 60000;
     public static final int SCROLL_THRESHOLD = 10000;
-    final Set<String> COMMON_PARAMS = Set.of("participant_pk");
-    final Set<String> PARTICIPANT_PARAMS = Set.of(
+    static final Set<String> COMMON_PARAMS = Set.of("participant_pk");
+    static final Set<String> PARTICIPANT_PARAMS = Set.of(
         "id", "participant_id", "race", "sex_at_birth"
     );
-    final Set<String> DIAGNOSIS_PARAMS = Set.of(
+    static final Set<String> DIAGNOSIS_PARAMS = Set.of(
         "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
         "diagnosis", "diagnosis_classification_system",
         "disease_phase"
     );
-    final Set<String> GENETIC_ANALYSIS_PARAMS = Set.of(
+    static final Set<String> GENETIC_ANALYSIS_PARAMS = Set.of(
         "alteration", "alteration_type", "fusion_partner_gene",
         "gene_symbol", "reported_significance",
         "reported_significance_system", "status"
     );
-    final Set<String> STUDY_PARAMS = Set.of(
+    static final Set<String> STUDY_PARAMS = Set.of(
         "dbgap_accession", "study_name",
         "study_id" // Not a facet filter, but used by study overview
     );
-    final Set<String> SURVIVAL_PARAMS = Set.of(
+    static final Set<String> SURVIVAL_PARAMS = Set.of(
         "age_at_last_known_survival_status", "cause_of_death",
         "first_event", "last_known_survival_status"
     );
-    final Set<String> TREATMENT_PARAMS = Set.of(
+    static final Set<String> TREATMENT_PARAMS = Set.of(
         "age_at_treatment_start", "age_at_treatment_end",
         "treatment_type", "treatment_agent"
     );
-    final Set<String> TREATMENT_RESPONSE_PARAMS = Set.of(
+    static final Set<String> TREATMENT_RESPONSE_PARAMS = Set.of(
         "response", "age_at_response",
         "response_category", "response_system"
     );
