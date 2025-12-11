@@ -22,6 +22,7 @@ public class InventoryESService extends ESService {
     public static final String AGGS = "aggs";
     public static final int MAX_ES_SIZE = 60000;
     public static final int SCROLL_THRESHOLD = 10000;
+    final Set<String> COMMON_PARAMS = Set.of("participant_pk");
     final Set<String> PARTICIPANT_PARAMS = Set.of(
         "id", "participant_id", "race", "sex_at_birth"
     );
@@ -36,7 +37,8 @@ public class InventoryESService extends ESService {
         "reported_significance_system", "status"
     );
     final Set<String> STUDY_PARAMS = Set.of(
-        "dbgap_accession", "study_name"
+        "dbgap_accession", "study_name",
+        "study_id" // Not a facet filter, but used by study overview
     );
     final Set<String> SURVIVAL_PARAMS = Set.of(
         "age_at_last_known_survival_status", "cause_of_death",
@@ -264,7 +266,7 @@ public class InventoryESService extends ESService {
 
                 // list with only one empty string [""] means return all records
                 if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
-                    if (indexType.equals("studies") || INDEX_TO_PARAMS.get(indexType).contains(key)) { // Key is a top-level param for index
+                    if (COMMON_PARAMS.contains(key) || INDEX_TO_PARAMS.get(indexType).contains(key)) { // Key is a top-level param for index
                         filter.add(Map.of(
                             "terms", Map.of(key, valueSet)
                         ));
