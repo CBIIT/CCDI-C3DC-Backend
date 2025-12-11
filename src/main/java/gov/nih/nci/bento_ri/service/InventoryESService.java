@@ -183,7 +183,7 @@ public class InventoryESService extends ESService {
                     // Only consider unknownAges parameter if it has a meaningful value
                     if (!(unknownAgesValues == null || unknownAgesValues.isEmpty() || unknownAgesValues.get(0).equals(""))) {
                         unknownAgesValue = unknownAgesValues.get(0).toLowerCase();
-                        includeUnknown = unknownAgesValue.equals("include") ? true : false; // Use normal range filtering when unknownAges parameter is specified
+                        includeUnknown = unknownAgesValue.equals("include"); // Use normal range filtering when unknownAges parameter is specified
                     }
                 }
 
