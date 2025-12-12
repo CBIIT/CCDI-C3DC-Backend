@@ -160,9 +160,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return kMPlot(args);
                         })
-                        .dataFetcher("riskTable", env -> {
+                        .dataFetcher("riskTableData", env -> {
                             Map<String, Object> args = env.getArguments();
-                            return riskTable(args);
+                            return riskTableData(args);
                         })
                         .dataFetcher("participantOverview", env -> {
                             Map<String, Object> args = env.getArguments();
@@ -1366,8 +1366,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
      * @return List of three "tables" - one for each cohort
      * @throws IOException
      */
-    private List<Map<String, Object>> riskTable(Map<String, Object> params) throws IOException {
-        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+    private Map<String, Object> riskTableData(Map<String, Object> params) throws IOException {
+        Map<String, Object> result = new HashMap<>(Map.of(
+            "timeIntervals", List.of("0 Months", "6 Months", "12 Months", "18 Months", "24 Months", "30 Months", "36 Months")
+        ));
+        ArrayList<Map<String, Object>> cohortsData = new ArrayList<Map<String, Object>>();
 
         Set<Map<String, Object>> cutoffTimes = Set.of(
             Map.of(
@@ -1416,6 +1419,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             List<Map<String, Object>> table = new ArrayList<Map<String, Object>>();
             Object cohortRaw = params.get(cohortName);
 
+            // Obtain cohort (list of Participant primary keys)
             if (TypeChecker.isOfType(cohortRaw, new TypeToken<List<String>>() {})) {
                 @SuppressWarnings("unchecked")
                 List<String> castedCohort = (List<String>) cohortRaw;
@@ -1499,12 +1503,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             }
 
             // Add data to result to return
-            result.add(Map.ofEntries(
+            cohortsData.add(Map.ofEntries(
                 Map.entry("cohort", cohortName),
-                Map.entry("participantsByGroup", table)
+                Map.entry("survivalData", table)
             ));
         }
 
+        result.put("cohorts", cohortsData);
         return result;
     }
 
