@@ -189,6 +189,16 @@ type KMPlotResult {
     group: String # Name of cohort
 }
 
+type RiskTableResult {
+    cohorts: [RiskTableReturnObject]
+    timeIntervals: [String]
+}
+
+type RiskTableReturnObject {
+    cohort: String
+    survivalData: [SearchParticipantsReturnObject]
+}
+
 type CohortChartReturnObject {
     cohort: String
     participantsByGroup: [SearchParticipantsReturnObject]
@@ -374,6 +384,12 @@ type QueryType {
         c2: [String],
         c3: [String]
     ): [KMPlotResult]
+
+    riskTableData(
+        c1: [String]!,
+        c2: [String]!,
+        c3: [String]!
+    ): RiskTableResult
 
     cohortMetadata(
         # Demographics
