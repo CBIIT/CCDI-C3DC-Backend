@@ -1490,11 +1490,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             for (JsonElement item : counts) {
                 String key = item.getAsJsonObject().get("key").getAsString();
                 int count = item.getAsJsonObject().get("unique_participants").getAsJsonObject().get("value").getAsInt();
-                count = runningCount - count;
+                runningCount = runningCount - count;
 
                 table.add(Map.ofEntries(
                     Map.entry("group", key),
-                    Map.entry("subjects", count)
+                    Map.entry("subjects", runningCount)
                 ));
             }
 
