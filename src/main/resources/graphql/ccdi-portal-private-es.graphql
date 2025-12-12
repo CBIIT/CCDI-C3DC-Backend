@@ -190,8 +190,13 @@ type KMPlotResult {
 }
 
 type RiskTableResult {
+    cohorts: [RiskTableReturnObject]
+    timeIntervals: [String]
+}
+
+type RiskTableReturnObject {
     cohort: String
-    participantsByGroup: [SearchParticipantsReturnObject]
+    survivalData: [SearchParticipantsReturnObject]
 }
 
 type CohortChartReturnObject {
@@ -380,7 +385,7 @@ type QueryType {
         c3: [String]
     ): [KMPlotResult]
 
-    riskTable(
+    riskTableData(
         c1: [String]!,
         c2: [String]!,
         c3: [String]!
