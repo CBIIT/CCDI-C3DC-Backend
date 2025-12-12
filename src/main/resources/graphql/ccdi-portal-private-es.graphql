@@ -389,7 +389,7 @@ type QueryType {
         c1: [String]!,
         c2: [String]!,
         c3: [String]!
-    ): [RiskTableResult]
+    ): RiskTableResult
 
     cohortMetadata(
         # Demographics
