@@ -160,6 +160,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return kMPlot(args);
                         })
+                        .dataFetcher("riskTable", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return riskTable(args);
+                        })
                         .dataFetcher("participantOverview", env -> {
                             Map<String, Object> args = env.getArguments();
                             return participantOverview(args);
@@ -1350,6 +1354,158 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
 
         return dataPoints;
+    }
+
+    /**
+     * Returns data for the risk table
+     * At 0 months, we count all participants who are eligible for KM plot data
+     * At 6 months, we subtract participants who experienced the event up until then
+     * At 12 months, we further subtract participants who experienced the event up until then
+     * And so on...
+     * @param params
+     * @return List of three "tables" - one for each cohort
+     * @throws IOException
+     */
+    private List<Map<String, Object>> riskTable(Map<String, Object> params) throws IOException {
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+
+        Set<Map<String, Object>> cutoffTimes = Set.of(
+            Map.of(
+                "key", "6 Months",
+                "from", 0,
+                "to", 183
+            ),
+            Map.of(
+                "key", "12 Months",
+                "from", 183,
+                "to", 365
+            ),
+            Map.of(
+                "key", "18 Months",
+                "from", 365,
+                "to", 548
+            ),
+            Map.of(
+                "key", "24 Months",
+                "from", 548,
+                "to", 730
+            ),
+            Map.of(
+                "key", "30 Months",
+                "from", 730,
+                "to", 913
+            ),
+            Map.of(
+                "key", "36 Months",
+                "from", 913,
+                "to", 1095
+            )
+        );
+
+        // Obtain data for each cohort
+        for (String cohortName : List.of("c1", "c2", "c3")) { // All three are guaranteed by GraphQL
+            List<String> cohort = new ArrayList<String>();
+            JsonArray counts;
+            int initialCount;
+            Map<String, Object> initialCountQuery;
+            JsonObject opensearchResponse;
+            Map<String, Object> query;
+            String queryJson;
+            Request request;
+            int runningCount;
+            List<Map<String, Object>> table = new ArrayList<Map<String, Object>>();
+            Object cohortRaw = params.get(cohortName);
+
+            if (TypeChecker.isOfType(cohortRaw, new TypeToken<List<String>>() {})) {
+                @SuppressWarnings("unchecked")
+                List<String> castedCohort = (List<String>) cohortRaw;
+                cohort = castedCohort;
+            }
+
+            // Count all eligible participants in the cohort
+            initialCountQuery = Map.of(
+                "query", Map.of(
+                    "bool", Map.of(
+                        "filter", Set.of(
+                            Map.of(
+                                "terms", Map.of(
+                                    "id", cohort
+                                )
+                            )
+                        )
+                    )
+                )
+            );
+
+            // Obtain initial count
+            initialCount = inventoryESService.getCount(initialCountQuery, "km_plot_data");
+            runningCount = initialCount; // To be used later for each cutoff time
+            table.add(Map.ofEntries(
+                Map.entry("group", "0 Months"),
+                Map.entry("subjects", initialCount)
+            ));
+
+            // Build query
+            query = Map.of(
+                "size", 0,
+                "query", Map.of(
+                    "bool", Map.of(
+                        "filter", Set.of(
+                            Map.of(
+                                "term", Map.of(
+                                    "event", 1
+                                )
+                            ),
+                            Map.of(
+                                "terms", Map.of(
+                                    "id", cohort
+                                )
+                            )
+                        )
+                    )
+                ),
+                "aggs", Map.of(
+                    "cutoff_times", Map.of(
+                        "range", Map.of(
+                            "field", "time",
+                            "ranges", cutoffTimes
+                        ),
+                        "aggs", Map.of(
+                            "unique_participants", Map.of(
+                                "cardinality", Map.of(
+                                    "field", "id"
+                                )
+                            )
+                        )
+                    )
+                )
+            );
+
+            queryJson = gson.toJson(query);
+            request = new Request("GET", KM_PLOT_DATA_END_POINT);
+            request.setJsonEntity(queryJson);
+            opensearchResponse = inventoryESService.send(request);
+            counts = inventoryESService.collectRangCountAggs(opensearchResponse, "cutoff_times").get("cutoff_times");
+
+            for (JsonElement item : counts) {
+                String key = item.getAsJsonObject().get("key").getAsString();
+                int count = item.getAsJsonObject().get("unique_participants").getAsJsonObject().get("value").getAsInt();
+                count = runningCount - count;
+
+                table.add(Map.ofEntries(
+                    Map.entry("group", key),
+                    Map.entry("subjects", count)
+                ));
+            }
+
+            // Add data to result to return
+            result.add(Map.ofEntries(
+                Map.entry("cohort", cohortName),
+                Map.entry("participantsByGroup", table)
+            ));
+        }
+
+        return result;
     }
 
     private Map<String, String> getGroupConfig(String propertyName) {
