@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -30,7 +32,7 @@ jobs:
           cache: "maven"
 
       - name: Run Tests
-        run: mvn -Dmaven.test.failure.ignore=true test
+        run: mvn test
 
       - name: Coveralls GitHub Action
         uses: coverallsapp/github-action@v2
