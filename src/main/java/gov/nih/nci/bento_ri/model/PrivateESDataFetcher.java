@@ -33,6 +33,8 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.util.*;
 
+import javax.annotation.PostConstruct;
+
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 
 @Component
@@ -3022,10 +3024,21 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 }
             }
         }
-        if (keys.size() == 0){
+
+        if (keys.isEmpty()) {
             return "all";
         } else {
             return keys.toString();
+        }
+    }
+
+    @PostConstruct
+    public void onStartup() {
+        try {
+            idsLists();
+            logger.info("idsLists cache preloaded on application startup");
+        } catch (IOException e) {
+            logger.error("Failed to preload idsLists cache on startup: " + e.getMessage(), e);
         }
     }
 }
