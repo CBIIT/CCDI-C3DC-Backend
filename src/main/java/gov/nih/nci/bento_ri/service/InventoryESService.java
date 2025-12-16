@@ -122,6 +122,12 @@ public class InventoryESService extends ESService {
 
         // Add unknownAges parameters to excluded parameters to prevent them from being processed as regular filters
         Set<String> localExcludedParams = new HashSet<>(excludedParams);
+
+        // Early return if there are no parameters
+        if (params == null || params.isEmpty()) {
+            result.put("query", Map.of("match_all", Map.of()));
+        }
+
         for (String key : params.keySet()) {
             if (key.endsWith("_unknownAges")) {
                 localExcludedParams.add(key);

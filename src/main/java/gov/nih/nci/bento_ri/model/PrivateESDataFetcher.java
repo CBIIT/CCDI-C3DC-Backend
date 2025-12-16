@@ -355,91 +355,118 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private Map<String, List<Object>> idsLists() throws IOException {
+        List<Object> allAssociatedIds = new ArrayList<>();
+        List<Object> allParticipantIds = new ArrayList<>();
+        List<Map<String, Object>> allParticipants;
         String cacheKey = "idsLists";
-        Map<String, List<Object>> results = new HashMap<>();
-        Map<String, List<Object>> data = null;
-        Object dataRaw = caffeineCache.asMap().get(cacheKey);
+        Object cachedResultsRaw = caffeineCache.asMap().get(cacheKey);
+        int participantCount = 0;
+        int numCpiRequests = 0;
+        Map<String, List<Object>> results = null;
 
-        if (TypeChecker.isOfType(dataRaw, new TypeToken<Map<String, List<Object>>>() {})) {
+        // Variables for building Opensearch queries
+        Map<String, Object> matchAllQuery = Map.of("query", Map.of("match_all", Map.of()));
+        List<Map<String, Object>> participantProperties = List.of(
+            Map.ofEntries(
+                Map.entry("gqlName", "id"),
+                Map.entry("osName", "id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "study_id"),
+                Map.entry("osName", "study_id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "participant_id"),
+                Map.entry("osName", "participant_id")
+            )
+        );
+        Map<String, Object> participantParams = new HashMap<>(Map.of(
+            OFFSET, 0,
+            ORDER_BY, "participant_id",
+            SORT_DIRECTION, "asc"
+        ));
+
+        // Check the cached data
+        if (TypeChecker.isOfType(cachedResultsRaw, new TypeToken<Map<String, List<Object>>>() {})) {
             @SuppressWarnings("unchecked")
-            Map<String, List<Object>> castedData = (Map<String, List<Object>>) dataRaw;
-            data = castedData;
+            Map<String, List<Object>> castedCachedResults = (Map<String, List<Object>>) cachedResultsRaw;
+            results = castedCachedResults;
         }
 
         // Early return if cached
-        if (data != null) {
+        if (results != null) {
             logger.info("hit cache!");
-            return data;
+            return results;
         }
 
-        Map<String, Object> idsListsParams = Map.ofEntries(
-            Map.entry(OFFSET, 0),
-            Map.entry(ORDER_BY, "participant_ids"),
-            Map.entry(PAGE_SIZE, ESService.MAX_ES_SIZE),
-            Map.entry(SORT_DIRECTION, "asc")
-        );
-        final List<Map<String, Object>> idsListsProperties = List.of(
-            Map.ofEntries(
-                Map.entry("gqlName", "participant_ids"),
-                Map.entry("osName", "participant_ids")
-            ),
-            Map.ofEntries(
-                Map.entry("gqlName", "associated_ids"),
-                Map.entry("osName", "associated_ids"),
-                Map.entry("nested", List.of(
-                    Map.ofEntries(
-                        Map.entry("gqlName", "associated_id"),
-                        Map.entry("osName", "associated_id")
-                    ),
-                    Map.ofEntries(
-                        Map.entry("gqlName", "participant_id"),
-                        Map.entry("osName", "participant_id")
-                    )
-                ))
-            )
-        );
-
-        Map<String, Map<String, Object>> idsListsMapping = Map.ofEntries(// field -> sort field
-            Map.entry("participant_ids", Map.ofEntries(
-                Map.entry("osName", "participant_ids"),
-                Map.entry("isNested", false)
-            )),
-            Map.entry("associated_ids.associated_id", Map.ofEntries(
-                Map.entry("osName", "associated_ids"),
-                Map.entry("isNested", true),
-                Map.entry("path", "associated_ids")
-            )),
-            Map.entry("associated_ids.participant_id", Map.ofEntries(
-                Map.entry("osName", "participant_id"),
-                Map.entry("isNested", true),
-                Map.entry("path", "associated_ids")
-            ))
-        );
-
-        List<Map<String, Object>> idsListsResults = overview("/participant_ids_lists/_search", idsListsParams, idsListsProperties, "participant_ids", idsListsMapping, "participants");
-        List<Object> participantIds = List.of();
-        List<Object> associatedIds = List.of();
-
-        if (TypeChecker.isOfType(idsListsResults.get(0).get("participant_ids"), new TypeToken<List<Object>>() {})) {
-            @SuppressWarnings("unchecked")
-            List<Object> castedParticipantIds = (List<Object>) idsListsResults.get(0).get("participant_ids");
-            participantIds = castedParticipantIds;
+        // Count how many participants exist
+        try {
+            participantCount = inventoryESService.getCount(matchAllQuery, "participants");
+        } catch (IOException e) {
+            // Handle exception as needed, e.g., log or rethrow
+            return Map.of(
+                "participantIds", List.of(),
+                "associatedIds", List.of()
+            ); // return nothing if there's an error
         }
 
-        if (TypeChecker.isOfType(idsListsResults.get(0).get("associated_ids"), new TypeToken<List<Object>>() {})) {
-            @SuppressWarnings("unchecked")
-            List<Object> castedAssociatedIds = (List<Object>) idsListsResults.get(0).get("associated_ids");
-            associatedIds = castedAssociatedIds;
+        // Add page size
+        participantParams.put(PAGE_SIZE, participantCount);
+
+        // Query all participants
+        allParticipants = overview(
+            PARTICIPANTS_END_POINT,
+            participantParams,
+            participantProperties,
+            "participant_id",
+            null,
+            "participants"
+        );
+
+        // Calculate the number of CPI requests needed
+        numCpiRequests = (int) Math.ceil((double) participantCount / pageSize);
+
+        for (int i = 0; i < numCpiRequests; i++) {
+            List<Object> associatedIds = new ArrayList<>();
+            List<Object> participantIds = new ArrayList<>();
+            int toIndex = Math.min((i + 1) * pageSize, participantCount);
+            List<Map<String, Object>> participants = allParticipants.subList(i * pageSize, toIndex);
+
+            // Retrieve CPI data for participants
+            insertCPIDataIntoParticipants(participants);
+
+            // Add participant data to results
+            for (Map<String, Object> participant : participants) {
+                List<Map<String, Object>> cpiEntries;
+                Object cpiEntriesRaw = participant.get("cpi_data");
+
+                participantIds.add(participant.get("participant_id"));
+
+                if (TypeChecker.isOfType(cpiEntriesRaw, new TypeToken<List<Map<String, Object>>>() {})) {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> castedCpiEntries = (List<Map<String, Object>>) cpiEntriesRaw;
+                    cpiEntries = castedCpiEntries;
+                } else {
+                    continue;
+                }
+
+                for (Map<String, Object> cpiEntry : cpiEntries) {
+                    associatedIds.add(Map.of(
+                        "associated_id", cpiEntry.get("associated_id"),
+                        "participant_id", participant.get("participant_id")
+                    ));
+                }
+            }
+
+            allParticipantIds.addAll(participantIds);
+            allAssociatedIds.addAll(associatedIds);
         }
 
-        results.put(
-            "participantIds",
-            participantIds
-        );
-        results.put(
-            "associatedIds",
-            associatedIds
-        );
+        // Otherwise, initialize a map
+        results = new HashMap<>(Map.of(
+            "participantIds", allParticipantIds,
+            "associatedIds", allAssociatedIds
+        ));
 
         caffeineCache.put(cacheKey, results);
 
@@ -862,35 +889,36 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         // Check if CPIFetcherService is properly injected
         if (cpiFetcherService == null) {
             logger.warn("CPIFetcherService is not properly injected. CPI integration will be skipped.");
-        } else {
-            try {
-                List<FormattedCPIResponse> cpiData = cpiFetcherService.fetchAssociatedParticipantIds(cpiIDs);
-                logger.info("CPI data received: " + cpiData.size() + " records");
+            return;
+        }
 
-                // Print the first value as JSON
-                if (cpiData != null && !cpiData.isEmpty()) {
-                    // System.out.println("First CPI data value BEFORE enrichment: " + gson.toJson(cpi_data.get(0)));
+        try {
+            List<FormattedCPIResponse> cpiData = cpiFetcherService.fetchAssociatedParticipantIds(cpiIDs);
+            logger.info("CPI data received: " + cpiData.size() + " records");
 
-                    // Enrich CPI data with additional participant information
-                    enrichCPIDataWithParticipantInfo(cpiData);
+            // Print the first value as JSON
+            if (cpiData != null && !cpiData.isEmpty()) {
+                // System.out.println("First CPI data value BEFORE enrichment: " + gson.toJson(cpi_data.get(0)));
 
-                    // Print the first enriched CPI data value
-                    // System.out.println("First enriched CPI data value AFTER enrichment: " + gson.toJson(cpi_data.get(0)));
+                // Enrich CPI data with additional participant information
+                enrichCPIDataWithParticipantInfo(cpiData);
 
-                    // Update the participant_list with the enriched CPI data
-                    if (synPropName == null) {
-                        updateParticipantListWithEnrichedCPIData(participants, cpiData);
-                    } else {
-                        updateParticipantListWithEnrichedCPIData(participants, cpiData, synPropName);
-                    }
+                // Print the first enriched CPI data value
+                // System.out.println("First enriched CPI data value AFTER enrichment: " + gson.toJson(cpi_data.get(0)));
 
+                // Update the participant_list with the enriched CPI data
+                if (synPropName == null) {
+                    updateParticipantListWithEnrichedCPIData(participants, cpiData);
                 } else {
-                    // System.out.println("CPI data is empty or null");
+                    updateParticipantListWithEnrichedCPIData(participants, cpiData, synPropName);
                 }
-            } catch (Exception e) {
-                // System.err.println("Error fetching CPI data: " + e.getMessage());
-                logger.error("Error fetching CPI data", e);
+
+            } else {
+                // System.out.println("CPI data is empty or null");
             }
+        } catch (Exception e) {
+            // System.err.println("Error fetching CPI data: " + e.getMessage());
+            logger.error("Error fetching CPI data", e);
         }
     }
 
@@ -2842,6 +2870,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private Map<String, Object> mapSortOrder(String order_by, String direction, String defaultSort, Map<String, Map<String, Object>> mapping) {
         String sortDirection = "asc";
         Object sortPredicate;
+
+        // Handle null sort mapping
+        if (mapping == null) {
+            return Map.of(defaultSort, sortDirection);
+        }
 
         // Handle invalid sort parameters
         if (!mapping.containsKey(order_by)) {
