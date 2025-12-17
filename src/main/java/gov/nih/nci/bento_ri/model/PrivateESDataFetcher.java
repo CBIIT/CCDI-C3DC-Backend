@@ -448,8 +448,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         executorService = Executors.newFixedThreadPool(Math.min(numCpiRequests, 8));
 
         for (int i = 0; i < numCpiRequests; i++) {
-            int fromIndex = i * numCPIRequests;
-            int toIndex = Math.min((i + 1) * numCPIRequests, participantCount);
+            int fromIndex = i * maxParticipantsPerCPIRequest;
+            int toIndex = Math.min((i + 1) * maxParticipantsPerCPIRequest, participantCount);
             List<Map<String, Object>> participants = allParticipants.subList(fromIndex, toIndex);
 
             // Submit each CPI request batch as a separate task
