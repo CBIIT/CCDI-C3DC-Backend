@@ -34,6 +34,9 @@ import java.io.IOException;
 import java.util.*;
 
 import javax.annotation.PostConstruct;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.Executors;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 
@@ -145,7 +148,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return RuntimeWiring.newRuntimeWiring()
                 .type(newTypeWiring("QueryType")
                         .dataFetchers(yamlQueryFactory.createYamlQueries(Const.ES_ACCESS_TYPE.PRIVATE))
-                        .dataFetcher("idsLists", env -> idsLists())
+                        .dataFetcher("idsLists", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return idsLists(args);
+                        })
                         .dataFetcher("getParticipants", env -> {
                             Map<String, Object> args = env.getArguments();
                             return getParticipants(args);
@@ -356,14 +362,20 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return data;
     }
 
-    private Map<String, List<Object>> idsLists() throws IOException {
+    private Map<String, List<Object>> idsLists(Map<String, Object> params) throws IOException {
+        // Cache-related variables
+        String cacheKey = "idsLists".concat(generateCacheKey(params));
+        Object cachedResultsRaw = null;
+        boolean useCache = (boolean) params.get("use_cache");
+
         List<Object> allAssociatedIds = new ArrayList<>();
         List<Object> allParticipantIds = new ArrayList<>();
         List<Map<String, Object>> allParticipants;
-        String cacheKey = "idsLists";
-        Object cachedResultsRaw = caffeineCache.asMap().get(cacheKey);
-        int participantCount = 0;
+        ExecutorService executorService;
+        List<Future<List<Map<String, Object>>>> cpiFutures = new ArrayList<>();
+        int maxParticipantsPerCPIRequest = (int) params.get("cpi_batch_size");
         int numCpiRequests = 0;
+        int participantCount = 0;
         Map<String, List<Object>> results = null;
 
         // Variables for building Opensearch queries
@@ -389,10 +401,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         ));
 
         // Check the cached data
-        if (TypeChecker.isOfType(cachedResultsRaw, new TypeToken<Map<String, List<Object>>>() {})) {
-            @SuppressWarnings("unchecked")
-            Map<String, List<Object>> castedCachedResults = (Map<String, List<Object>>) cachedResultsRaw;
-            results = castedCachedResults;
+        if (useCache) {
+            cachedResultsRaw = caffeineCache.asMap().get(cacheKey);
+
+            if (TypeChecker.isOfType(cachedResultsRaw, new TypeToken<Map<String, List<Object>>>() {})) {
+                @SuppressWarnings("unchecked")
+                Map<String, List<Object>> castedCachedResults = (Map<String, List<Object>>) cachedResultsRaw;
+                results = castedCachedResults;
+            }
         }
 
         // Early return if cached
@@ -426,18 +442,38 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         );
 
         // Calculate the number of CPI requests needed
-        numCpiRequests = (int) Math.ceil((double) participantCount / pageSize);
+        numCpiRequests = (int) Math.ceil((double) participantCount / maxParticipantsPerCPIRequest);
+
+        // Use an ExecutorService for async requests
+        executorService = Executors.newFixedThreadPool(Math.min(numCpiRequests, 8));
 
         for (int i = 0; i < numCpiRequests; i++) {
+            int fromIndex = i * 5000;
+            int toIndex = Math.min((i + 1) * 5000, participantCount);
+            List<Map<String, Object>> participants = allParticipants.subList(fromIndex, toIndex);
+
+            // Submit each CPI request batch as a separate task
+            Future<List<Map<String, Object>>> future = executorService.submit(() -> {
+                insertCPIDataIntoParticipants(participants);
+                return participants;
+            });
+
+            cpiFutures.add(future);
+        }
+
+        // Aggregate results after all batches complete
+        for (Future<List<Map<String, Object>>> future : cpiFutures) {
             List<Object> associatedIds = new ArrayList<>();
             List<Object> participantIds = new ArrayList<>();
-            int toIndex = Math.min((i + 1) * pageSize, participantCount);
-            List<Map<String, Object>> participants = allParticipants.subList(i * pageSize, toIndex);
+            List<Map<String, Object>> participants;
 
-            // Retrieve CPI data for participants
-            insertCPIDataIntoParticipants(participants);
+            try {
+                participants = future.get();
+            } catch (Exception e) {
+                logger.error("Error processing batch in async CPI requests", e);
+                continue;
+            }
 
-            // Add participant data to results
             for (Map<String, Object> participant : participants) {
                 List<Map<String, Object>> cpiEntries;
                 Object cpiEntriesRaw = participant.get("cpi_data");
@@ -459,12 +495,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     ));
                 }
             }
-
             allParticipantIds.addAll(participantIds);
             allAssociatedIds.addAll(associatedIds);
         }
 
-        // Otherwise, initialize a map
+        executorService.shutdown();
+
+        // Initialize map of results
         results = new HashMap<>(Map.of(
             "participantIds", allParticipantIds,
             "associatedIds", allAssociatedIds
@@ -895,7 +932,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
 
         try {
+            // long startTime = System.currentTimeMillis();
             List<FormattedCPIResponse> cpiData = cpiFetcherService.fetchAssociatedParticipantIds(cpiIDs);
+            // long endTime = System.currentTimeMillis();
+            // System.out.println("Time to fetch CPI data: " + (endTime - startTime) + " ms");
             logger.info("CPI data received: " + cpiData.size() + " records");
 
             // Print the first value as JSON
@@ -3016,11 +3056,19 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     @SuppressWarnings("unchecked")
                     List<String> castedValueSet = (List<String>) valueSetRaw;
                     valueSet = castedValueSet;
-                }
+                } else if (TypeChecker.isOfType(valueSetRaw, new TypeToken<String>() {})) {
+                    String castedValue = (String) valueSetRaw;
+                    valueSet = List.of(castedValue);
+                } else if (TypeChecker.isOfType(valueSetRaw, new TypeToken<Integer>() {})) {
+                    Integer castedValue = (Integer) valueSetRaw;
+                    valueSet = List.of(castedValue.toString());
+                } 
             
-                // list with only one empty string [""] means return all records
-                if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
-                    keys.add(key.concat(valueSet.toString()));
+                if (valueSet != null) {
+                    // list with only one empty string [""] means return all records
+                    if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
+                        keys.add(key.concat(valueSet.toString()));
+                    }
                 }
             }
         }
@@ -3032,13 +3080,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
     }
 
-    @PostConstruct
-    public void onStartup() {
-        try {
-            idsLists();
-            logger.info("idsLists cache preloaded on application startup");
-        } catch (IOException e) {
-            logger.error("Failed to preload idsLists cache on startup: " + e.getMessage(), e);
-        }
-    }
+    // @PostConstruct
+    // public void onStartup() {
+    //     try {
+    //         idsLists();
+    //         logger.info("idsLists cache preloaded on application startup");
+    //     } catch (IOException e) {
+    //         logger.error("Failed to preload idsLists cache on startup: " + e.getMessage(), e);
+    //     }
+    // }
 }

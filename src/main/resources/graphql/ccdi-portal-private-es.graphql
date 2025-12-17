@@ -363,7 +363,7 @@ type QueryType {
     findParticipantIdsInList(participant_id: [String] = []): [ParticipantResult]
     globalSearch(input: String, first: Int = 10, offset: Int = 0): GlobalSearchResult
 
-    idsLists: IdsListsES
+    idsLists(cpi_batch_size: Int = 10000, use_cache: Boolean = true): IdsListsES
     
     numberOfDiseases: Int
     numberOfParticipants: Int
