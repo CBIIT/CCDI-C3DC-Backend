@@ -3054,7 +3054,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 } else if (TypeChecker.isOfType(valueSetRaw, new TypeToken<Integer>() {})) {
                     Integer castedValue = (Integer) valueSetRaw;
                     valueSet = List.of(castedValue.toString());
-                } 
+                else if (TypeChecker.isOfType(valueSetRaw, new TypeToken<Boolean>() {})) {
+                    Boolean castedValue = (Boolean) valueSetRaw;
+                    valueSet = List.of(castedValue.toString());
+                }
             
                 if (valueSet != null) {
                     // list with only one empty string [""] means return all records
