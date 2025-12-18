@@ -382,7 +382,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map<String, List<Object>> results = null;
 
         // Variables for building Opensearch queries
-        Map<String, Object> matchAllQuery = Map.of("query", Map.of("match_all", Map.of()));
         List<Map<String, Object>> participantProperties = List.of(
             Map.ofEntries(
                 Map.entry("gqlName", "id"),
@@ -421,7 +420,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
 
         // Add page size
-        participantParams.put(PAGE_SIZE, participantCount);
+        participantParams.put(PAGE_SIZE, ESService.MAX_ES_SIZE);
 
         // Query all participants
         allParticipants = overview(
@@ -434,6 +433,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         );
 
         participantCount = allParticipants.size();
+
+        // Something is wrong if no participants
+        if (participantCount == 0) {
+            logger.error("No participants found!");
+            return Map.of("participantIds", List.of(), "associatedIds", List.of());
+        }
 
         // Calculate the number of CPI requests needed
         numCpiRequests = (int) Math.ceil((double) participantCount / maxParticipantsPerCPIRequest);
