@@ -66,6 +66,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final int COHORT_CHART_BUCKET_LIMIT_HIGH = 20;
     final int COHORT_CHART_BUCKET_LIMIT_LOW = 5;
 
+    // Maximum number of threads for async
+    final int THREAD_POOL_SIZE = 8;
+
     final String STUDIES_FACET_END_POINT = "/study_participants/_search";
     final String COHORTS_END_POINT = "/cohorts/_search";
     final String GENETIC_ANALYSES_END_POINT = "/genetic_analyses/_search";
@@ -436,7 +439,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         numCpiRequests = (int) Math.ceil((double) participantCount / maxParticipantsPerCPIRequest);
 
         // Use an ExecutorService for async requests
-        executorService = Executors.newFixedThreadPool(Math.min(numCpiRequests, 8));
+        executorService = Executors.newFixedThreadPool(Math.min(numCpiRequests, THREAD_POOL_SIZE));
 
         // Create a Future for each CPI request
         for (int i = 0; i < numCpiRequests; i++) {
