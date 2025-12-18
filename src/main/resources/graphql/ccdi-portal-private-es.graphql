@@ -363,7 +363,8 @@ type QueryType {
     findParticipantIdsInList(participant_id: [String] = []): [ParticipantResult]
     globalSearch(input: String, first: Int = 10, offset: Int = 0): GlobalSearchResult
 
-    idsLists: IdsListsES
+    # cpi_batch_size and use_cache are used for debugging purposes. The frontend may omit them just fine
+    idsLists(cpi_batch_size: Int = 2500, use_cache: Boolean = true): IdsListsES
     
     numberOfDiseases: Int
     numberOfParticipants: Int
