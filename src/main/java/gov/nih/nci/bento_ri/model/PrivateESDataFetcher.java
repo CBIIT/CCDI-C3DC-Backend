@@ -924,10 +924,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
 
         try {
-            // long startTime = System.currentTimeMillis();
             List<FormattedCPIResponse> cpiData = cpiFetcherService.fetchAssociatedParticipantIds(cpiIDs);
-            // long endTime = System.currentTimeMillis();
-            // System.out.println("Time to fetch CPI data: " + (endTime - startTime) + " ms");
             logger.info("CPI data received: " + cpiData.size() + " records");
 
             // Print the first value as JSON
