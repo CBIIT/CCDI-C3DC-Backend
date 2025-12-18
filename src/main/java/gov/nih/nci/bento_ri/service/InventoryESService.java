@@ -28,7 +28,9 @@ public class InventoryESService extends ESService {
     public static final String AGGS = "aggs";
     public static final int MAX_ES_SIZE = 60000;
     public static final int SCROLL_THRESHOLD = 10000;
-    static final Set<String> COMMON_PARAMS = Set.of("participant_pk");
+    static final Set<String> COMMON_PARAMS = Set.of(
+        "dbgap_accession", "participant_pk", "study_name"
+    );
     static final Set<String> PARTICIPANT_PARAMS = Set.of(
         "id", "participant_id", "race", "sex_at_birth"
     );

@@ -3083,7 +3083,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     @PostConstruct
     public void onStartup() {
         try {
-            idsLists();
+            idsLists(Map.of("cpi_batch_size", 2500, "use_cache", true));
             logger.info("idsLists cache preloaded on application startup");
         } catch (IOException e) {
             logger.error("Failed to preload idsLists cache on startup: " + e.getMessage(), e);
