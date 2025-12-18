@@ -3080,13 +3080,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
     }
 
-    // @PostConstruct
-    // public void onStartup() {
-    //     try {
-    //         idsLists();
-    //         logger.info("idsLists cache preloaded on application startup");
-    //     } catch (IOException e) {
-    //         logger.error("Failed to preload idsLists cache on startup: " + e.getMessage(), e);
-    //     }
-    // }
+    @PostConstruct
+    public void onStartup() {
+        try {
+            idsLists();
+            logger.info("idsLists cache preloaded on application startup");
+        } catch (IOException e) {
+            logger.error("Failed to preload idsLists cache on startup: " + e.getMessage(), e);
+        }
+    }
 }
