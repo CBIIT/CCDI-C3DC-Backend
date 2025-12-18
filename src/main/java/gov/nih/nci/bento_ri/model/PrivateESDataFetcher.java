@@ -417,17 +417,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             return results;
         }
 
-        // Count how many participants exist
-        try {
-            participantCount = inventoryESService.getCount(matchAllQuery, "participants");
-        } catch (IOException e) {
-            // Handle exception as needed, e.g., log or rethrow
-            return Map.of(
-                "participantIds", List.of(),
-                "associatedIds", List.of()
-            ); // return nothing if there's an error
-        }
-
         // Add page size
         participantParams.put(PAGE_SIZE, participantCount);
 
@@ -441,12 +430,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             "participants"
         );
 
+        participantCount = allParticipants.size();
+
         // Calculate the number of CPI requests needed
         numCpiRequests = (int) Math.ceil((double) participantCount / maxParticipantsPerCPIRequest);
 
         // Use an ExecutorService for async requests
         executorService = Executors.newFixedThreadPool(Math.min(numCpiRequests, 8));
 
+        // Create a Future for each CPI request
         for (int i = 0; i < numCpiRequests; i++) {
             int fromIndex = i * maxParticipantsPerCPIRequest;
             int toIndex = Math.min((i + 1) * maxParticipantsPerCPIRequest, participantCount);
