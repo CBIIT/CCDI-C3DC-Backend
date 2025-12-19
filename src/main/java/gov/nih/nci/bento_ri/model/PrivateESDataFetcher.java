@@ -261,13 +261,158 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return getGroupCount(category, query, endpoint, cardinalityAggName, only_includes);
     }
 
+    // Used to calculate numerical range widgets
     private List<Map<String, Object>> subjectCountByRange(String category, Map<String, Object> params, String endpoint, String cardinalityAggName, String indexType) throws IOException {
         return subjectCountByRange(category, params, endpoint, Map.of(), cardinalityAggName, indexType);
     }
 
+    // Used to calculate numerical range widgets
     private List<Map<String, Object>> subjectCountByRange(String category, Map<String, Object> params, String endpoint, Map<String, Object> additionalParams, String cardinalityAggName, String indexType) throws IOException {
-        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE), indexType);
-        return getGroupCountByRange(category, query, endpoint, cardinalityAggName);
+        ExecutorService executorService;
+        List<Future<Map<String, Object>>> futures = new ArrayList<>();
+        int numRanges = 0;
+        Set<Map<String, Object>> ranges;
+        List<Integer> requestedRange = null;
+        Object requestedRangeRaw = null;
+        List<Map<String, Object>> results = new ArrayList<>();
+
+        ranges = Set.of(
+            Map.of(
+                "key", "0 - 4",
+                "from", 0,
+                "to", 5 * 365
+            ),
+            Map.of(
+                "key", "5 - 9",
+                "from", 5 * 365,
+                "to", 10 * 365
+            ),
+            Map.of(
+                "key", "10 - 14",
+                "from", 10 * 365,
+                "to", 15 * 365
+            ),
+            Map.of(
+                "key", "15 - 19",
+                "from", 15 * 365,
+                "to", 20 * 365
+            ),
+            Map.of(
+                "key", "20 - 29",
+                "from", 20 * 365,
+                "to", 30 * 365
+            ),
+            Map.of(
+                "key", "> 29",
+                "from", 30 * 365
+            )
+        );
+        numRanges = ranges.size();
+
+        // See if the filters specify a range
+        if (params.containsKey(category)) {
+            requestedRangeRaw = params.get(category);
+
+            // Type cast the range
+            if (TypeChecker.isOfType(requestedRangeRaw, new TypeToken<List<Integer>>() {})) {
+                @SuppressWarnings("unchecked")
+                List<Integer> requestedRangeCasted = (List<Integer>) requestedRangeRaw;
+                requestedRange = requestedRangeCasted;
+            }
+        }
+
+        executorService = Executors.newFixedThreadPool(Math.min(numRanges, THREAD_POOL_SIZE));
+        try {
+            // Create a Future for each range's query
+            for (Map<String, Object> range : ranges) {
+                Integer from = null;
+                Integer to = null;
+                Future<Map<String, Object>> future;
+                Map<String, Object> queryParams = new HashMap<>(params);
+                List<Object> rangeValues = new ArrayList<>();
+                
+                if (range.containsKey("from")) {
+                    from = (Integer) range.get("from");
+                }
+
+                if (range.containsKey("to")) {
+                    to = (Integer) range.get("to");
+                }
+
+                // If there's a requested range, then it could interfere with the predefined range
+                if (requestedRange != null && requestedRange.size() == 2) { // == 2, because the frontend will always send two values
+                    Integer requestedFrom = requestedRange.get(0);
+                    Integer requestedTo = requestedRange.get(1);
+
+                    // If the predefined range has no lower bound, then use the requested one
+                    if (from == null) {
+                        from = requestedFrom;
+                    }
+
+                    // If the predefined range has no upper bound, then use the requested one
+                    if (to == null) {
+                        to = requestedTo;
+                    }
+
+                    // If the requested range is outside the predefined range, then the count will be 0
+                    if (requestedFrom > to || requestedTo < from) {
+                        results.add(Map.of(
+                            "group", range.get("key"),
+                            "subjects", 0
+                        ));
+
+                        continue;
+                    }
+
+                    // At this point, the requested range is inside or overlaps the predefined range
+                    if (requestedFrom <= from && requestedTo < to) { // Requested range overlaps the lower part of the predefined range
+                        rangeValues.add(from);
+                        rangeValues.add(requestedTo);
+                    } else if (requestedFrom > from && requestedTo >= to) { // Requested range overlaps the upper part of the predefined range
+                        rangeValues.add(requestedFrom);
+                        rangeValues.add(to);
+                    } else { // At this point, the requested range must be inside the predefined range
+                        rangeValues.add(requestedFrom);
+                        rangeValues.add(requestedTo);
+                    }
+                }
+
+                queryParams.put(category, rangeValues);
+
+                // Submit each count query as a separate task
+                future = executorService.submit(() -> {
+                    Map<String, Object> query = inventoryESService.buildFacetFilterQuery(queryParams, RANGE_PARAMS, Set.of(PAGE_SIZE), indexType);
+                    return Map.of(
+                        "subjects", inventoryESService.getCount(query, endpoint),
+                        "group", range.get("key")
+                    );
+                });
+
+                futures.add(future);
+            }
+
+            // Retrieve counts from all futures
+            for (Future<Map<String, Object>> future : futures) {
+                Map<String, Object> result = null;
+
+                try {
+                    result = future.get();
+                } catch (Exception e) {
+                    logger.error("Error retrieving count for range", e);
+                    continue;
+                }
+
+                if (result != null) {
+                    results.add(result);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error retrieving widget data", e);
+        } finally {
+            executorService.shutdown();
+        }
+
+        return results;
     }
 
     private List<Map<String, Object>> filterSubjectCountBy(String category, Map<String, Object> params, String endpoint, String cardinalityAggName, String indexType) throws IOException {
@@ -291,6 +436,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return buckets;
     }
 
+    // Used to calulate numerical range widgets
     private List<Map<String, Object>> getGroupCountByRange(String category, Map<String, Object> query, String endpoint, String cardinalityAggName) throws IOException {
         query = inventoryESService.addRangeCountAggregations(query, category, cardinalityAggName);
         String queryJson = gson.toJson(query);
@@ -1106,7 +1252,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 if (widgetQueryName != null) {
                     // Fetch data for widgets
                     if (RANGE_PARAMS.contains(field)) {
-                        List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, endpoint, cardinalityAggName, index);
+                        List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, index, cardinalityAggName, index);
                         data.put(widgetQueryName, subjectCount);
                     } else if (params.containsKey(field) && values.size() > 0) {
                         List<Map<String, Object>> subjectCount = subjectCountBy(field, params, endpoint, cardinalityAggName, index);
