@@ -375,6 +375,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         rangeValues.add(requestedFrom);
                         rangeValues.add(requestedTo);
                     }
+                } else {
+                    if (from != null) {
+                        rangeValues.add(from);
+                    }
+
+                    if (to != null) {
+                        rangeValues.add(to);
+                    }
                 }
 
                 queryParams.put(category, rangeValues);
