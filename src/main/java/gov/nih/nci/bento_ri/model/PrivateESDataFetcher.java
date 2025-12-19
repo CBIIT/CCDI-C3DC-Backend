@@ -453,7 +453,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return buckets;
     }
 
-    // Used to calulate numerical range widgets
+    // Used to calculate numerical range widgets
     private List<Map<String, Object>> getGroupCountByRange(String category, Map<String, Object> query, String endpoint, String cardinalityAggName) throws IOException {
         query = inventoryESService.addRangeCountAggregations(query, category, cardinalityAggName);
         String queryJson = gson.toJson(query);
