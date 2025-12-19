@@ -451,60 +451,64 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         // Use an ExecutorService for async requests
         executorService = Executors.newFixedThreadPool(Math.min(numCpiRequests, THREAD_POOL_SIZE));
 
-        // Create a Future for each CPI request
-        for (int i = 0; i < numCpiRequests; i++) {
-            int fromIndex = i * maxParticipantsPerCPIRequest;
-            int toIndex = Math.min((i + 1) * maxParticipantsPerCPIRequest, participantCount);
-            List<Map<String, Object>> participants = allParticipants.subList(fromIndex, toIndex);
+        try {
+            // Create a Future for each CPI request
+            for (int i = 0; i < numCpiRequests; i++) {
+                int fromIndex = i * maxParticipantsPerCPIRequest;
+                int toIndex = Math.min((i + 1) * maxParticipantsPerCPIRequest, participantCount);
+                List<Map<String, Object>> participants = allParticipants.subList(fromIndex, toIndex);
 
-            // Submit each CPI request batch as a separate task
-            Future<List<Map<String, Object>>> future = executorService.submit(() -> {
-                insertCPIDataIntoParticipants(participants);
-                return participants;
-            });
+                // Submit each CPI request batch as a separate task
+                Future<List<Map<String, Object>>> future = executorService.submit(() -> {
+                    insertCPIDataIntoParticipants(participants);
+                    return participants;
+                });
 
-            cpiFutures.add(future);
-        }
-
-        // Aggregate results after all batches complete
-        for (Future<List<Map<String, Object>>> future : cpiFutures) {
-            List<Object> associatedIds = new ArrayList<>();
-            List<Object> participantIds = new ArrayList<>();
-            List<Map<String, Object>> participants;
-
-            try {
-                participants = future.get();
-            } catch (Exception e) {
-                logger.error("Error processing batch in async CPI requests", e);
-                continue;
+                cpiFutures.add(future);
             }
 
-            for (Map<String, Object> participant : participants) {
-                List<Map<String, Object>> cpiEntries;
-                Object cpiEntriesRaw = participant.get("cpi_data");
+            // Aggregate results after all batches complete
+            for (Future<List<Map<String, Object>>> future : cpiFutures) {
+                List<Object> associatedIds = new ArrayList<>();
+                List<Object> participantIds = new ArrayList<>();
+                List<Map<String, Object>> participants;
 
-                participantIds.add(participant.get("participant_id"));
-
-                if (TypeChecker.isOfType(cpiEntriesRaw, new TypeToken<List<Map<String, Object>>>() {})) {
-                    @SuppressWarnings("unchecked")
-                    List<Map<String, Object>> castedCpiEntries = (List<Map<String, Object>>) cpiEntriesRaw;
-                    cpiEntries = castedCpiEntries;
-                } else {
+                try {
+                    participants = future.get();
+                } catch (Exception e) {
+                    logger.error("Error processing batch in async CPI requests", e);
                     continue;
                 }
 
-                for (Map<String, Object> cpiEntry : cpiEntries) {
-                    associatedIds.add(Map.of(
-                        "associated_id", cpiEntry.get("associated_id"),
-                        "participant_id", participant.get("participant_id")
-                    ));
-                }
-            }
-            allParticipantIds.addAll(participantIds);
-            allAssociatedIds.addAll(associatedIds);
-        }
+                for (Map<String, Object> participant : participants) {
+                    List<Map<String, Object>> cpiEntries;
+                    Object cpiEntriesRaw = participant.get("cpi_data");
 
-        executorService.shutdown();
+                    participantIds.add(participant.get("participant_id"));
+
+                    if (TypeChecker.isOfType(cpiEntriesRaw, new TypeToken<List<Map<String, Object>>>() {})) {
+                        @SuppressWarnings("unchecked")
+                        List<Map<String, Object>> castedCpiEntries = (List<Map<String, Object>>) cpiEntriesRaw;
+                        cpiEntries = castedCpiEntries;
+                    } else {
+                        continue;
+                    }
+
+                    for (Map<String, Object> cpiEntry : cpiEntries) {
+                        associatedIds.add(Map.of(
+                            "associated_id", cpiEntry.get("associated_id"),
+                            "participant_id", participant.get("participant_id")
+                        ));
+                    }
+                }
+                allParticipantIds.addAll(participantIds);
+                allAssociatedIds.addAll(associatedIds);
+            }
+        } catch (Exception e) { // Just in case
+            logger.error("Error processing batches in async CPI requests", e);
+        } finally {
+            executorService.shutdown();
+        }
 
         // Initialize map of results
         results = new HashMap<>(Map.of(
