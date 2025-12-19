@@ -365,16 +365,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     }
 
                     // At this point, the requested range is inside or overlaps the predefined range
-                    if (requestedFrom <= from && requestedTo < to) { // Requested range overlaps the lower part of the predefined range
-                        rangeValues.add(from);
-                        rangeValues.add(requestedTo);
-                    } else if (requestedFrom > from && requestedTo >= to) { // Requested range overlaps the upper part of the predefined range
-                        rangeValues.add(requestedFrom);
-                        rangeValues.add(to);
-                    } else { // At this point, the requested range must be inside the predefined range
-                        rangeValues.add(requestedFrom);
-                        rangeValues.add(requestedTo);
-                    }
+                    // Use appropriate values depending on:
+                    // - Requested range overlaps the lower part of the predefined range
+                    // - Requested range overlaps the upper part of the predefined range
+                    // - Requested range is inside the predefined range
+                    // This is handled by min and max
+                    rangeValues.add(Math.max(from, requestedFrom));
+                    rangeValues.add(Math.min(to, requestedTo));
                 } else {
                     if (from != null) {
                         rangeValues.add(from);
@@ -1174,6 +1171,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         data = new HashMap<>();
 
         final String CARDINALITY_AGG_NAME = "cardinality_agg_name";
+        final String CARDINALITY_INDEX_NAME = "cardinality_index_name";
         final String AGG_NAME = "agg_name";
         final String WIDGET_QUERY = "widget_count_name";
         final String FILTER_COUNT_QUERY = "filter_count_name";
@@ -1234,6 +1232,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             // Query this index for counts of each relevant facet filter
             for (Map<String, String> filter : filters) {
                 String cardinalityAggName = filter.get(CARDINALITY_AGG_NAME);
+                String cardinalityIndexName = filter.containsKey(CARDINALITY_INDEX_NAME) ? filter.get(CARDINALITY_INDEX_NAME) : null;
                 String field = filter.get(AGG_NAME);
                 String filterCountQueryName = filter.get(FILTER_COUNT_QUERY);
                 List<String> values = null;
@@ -1260,7 +1259,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 if (widgetQueryName != null) {
                     // Fetch data for widgets
                     if (RANGE_PARAMS.contains(field)) {
-                        List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, index, cardinalityAggName, index);
+                        String queryIndex = cardinalityIndexName != null ? cardinalityIndexName : index;
+                        List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, queryIndex, cardinalityAggName, queryIndex);
                         data.put(widgetQueryName, subjectCount);
                     } else if (params.containsKey(field) && values.size() > 0) {
                         List<Map<String, Object>> subjectCount = subjectCountBy(field, params, endpoint, cardinalityAggName, index);
