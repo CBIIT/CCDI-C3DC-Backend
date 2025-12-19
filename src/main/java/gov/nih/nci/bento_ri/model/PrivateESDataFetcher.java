@@ -271,12 +271,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         ExecutorService executorService;
         List<Future<Map<String, Object>>> futures = new ArrayList<>();
         int numRanges = 0;
-        Set<Map<String, Object>> ranges;
+        List<Map<String, Object>> ranges;
         List<Integer> requestedRange = null;
         Object requestedRangeRaw = null;
         List<Map<String, Object>> results = new ArrayList<>();
+        Map<Integer, Map<String, Object>> unsortedResults = new HashMap<>();
 
-        ranges = Set.of(
+        ranges = List.of(
             Map.of(
                 "key", "0 - 4",
                 "from", 0,
@@ -324,7 +325,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         executorService = Executors.newFixedThreadPool(Math.min(numRanges, THREAD_POOL_SIZE));
         try {
             // Create a Future for each range's query
-            for (Map<String, Object> range : ranges) {
+            for (int i = 0; i < ranges.size(); i++) {
+                final int rangeIndex = i;
+                Map<String, Object> range = ranges.get(rangeIndex);
                 Integer from = null;
                 Integer to = null;
                 Future<Map<String, Object>> future;
@@ -356,8 +359,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
                     // If the requested range is outside the predefined range, then the count will be 0
                     if (requestedFrom > to || requestedTo < from) {
-                        results.add(Map.of(
+                        unsortedResults.put(i, Map.of(
                             "group", range.get("key"),
+                            "order", rangeIndex,
                             "subjects", 0
                         ));
 
@@ -388,8 +392,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 future = executorService.submit(() -> {
                     Map<String, Object> query = inventoryESService.buildFacetFilterQuery(queryParams, RANGE_PARAMS, Set.of(PAGE_SIZE), indexType);
                     return Map.of(
-                        "subjects", inventoryESService.getCount(query, endpoint),
-                        "group", range.get("key")
+                        "group", range.get("key"),
+                        "order", rangeIndex,
+                        "subjects", inventoryESService.getCount(query, endpoint)
                     );
                 });
 
@@ -399,22 +404,29 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             // Retrieve counts from all futures
             for (Future<Map<String, Object>> future : futures) {
                 Map<String, Object> result = null;
+                Integer order = null;
 
                 try {
                     result = future.get();
+                    order = (Integer) result.get("order");
                 } catch (Exception e) {
                     logger.error("Error retrieving count for range", e);
                     continue;
                 }
 
                 if (result != null) {
-                    results.add(result);
+                    unsortedResults.put(order, result);
                 }
             }
         } catch (Exception e) {
             logger.error("Error retrieving widget data", e);
         } finally {
             executorService.shutdown();
+        }
+
+        // Insert counts in order of range
+        for (int i = 0; i < numRanges; i++) {
+            results.add(unsortedResults.get(i));
         }
 
         return results;
