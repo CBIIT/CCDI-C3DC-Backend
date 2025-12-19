@@ -71,6 +71,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     final String STUDIES_FACET_END_POINT = "/study_participants/_search";
     final String COHORTS_END_POINT = "/cohorts/_search";
+    final String COHORT_MANIFEST_END_POINT = "/diagnoses_cohort_manifest/_search";
     final String GENETIC_ANALYSES_END_POINT = "/genetic_analyses/_search";
     final String PARTICIPANTS_END_POINT = "/participants/_search";
     final String SURVIVALS_END_POINT = "/survivals/_search";
@@ -81,7 +82,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String HOME_STATS_END_POINT = "/home_stats/_search";
     final String STUDIES_END_POINT = "/studies/_search";
     final String SAMPLES_END_POINT = "/samples/_search";
-    final Map<String, String> ENDPOINTS = Map.ofEntries(
+    final Map<String, String> ENDPOINTS = Map.ofEntries( // Used to access endpoints when iterating over a list of Opensearch indices
         Map.entry("diagnoses", DIAGNOSES_END_POINT),
         Map.entry("genetic_analyses", GENETIC_ANALYSES_END_POINT),
         Map.entry("participants", PARTICIPANTS_END_POINT),
@@ -162,6 +163,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         .dataFetcher("cohortCharts", env -> {
                             Map<String, Object> args = env.getArguments();
                             return cohortCharts(args);
+                        })
+                        .dataFetcher("cohortManifest", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return cohortManifest(args);
                         })
                         .dataFetcher("cohortMetadata", env -> {
                             Map<String, Object> args = env.getArguments();
@@ -1596,6 +1601,81 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
 
         return null;
+    }
+
+    /**
+     * Returns data for the cohort manifest
+     * @param params
+     * @return List of diagnosis-centric records
+     * @throws IOException
+     */
+    private List<Map<String, Object>> cohortManifest(Map<String, Object> params) throws IOException {
+        List<Map<String, Object>> result;
+        final List<Map<String, Object>> PROPERTIES = List.of(
+            // Studies
+            Map.ofEntries(
+                Map.entry("gqlName", "dbgap_accession"),
+                Map.entry("osName", "dbgap_accession")
+            ),
+            // Demographics
+            Map.ofEntries(
+                Map.entry("gqlName", "participant"),
+                Map.entry("osName", "participant"),
+                Map.entry("nested", List.of(
+                    Map.ofEntries(
+                        Map.entry("gqlName", "id"),
+                        Map.entry("osName", "id")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "participant_id"),
+                        Map.entry("osName", "participant_id")
+                    ),
+
+                    // Additional fields for Cohort manifest download
+                    Map.ofEntries(
+                        Map.entry("gqlName", "race"),
+                        Map.entry("osName", "race")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "sex_at_birth"),
+                        Map.entry("osName", "sex_at_birth")
+                    )
+                ))
+            ),
+            // Diagnoses
+            Map.ofEntries(
+                Map.entry("gqlName", "id"),
+                Map.entry("osName", "id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "diagnosis"),
+                Map.entry("osName", "diagnosis")
+            )
+        );
+
+        String defaultSort = "diagnosis"; // Default sort order
+
+        Map<String, Map<String, Object>> mapping = Map.ofEntries(
+            // Studies
+            Map.entry("dbgap_accession", Map.ofEntries(
+                Map.entry("osName", "dbgap_accession"),
+                Map.entry("isNested", false)
+            )),
+            // Demographics
+            Map.entry("participant.participant_id", Map.ofEntries(
+                Map.entry("osName", "participant_id"),
+                Map.entry("isNested", true),
+                Map.entry("path", "participant")
+            )),
+            // Diagnoses
+            Map.entry("diagnosis", Map.ofEntries(
+                Map.entry("osName", "diagnosis"),
+                Map.entry("isNested", false)
+            ))
+        );
+
+        result = overview(COHORT_MANIFEST_END_POINT, params, PROPERTIES, defaultSort, mapping, "diagnoses");
+        return result;
     }
 
     private List<Map<String, Object>> cohortMetadata(Map<String, Object> params) throws IOException {
