@@ -7,6 +7,7 @@
 diagnoses:
   - agg_name: age_at_diagnosis
     cardinality_agg_name: participant.id
+    cardinality_index_name: participants
     filter_count_name: filterParticipantCountByAgeAtDiagnosis
     widget_count_name: participantCountByAgeAtDiagnosis
   - agg_name: anatomic_site
