@@ -387,6 +387,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 }
 
                 queryParams.put(category, rangeValues);
+                queryParams.put(category + "_unknownAges", List.of("exclude"));
 
                 // Submit each count query as a separate task
                 future = executorService.submit(() -> {
