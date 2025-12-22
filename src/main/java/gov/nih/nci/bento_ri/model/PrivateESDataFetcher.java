@@ -305,7 +305,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             ),
             Map.of(
                 "key", "> 29",
-                "from", 30 * 365
+                "from", 30 * 365,
+                "to", Integer.MAX_VALUE
             )
         );
         numRanges = ranges.size();
