@@ -21,7 +21,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 @RunWith( SpringRunner.class )
-@SpringBootTest
+@SpringBootTest(classes = {
+    gov.nih.nci.bento.service.ESService.class,
+    gov.nih.nci.bento.model.ConfigurationDAO.class
+})
 @TestPropertySource(properties = {
     "bento.api.version=1.0.0-TEST",
     "auth.enabled=false",
@@ -44,7 +47,7 @@ import static org.junit.Assert.assertNotNull;
     "es.port=443",
     "es.scheme=https",
     "es.filter.enabled=true",
-    "es.sign.requests=true",
+    "es.sign.requests=false",
     "es.service_name=es",
     "es.region=us-east-1",
     "test.queries_file=placeholder"
