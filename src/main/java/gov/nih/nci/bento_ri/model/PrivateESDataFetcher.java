@@ -2335,6 +2335,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         final List<Map<String, Object>> PROPERTIES = List.of(
             // Study
             Map.ofEntries(
+                Map.entry("gqlName", "study_id"),
+                Map.entry("osName", "study_id")
+            ),
+            Map.ofEntries(
                 Map.entry("gqlName", "dbgap_accession"),
                 Map.entry("osName", "dbgap_accession")
             ),
@@ -2454,6 +2458,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         Map<String, Map<String, Object>> mapping = Map.ofEntries(
             // Study
+            Map.entry("study_id", Map.ofEntries(
+                Map.entry("osName", "study_id"),
+                Map.entry("isNested", false)
+            )),
             Map.entry("dbgap_accession", Map.ofEntries(
                 Map.entry("osName", "dbgap_accession"),
                 Map.entry("isNested", false)

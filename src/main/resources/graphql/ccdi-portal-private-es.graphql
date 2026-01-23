@@ -241,6 +241,7 @@ type DiagnosisOverviewResult {
 
 type GeneticAnalysisOverviewResult {
     # Study
+    study_id: String
     dbgap_accession: String
 
     # Demographics
