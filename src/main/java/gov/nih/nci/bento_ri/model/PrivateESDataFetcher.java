@@ -164,6 +164,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return cohortCharts(args);
                         })
+                        .dataFetcher("cohortCpiData", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return cohortCpiData(args);
+                        })
                         .dataFetcher("cohortManifest", env -> {
                             Map<String, Object> args = env.getArguments();
                             return cohortManifest(args);
@@ -1773,6 +1777,133 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
 
         return null;
+    }
+
+    /**
+     * Returns CPI data for a cohort
+     * @param params
+     * @return CPI data
+     * @throws IOException
+     */
+    private Map<String, Object> cohortCpiData(Map<String, Object> params) throws IOException {
+        List<Map<String, Object>> listOfRepositories = new ArrayList<>();
+        List<String> listOfRepositoryNames = new ArrayList<>();
+        List<Map<String, Object>> participants;
+        Map<String, List<Map<String, Object>>> participantsByRepository = new HashMap<>();
+        Map<String, Object> result = new HashMap<>();
+
+        final List<Map<String, Object>> PROPERTIES = List.of(
+            // Studies
+            Map.ofEntries( // study_id needed for CPI data
+                Map.entry("gqlName", "study_id"),
+                Map.entry("osName", "study_id")
+            ),
+
+            // Demographics
+            Map.ofEntries(
+                Map.entry("gqlName", "id"),
+                Map.entry("osName", "id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "participant_id"),
+                Map.entry("osName", "participant_id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "race"),
+                Map.entry("osName", "race")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "sex_at_birth"),
+                Map.entry("osName", "sex_at_birth")
+            )
+        );
+
+        String defaultSort = "participant_id"; // Default sort order
+
+        Map<String, Map<String, Object>> mapping = Map.ofEntries(
+            // Studies
+            Map.entry("study_id", Map.ofEntries( // study_id needed for CPI data
+                Map.entry("osName", "study_id"),
+                Map.entry("isNested", false)
+            )),
+
+            // Demographics
+            Map.entry("participant_pk", Map.ofEntries(
+                Map.entry("osName", "id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("participant_id", Map.ofEntries(
+                Map.entry("osName", "participant_id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("race", Map.ofEntries(
+                Map.entry("osName", "race"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("sex_at_birth", Map.ofEntries(
+                Map.entry("osName", "sex_at_birth"),
+                Map.entry("isNested", false)
+            ))
+        );
+
+        participants = overview(COHORTS_END_POINT, params, PROPERTIES, defaultSort, mapping, "participants");
+        insertCPIDataIntoParticipants(participants);
+
+        // Group participants by repository_of_synonym_id
+        participants.forEach((Map<String, Object> participant) -> {
+            List<Map<String, Object>> cpiData;
+            Object cpiDataRaw;
+            List<String> repositoryNames = new ArrayList<>();
+
+            // Skip if no CPI data
+            if (!participant.containsKey("cpi_data")) {
+                return;
+            }
+
+            cpiDataRaw = participant.get("cpi_data");
+
+            // Cast CPI data
+            if (TypeChecker.isOfType(cpiDataRaw, new TypeToken<List<Map<String, Object>>>() {})) {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> castedCpiData = (List<Map<String, Object>>) cpiDataRaw;
+                cpiData = castedCpiData;
+            } else { // Skip participant if CPI data is somehow the wrong type
+                return;
+            }
+
+            // Process all of the participant's repositories
+            for (Map<String, Object> cpiEntry : cpiData) {
+                String repositoryName = getStringValue(cpiEntry, "repository_of_synonym_id");
+
+                // Add to the grand list of repo names if it's not already there
+                if (!listOfRepositoryNames.contains(repositoryName)) {
+                    listOfRepositoryNames.add(repositoryName);
+                }
+
+                // Make sure a mapping exists for the repository
+                if (!participantsByRepository.containsKey(repositoryName)) {
+                    participantsByRepository.put(repositoryName, new ArrayList<Map<String, Object>>());
+                }
+
+                // Add to the repository's list of participants
+                List<Map<String, Object>> participantsList = participantsByRepository.get(repositoryName);
+                participantsList.add(participant);
+            }
+        });
+
+        // Structure a list of repositories to return
+        participantsByRepository.forEach((repositoryName, repoParticipants) -> {
+            listOfRepositories.add(Map.ofEntries(
+                Map.entry("repository_of_synonym_id", repositoryName),
+                Map.entry("participants", repoParticipants)
+            ));
+        });
+
+        // Build return object
+        result.put("names", listOfRepositoryNames);
+        result.put("repositories", listOfRepositories);
+
+        return result;
     }
 
     /**
