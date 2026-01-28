@@ -1,3 +1,7 @@
+/**
+ * CPI code copied from Ben Chen's work on CCDI-Portal-WebService
+ */
+
 package gov.nih.nci.bento_ri.model;
 
 import gov.nih.nci.bento.constants.Const;
@@ -6,12 +10,15 @@ import gov.nih.nci.bento.model.search.yaml.YamlQueryFactory;
 import gov.nih.nci.bento.service.ESService;
 import gov.nih.nci.bento.utility.TypeChecker;
 import gov.nih.nci.bento_ri.service.InventoryESService;
+import gov.nih.nci.bento_ri.service.CPIFetcherService;
+import gov.nih.nci.bento_ri.model.FormattedCPIResponse;
 import graphql.schema.idl.RuntimeWiring;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Request;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.yaml.snakeyaml.Yaml;
@@ -25,7 +32,11 @@ import com.google.gson.JsonObject;
 import java.io.InputStream;
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
+
+import javax.annotation.PostConstruct;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.Executors;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 
@@ -35,7 +46,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private final YamlQueryFactory yamlQueryFactory;
     private InventoryESService inventoryESService;
     @Autowired
+    private CPIFetcherService cpiFetcherService;
+    @Autowired
     private Cache<String, Object> caffeineCache;
+
+    @Value("${page_size:5000}")
+    private int pageSize;
 
     private Map<String, Map<String, Map<String, Integer>>> facetFilterThresholds;
     private Map<String, List<Map<String, String>>> facetFilters;
@@ -50,25 +66,29 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final int COHORT_CHART_BUCKET_LIMIT_HIGH = 20;
     final int COHORT_CHART_BUCKET_LIMIT_LOW = 5;
 
+    // Maximum number of threads for async
+    final int THREAD_POOL_SIZE = 8;
+
     final String STUDIES_FACET_END_POINT = "/study_participants/_search";
     final String COHORTS_END_POINT = "/cohorts/_search";
+    final String COHORT_MANIFEST_END_POINT = "/diagnoses_cohort_manifest/_search";
     final String GENETIC_ANALYSES_END_POINT = "/genetic_analyses/_search";
     final String PARTICIPANTS_END_POINT = "/participants/_search";
     final String SURVIVALS_END_POINT = "/survivals/_search";
-    final String SYNONYMS_END_POINT = "/synonyms/_search";
+    final String KM_PLOT_DATA_END_POINT = "/km_plot_data/_search";
     final String TREATMENTS_END_POINT = "/treatments/_search";
     final String TREATMENT_RESPONSES_END_POINT = "/treatment_responses/_search";
     final String DIAGNOSES_END_POINT = "/diagnoses/_search";
     final String HOME_STATS_END_POINT = "/home_stats/_search";
     final String STUDIES_END_POINT = "/studies/_search";
     final String SAMPLES_END_POINT = "/samples/_search";
-    final Map<String, String> ENDPOINTS = Map.ofEntries(
+    final Map<String, String> ENDPOINTS = Map.ofEntries( // Used to access endpoints when iterating over a list of Opensearch indices
         Map.entry("diagnoses", DIAGNOSES_END_POINT),
         Map.entry("genetic_analyses", GENETIC_ANALYSES_END_POINT),
         Map.entry("participants", PARTICIPANTS_END_POINT),
         Map.entry("studies", STUDIES_END_POINT),
         Map.entry("survivals", SURVIVALS_END_POINT),
-        Map.entry("synonyms", SURVIVALS_END_POINT),
+        Map.entry("km_plot_data", KM_PLOT_DATA_END_POINT),
         Map.entry("treatments", TREATMENTS_END_POINT),
         Map.entry("treatment_responses", TREATMENT_RESPONSES_END_POINT)
     );
@@ -132,7 +152,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return RuntimeWiring.newRuntimeWiring()
                 .type(newTypeWiring("QueryType")
                         .dataFetchers(yamlQueryFactory.createYamlQueries(Const.ES_ACCESS_TYPE.PRIVATE))
-                        .dataFetcher("idsLists", env -> idsLists())
+                        .dataFetcher("idsLists", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return idsLists(args);
+                        })
                         .dataFetcher("getParticipants", env -> {
                             Map<String, Object> args = env.getArguments();
                             return getParticipants(args);
@@ -141,9 +164,21 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return cohortCharts(args);
                         })
+                        .dataFetcher("cohortManifest", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return cohortManifest(args);
+                        })
                         .dataFetcher("cohortMetadata", env -> {
                             Map<String, Object> args = env.getArguments();
                             return cohortMetadata(args);
+                        })
+                        .dataFetcher("kMPlot", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return kMPlot(args);
+                        })
+                        .dataFetcher("riskTableData", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return riskTableData(args);
                         })
                         .dataFetcher("participantOverview", env -> {
                             Map<String, Object> args = env.getArguments();
@@ -226,13 +261,177 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return getGroupCount(category, query, endpoint, cardinalityAggName, only_includes);
     }
 
+    // Used to calculate numerical range widgets
     private List<Map<String, Object>> subjectCountByRange(String category, Map<String, Object> params, String endpoint, String cardinalityAggName, String indexType) throws IOException {
         return subjectCountByRange(category, params, endpoint, Map.of(), cardinalityAggName, indexType);
     }
 
+    // Used to calculate numerical range widgets
     private List<Map<String, Object>> subjectCountByRange(String category, Map<String, Object> params, String endpoint, Map<String, Object> additionalParams, String cardinalityAggName, String indexType) throws IOException {
-        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE), indexType);
-        return getGroupCountByRange(category, query, endpoint, cardinalityAggName);
+        ExecutorService executorService;
+        List<Future<Map<String, Object>>> futures = new ArrayList<>();
+        int numRanges = 0;
+        List<Map<String, Object>> ranges;
+        List<Integer> requestedRange = null;
+        Object requestedRangeRaw = null;
+        List<Map<String, Object>> results = new ArrayList<>();
+        Map<Integer, Map<String, Object>> unsortedResults = new HashMap<>();
+
+        ranges = List.of(
+            Map.of(
+                "key", "0 - 4",
+                "from", 0,
+                "to", 5 * 365
+            ),
+            Map.of(
+                "key", "5 - 9",
+                "from", 5 * 365,
+                "to", 10 * 365
+            ),
+            Map.of(
+                "key", "10 - 14",
+                "from", 10 * 365,
+                "to", 15 * 365
+            ),
+            Map.of(
+                "key", "15 - 19",
+                "from", 15 * 365,
+                "to", 20 * 365
+            ),
+            Map.of(
+                "key", "20 - 29",
+                "from", 20 * 365,
+                "to", 30 * 365
+            ),
+            Map.of(
+                "key", "> 29",
+                "from", 30 * 365,
+                "to", Integer.MAX_VALUE
+            )
+        );
+        numRanges = ranges.size();
+
+        // See if the filters specify a range
+        if (params.containsKey(category)) {
+            requestedRangeRaw = params.get(category);
+
+            // Type cast the range
+            if (TypeChecker.isOfType(requestedRangeRaw, new TypeToken<List<Integer>>() {})) {
+                @SuppressWarnings("unchecked")
+                List<Integer> requestedRangeCasted = (List<Integer>) requestedRangeRaw;
+                requestedRange = requestedRangeCasted;
+            }
+        }
+
+        executorService = Executors.newFixedThreadPool(Math.min(numRanges, THREAD_POOL_SIZE));
+        try {
+            // Create a Future for each range's query
+            for (int i = 0; i < ranges.size(); i++) {
+                final int rangeIndex = i;
+                Map<String, Object> range = ranges.get(rangeIndex);
+                Integer from = null;
+                Integer to = null;
+                Future<Map<String, Object>> future;
+                Map<String, Object> queryParams = new HashMap<>(params);
+                List<Object> rangeValues = new ArrayList<>();
+                
+                if (range.containsKey("from")) {
+                    from = (Integer) range.get("from");
+                }
+
+                if (range.containsKey("to")) {
+                    to = (Integer) range.get("to");
+                }
+
+                // If there's a requested range, then it could interfere with the predefined range
+                if (requestedRange != null && requestedRange.size() == 2) { // == 2, because the frontend will always send two values
+                    Integer requestedFrom = requestedRange.get(0);
+                    Integer requestedTo = requestedRange.get(1);
+
+                    // If the predefined range has no lower bound, then use the requested one
+                    if (from == null) {
+                        from = requestedFrom;
+                    }
+
+                    // If the predefined range has no upper bound, then use the requested one
+                    if (to == null) {
+                        to = requestedTo;
+                    }
+
+                    // If the requested range is outside the predefined range, then the count will be 0
+                    if (requestedFrom > to || requestedTo < from) {
+                        unsortedResults.put(i, Map.of(
+                            "group", range.get("key"),
+                            "order", rangeIndex,
+                            "subjects", 0
+                        ));
+
+                        continue;
+                    }
+
+                    // At this point, the requested range is inside or overlaps the predefined range
+                    // Use appropriate values depending on:
+                    // - Requested range overlaps the lower part of the predefined range
+                    // - Requested range overlaps the upper part of the predefined range
+                    // - Requested range is inside the predefined range
+                    // This is handled by min and max
+                    rangeValues.add(Math.max(from, requestedFrom));
+                    rangeValues.add(Math.min(to, requestedTo));
+                } else {
+                    if (from != null) {
+                        rangeValues.add(from);
+                    }
+
+                    if (to != null) {
+                        rangeValues.add(to);
+                    }
+                }
+
+                queryParams.put(category, rangeValues);
+                queryParams.put(category + "_unknownAges", List.of("exclude"));
+
+                // Submit each count query as a separate task
+                future = executorService.submit(() -> {
+                    Map<String, Object> query = inventoryESService.buildFacetFilterQuery(queryParams, RANGE_PARAMS, Set.of(PAGE_SIZE), indexType);
+                    return Map.of(
+                        "group", range.get("key"),
+                        "order", rangeIndex,
+                        "subjects", inventoryESService.getCount(query, endpoint)
+                    );
+                });
+
+                futures.add(future);
+            }
+
+            // Retrieve counts from all futures
+            for (Future<Map<String, Object>> future : futures) {
+                Map<String, Object> result = null;
+                Integer order = null;
+
+                try {
+                    result = future.get();
+                    order = (Integer) result.get("order");
+                } catch (Exception e) {
+                    logger.error("Error retrieving count for range", e);
+                    continue;
+                }
+
+                if (result != null) {
+                    unsortedResults.put(order, result);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error retrieving widget data", e);
+        } finally {
+            executorService.shutdown();
+        }
+
+        // Insert counts in order of range
+        for (int i = 0; i < numRanges; i++) {
+            results.add(unsortedResults.get(i));
+        }
+
+        return results;
     }
 
     private List<Map<String, Object>> filterSubjectCountBy(String category, Map<String, Object> params, String endpoint, String cardinalityAggName, String indexType) throws IOException {
@@ -256,6 +455,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return buckets;
     }
 
+    // Used to calculate numerical range widgets
     private List<Map<String, Object>> getGroupCountByRange(String category, Map<String, Object> query, String endpoint, String cardinalityAggName) throws IOException {
         query = inventoryESService.addRangeCountAggregations(query, category, cardinalityAggName);
         String queryJson = gson.toJson(query);
@@ -335,96 +535,627 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return data;
     }
 
-    private Map<String, List<Object>> idsLists() throws IOException {
-        String cacheKey = "idsLists";
-        Map<String, List<Object>> results = new HashMap<>();
-        Map<String, List<Object>> data = null;
-        Object dataRaw = caffeineCache.asMap().get(cacheKey);
+    private Map<String, List<Object>> idsLists(Map<String, Object> params) throws IOException {
+        // Cache-related variables
+        String cacheKey = "idsLists".concat(generateCacheKey(params));
+        Object cachedResultsRaw = null;
+        boolean useCache = (boolean) params.get("use_cache");
 
-        if (TypeChecker.isOfType(dataRaw, new TypeToken<Map<String, List<Object>>>() {})) {
-            @SuppressWarnings("unchecked")
-            Map<String, List<Object>> castedData = (Map<String, List<Object>>) dataRaw;
-            data = castedData;
+        List<Object> allAssociatedIds = new ArrayList<>();
+        List<Object> allParticipantIds = new ArrayList<>();
+        List<Map<String, Object>> allParticipants;
+        ExecutorService executorService;
+        List<Future<List<Map<String, Object>>>> cpiFutures = new ArrayList<>();
+        int maxParticipantsPerCPIRequest = (int) params.get("cpi_batch_size");
+        int numCpiRequests = 0;
+        int participantCount = 0;
+        Map<String, List<Object>> results = null;
+
+        // Variables for building Opensearch queries
+        List<Map<String, Object>> participantProperties = List.of(
+            Map.ofEntries(
+                Map.entry("gqlName", "id"),
+                Map.entry("osName", "id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "study_id"),
+                Map.entry("osName", "study_id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "participant_id"),
+                Map.entry("osName", "participant_id")
+            )
+        );
+        Map<String, Object> participantParams = new HashMap<>(Map.of(
+            OFFSET, 0,
+            ORDER_BY, "participant_id",
+            SORT_DIRECTION, "asc"
+        ));
+
+        // Check the cached data
+        if (useCache) {
+            cachedResultsRaw = caffeineCache.asMap().get(cacheKey);
+
+            if (TypeChecker.isOfType(cachedResultsRaw, new TypeToken<Map<String, List<Object>>>() {})) {
+                @SuppressWarnings("unchecked")
+                Map<String, List<Object>> castedCachedResults = (Map<String, List<Object>>) cachedResultsRaw;
+                results = castedCachedResults;
+            }
         }
 
         // Early return if cached
-        if (data != null) {
+        if (results != null) {
             logger.info("hit cache!");
-            return data;
+            return results;
         }
 
-        Map<String, Object> idsListsParams = Map.ofEntries(
-            Map.entry(OFFSET, 0),
-            Map.entry(ORDER_BY, "participant_ids"),
-            Map.entry(PAGE_SIZE, ESService.MAX_ES_SIZE),
-            Map.entry(SORT_DIRECTION, "asc")
-        );
-        final List<Map<String, Object>> idsListsProperties = List.of(
-            Map.ofEntries(
-                Map.entry("gqlName", "participant_ids"),
-                Map.entry("osName", "participant_ids")
-            ),
-            Map.ofEntries(
-                Map.entry("gqlName", "associated_ids"),
-                Map.entry("osName", "associated_ids"),
-                Map.entry("nested", List.of(
-                    Map.ofEntries(
-                        Map.entry("gqlName", "associated_id"),
-                        Map.entry("osName", "associated_id")
-                    ),
-                    Map.ofEntries(
-                        Map.entry("gqlName", "participant_id"),
-                        Map.entry("osName", "participant_id")
-                    )
-                ))
-            )
+        // Add page size
+        participantParams.put(PAGE_SIZE, ESService.MAX_ES_SIZE);
+
+        // Query all participants
+        allParticipants = overview(
+            PARTICIPANTS_END_POINT,
+            participantParams,
+            participantProperties,
+            "participant_id",
+            null,
+            "participants"
         );
 
-        Map<String, Map<String, Object>> idsListsMapping = Map.ofEntries(// field -> sort field
-            Map.entry("participant_ids", Map.ofEntries(
-                Map.entry("osName", "participant_ids"),
-                Map.entry("isNested", false)
-            )),
-            Map.entry("associated_ids.associated_id", Map.ofEntries(
-                Map.entry("osName", "associated_ids"),
-                Map.entry("isNested", true),
-                Map.entry("path", "associated_ids")
-            )),
-            Map.entry("associated_ids.participant_id", Map.ofEntries(
-                Map.entry("osName", "participant_id"),
-                Map.entry("isNested", true),
-                Map.entry("path", "associated_ids")
-            ))
-        );
+        participantCount = allParticipants.size();
 
-        List<Map<String, Object>> idsListsResults = overview("/participant_ids_lists/_search", idsListsParams, idsListsProperties, "participant_ids", idsListsMapping, "participants");
-        List<Object> participantIds = List.of();
-        List<Object> associatedIds = List.of();
-
-        if (TypeChecker.isOfType(idsListsResults.get(0).get("participant_ids"), new TypeToken<List<Object>>() {})) {
-            @SuppressWarnings("unchecked")
-            List<Object> castedParticipantIds = (List<Object>) idsListsResults.get(0).get("participant_ids");
-            participantIds = castedParticipantIds;
+        // Something is wrong if no participants
+        if (participantCount == 0) {
+            logger.error("No participants found!");
+            return Map.of("participantIds", List.of(), "associatedIds", List.of());
         }
 
-        if (TypeChecker.isOfType(idsListsResults.get(0).get("associated_ids"), new TypeToken<List<Object>>() {})) {
-            @SuppressWarnings("unchecked")
-            List<Object> castedAssociatedIds = (List<Object>) idsListsResults.get(0).get("associated_ids");
-            associatedIds = castedAssociatedIds;
+        // Calculate the number of CPI requests needed
+        numCpiRequests = (int) Math.ceil((double) participantCount / maxParticipantsPerCPIRequest);
+
+        // Use an ExecutorService for async requests
+        executorService = Executors.newFixedThreadPool(Math.min(numCpiRequests, THREAD_POOL_SIZE));
+
+        try {
+            // Create a Future for each CPI request
+            for (int i = 0; i < numCpiRequests; i++) {
+                int fromIndex = i * maxParticipantsPerCPIRequest;
+                int toIndex = Math.min((i + 1) * maxParticipantsPerCPIRequest, participantCount);
+                List<Map<String, Object>> participants = allParticipants.subList(fromIndex, toIndex);
+
+                // Submit each CPI request batch as a separate task
+                Future<List<Map<String, Object>>> future = executorService.submit(() -> {
+                    insertCPIDataIntoParticipants(participants);
+                    return participants;
+                });
+
+                cpiFutures.add(future);
+            }
+
+            // Aggregate results after all batches complete
+            for (Future<List<Map<String, Object>>> future : cpiFutures) {
+                List<Object> associatedIds = new ArrayList<>();
+                List<Object> participantIds = new ArrayList<>();
+                List<Map<String, Object>> participants;
+
+                try {
+                    participants = future.get();
+                } catch (Exception e) {
+                    logger.error("Error processing batch in async CPI requests", e);
+                    continue;
+                }
+
+                for (Map<String, Object> participant : participants) {
+                    List<Map<String, Object>> cpiEntries;
+                    Object cpiEntriesRaw = participant.get("cpi_data");
+
+                    participantIds.add(participant.get("participant_id"));
+
+                    if (TypeChecker.isOfType(cpiEntriesRaw, new TypeToken<List<Map<String, Object>>>() {})) {
+                        @SuppressWarnings("unchecked")
+                        List<Map<String, Object>> castedCpiEntries = (List<Map<String, Object>>) cpiEntriesRaw;
+                        cpiEntries = castedCpiEntries;
+                    } else {
+                        continue;
+                    }
+
+                    for (Map<String, Object> cpiEntry : cpiEntries) {
+                        associatedIds.add(Map.of(
+                            "associated_id", cpiEntry.get("associated_id"),
+                            "participant_id", participant.get("participant_id")
+                        ));
+                    }
+                }
+                allParticipantIds.addAll(participantIds);
+                allAssociatedIds.addAll(associatedIds);
+            }
+        } catch (Exception e) { // Just in case
+            logger.error("Error processing batches in async CPI requests", e);
+        } finally {
+            executorService.shutdown();
         }
 
-        results.put(
-            "participantIds",
-            participantIds
-        );
-        results.put(
-            "associatedIds",
-            associatedIds
-        );
+        // Initialize map of results
+        results = new HashMap<>(Map.of(
+            "participantIds", allParticipantIds,
+            "associatedIds", allAssociatedIds
+        ));
 
         caffeineCache.put(cacheKey, results);
 
         return results;
+    }
+
+    /**
+     * Helper function to extract participant_id and study_id from participant list
+     * @param participant_list List of participant objects
+     * @return List of ParticipantRequest objects containing participant_id and study_id
+     */
+    private List<ParticipantRequest> extractIDs(List<Map<String, Object>> participant_list) {
+        List<ParticipantRequest> ids = new ArrayList<>();
+        
+        for (Map<String, Object> participant : participant_list) {
+            // Extract participant_id
+            Object participantId = participant.get("participant_id");
+            String participantIdStr = participantId != null ? participantId.toString() : "";
+            
+            // Extract study_id
+            Object studyId = participant.get("study_id");
+            String studyIdStr = studyId != null ? studyId.toString() : "";
+            
+            // Create ParticipantRequest object
+            ParticipantRequest participantRequest = new ParticipantRequest(participantIdStr, studyIdStr);
+            ids.add(participantRequest);
+        }
+        
+        return ids;
+    }
+
+    /**
+     * Enriches CPI data with additional participant information using batch queries for improved performance
+     */
+    private void enrichCPIDataWithParticipantInfo(List<FormattedCPIResponse> cpiData) throws IOException {
+        if (cpiData == null || cpiData.isEmpty()) {
+            return;
+        }
+
+        // System.out.println("Starting CPI data enrichment for " + cpiData.size() + " records");
+
+        // Step 1: Filter out records that don't have cpiData and collect those that do
+        List<FormattedCPIResponse> recordsWithCpiData = new ArrayList<>();
+        for (FormattedCPIResponse cpiEntry : cpiData) {
+            if (hasCpiData(cpiEntry)) {
+                recordsWithCpiData.add(cpiEntry);
+            }
+        }
+
+        // System.out.println("Found " + recordsWithCpiData.size() + " records with cpiData to enrich");
+
+        if (recordsWithCpiData.isEmpty()) {
+            // System.out.println("No records with cpiData to enrich, skipping enrichment");
+            return;
+        }
+
+        // Step 2: Build HashMap mapping study_id to participant_ids
+        Map<String, Set<String>> studyToParticipantsMap = buildStudyToParticipantsMap(recordsWithCpiData);
+        // System.out.println("Built study-to-participants mapping with " + studyToParticipantsMap.size() + " studies");
+
+        // Step 3: Generate and execute batch OpenSearch query
+        List<Map<String, Object>> batchQueryResults = executeBatchQuery(studyToParticipantsMap);
+        // System.out.println("Batch query returned " + batchQueryResults.size() + " results");
+
+        // Step 4: Enrich CPI data with batch query results
+        enrichCpiDataWithBatchResults(recordsWithCpiData, batchQueryResults);
+
+        // System.out.println("CPI data enrichment completed");
+    }
+
+    /**
+     * Checks if a FormattedCPIResponse has cpiData
+     */
+    private boolean hasCpiData(FormattedCPIResponse cpiEntry) {
+        try {
+            java.lang.reflect.Field cpiDataField = cpiEntry.getClass().getDeclaredField("cpiData");
+            cpiDataField.setAccessible(true);
+            Object cpiDataValue = cpiDataField.get(cpiEntry);
+            
+            if (cpiDataValue instanceof List) {
+                List<?> cpiDataList = (List<?>) cpiDataValue;
+                return !cpiDataList.isEmpty();
+            }
+            return false;
+        } catch (Exception e) {
+            logger.debug("Error checking if record has cpiData: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Builds a HashMap mapping study_id (repository_of_synonym_id) to participant_ids (associated_id)
+     */
+    private Map<String, Set<String>> buildStudyToParticipantsMap(List<FormattedCPIResponse> recordsWithCpiData) {
+        Map<String, Set<String>> studyToParticipantsMap = new HashMap<>();
+
+        for (FormattedCPIResponse cpiEntry : recordsWithCpiData) {
+            try {
+                java.lang.reflect.Field cpiDataField = cpiEntry.getClass().getDeclaredField("cpiData");
+                cpiDataField.setAccessible(true);
+                Object cpiDataValue = cpiDataField.get(cpiEntry);
+
+                if (cpiDataValue instanceof List) {
+                    @SuppressWarnings("unchecked")
+                    List<Object> cpiDataArray = (List<Object>) cpiDataValue;
+
+                    for (Object cpiDataItem : cpiDataArray) {
+                        Map<String, Object> cpiDataMap = convertToMap(cpiDataItem);
+                        if (cpiDataMap != null) {
+                            String studyId = extractStringValue(cpiDataMap, "repository_of_synonym_id");
+                            String participantId = extractStringValue(cpiDataMap, "associated_id");
+
+                            if (studyId != null && participantId != null) {
+                                studyToParticipantsMap.computeIfAbsent(studyId, k -> new HashSet<>()).add(participantId);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Error building study-to-participants map for CPI entry: " + e.getMessage(), e);
+            }
+        }
+
+        return studyToParticipantsMap;
+    }
+
+    /**
+     * Converts an object to a Map representation
+     */
+    private Map<String, Object> convertToMap(Object obj) {
+        if (obj instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> map = (Map<String, Object>) obj;
+            return map;
+        } else {
+            try {
+                String jsonString = gson.toJson(obj);
+                @SuppressWarnings("unchecked")
+                Map<String, Object> map = gson.fromJson(jsonString, Map.class);
+                return map;
+            } catch (Exception e) {
+                logger.debug("Error converting object to Map: " + e.getMessage());
+                return null;
+            }
+        }
+    }
+
+    /**
+     * Extracts string value from a map, handling both single values and arrays
+     */
+    private String extractStringValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value == null) {
+            return null;
+        }
+        
+        if (value instanceof List) {
+            List<?> list = (List<?>) value;
+            if (!list.isEmpty() && list.get(0) != null) {
+                return list.get(0).toString();
+            }
+        } else {
+            return value.toString();
+        }
+        return null;
+    }
+
+    /**
+     * Executes batch OpenSearch query for all study/participant combinations
+     */
+    private List<Map<String, Object>> executeBatchQuery(Map<String, Set<String>> studyToParticipantsMap) throws IOException {
+        if (studyToParticipantsMap.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // Build the batch query
+        Map<String, Object> query = buildBatchQuery(studyToParticipantsMap);
+        
+        // System.out.println("Executing batch query: " + gson.toJson(query));
+
+        // Execute the query
+        Request request = new Request("GET", PARTICIPANTS_END_POINT);
+        request.setJsonEntity(gson.toJson(query));
+        
+        JsonObject response = inventoryESService.send(request);
+        JsonArray hits = response.getAsJsonObject("hits").getAsJsonArray("hits");
+        
+        List<Map<String, Object>> results = new ArrayList<>();
+        for (JsonElement hit : hits) {
+            JsonObject source = hit.getAsJsonObject().getAsJsonObject("_source");
+            Map<String, Object> result = new HashMap<>();
+            
+            if (source.has("id")) {
+                result.put("id", source.get("id").getAsString());
+            }
+            if (source.has("participant_id")) {
+                result.put("participant_id", source.get("participant_id").getAsString());
+            }
+            if (source.has("study_id")) {
+                result.put("study_id", source.get("study_id").getAsString());
+            }
+            
+            results.add(result);
+        }
+
+        return results;
+    }
+
+    /**
+     * Builds the batch OpenSearch query based on the study-to-participants mapping
+     */
+    private Map<String, Object> buildBatchQuery(Map<String, Set<String>> studyToParticipantsMap) {
+        List<Object> shouldClauses = new ArrayList<>();
+
+        for (Map.Entry<String, Set<String>> entry : studyToParticipantsMap.entrySet()) {
+            String studyId = entry.getKey();
+            Set<String> participantIds = entry.getValue();
+
+            Map<String, Object> boolFilter = Map.of(
+                "bool", Map.of(
+                    "filter", List.of(
+                        Map.of("term", Map.of("study_id", studyId)),
+                        Map.of("terms", Map.of("participant_id", new ArrayList<>(participantIds)))
+                    )
+                )
+            );
+
+            shouldClauses.add(boolFilter);
+        }
+
+        Map<String, Object> query = Map.of(
+            "query", Map.of(
+                "bool", Map.of(
+                    "should", shouldClauses
+                )
+            ),
+            "size", 10000, // Adjust size as needed
+            "_source", List.of("id", "participant_id", "study_id")
+        );
+
+        return query;
+    }
+
+    /**
+     * Enriches CPI data with the results from the batch query
+     */
+    private void enrichCpiDataWithBatchResults(List<FormattedCPIResponse> recordsWithCpiData, List<Map<String, Object>> batchQueryResults) {
+        // Create lookup map for quick access to query results
+        Map<String, String> participantStudyToPidMap = new HashMap<>();
+        
+        for (Map<String, Object> result : batchQueryResults) {
+            String participantId = (String) result.get("participant_id");
+            String studyId = (String) result.get("study_id");
+            String pId = (String) result.get("id");
+            
+            if (participantId != null && studyId != null && pId != null) {
+                String key = participantId + "_" + studyId;
+                participantStudyToPidMap.put(key, pId);
+            }
+        }
+
+        // System.out.println("Created lookup map with " + participantStudyToPidMap.size() + " participant/study combinations");
+
+        // Enrich each CPI data record
+        for (FormattedCPIResponse cpiEntry : recordsWithCpiData) {
+            enrichSingleCpiEntry(cpiEntry, participantStudyToPidMap);
+        }
+    }
+
+    /**
+     * Enriches a single CPI entry with p_id and data_type
+     */
+    private void enrichSingleCpiEntry(FormattedCPIResponse cpiEntry, Map<String, String> participantStudyToPidMap) {
+        try {
+            java.lang.reflect.Field cpiDataField = cpiEntry.getClass().getDeclaredField("cpiData");
+            cpiDataField.setAccessible(true);
+            Object cpiDataValue = cpiDataField.get(cpiEntry);
+
+            if (cpiDataValue instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<Object> cpiDataArray = (List<Object>) cpiDataValue;
+
+                for (int i = 0; i < cpiDataArray.size(); i++) {
+                    Object cpiDataItem = cpiDataArray.get(i);
+                    Map<String, Object> cpiDataMap = convertToMap(cpiDataItem);
+                    
+                    if (cpiDataMap != null) {
+                        String participantId = extractStringValue(cpiDataMap, "associated_id");
+                        String studyId = extractStringValue(cpiDataMap, "repository_of_synonym_id");
+                        
+                        if (participantId != null && studyId != null) {
+                            String lookupKey = participantId + "_" + studyId;
+                            
+                            if (participantStudyToPidMap.containsKey(lookupKey)) {
+                                // Found match in OpenSearch - set internal data
+                                cpiDataMap.put("p_id", participantStudyToPidMap.get(lookupKey));
+                                cpiDataMap.put("data_type", "internal");
+                                // System.out.println("Enriched CPI data: participant=" + participantId + ", study=" + studyId + ", p_id=" + participantStudyToPidMap.get(lookupKey) + ", data_type=internal");
+                            } else {
+                                // No match found - set external data
+                                cpiDataMap.put("p_id", null);
+                                cpiDataMap.put("data_type", "external");
+                                // System.out.println("Enriched CPI data: participant=" + participantId + ", study=" + studyId + ", p_id=null, data_type=external");
+                            }
+                            
+                            // If we converted to a new Map, replace the original item
+                            if (!(cpiDataItem instanceof Map)) {
+                                cpiDataArray.set(i, cpiDataMap);
+                            }
+                        }
+                    }
+                }
+                
+                // Update the cpiData field with enriched array
+                cpiDataField.set(cpiEntry, cpiDataArray);
+            }
+        } catch (Exception e) {
+            logger.error("Error enriching single CPI entry: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Updates the participant_list with enriched CPI data by matching participant_id and study_id
+     */
+    private void updateParticipantListWithEnrichedCPIData(
+            List<Map<String, Object>> participant_list,
+            List<FormattedCPIResponse> enriched_cpi_data
+    ) {
+        updateParticipantListWithEnrichedCPIData(participant_list, enriched_cpi_data, null);
+    }
+
+    /**
+     * Updates the participant_list with enriched CPI data by matching participant_id and study_id
+     * @param participant_list List of participant objects
+     * @param enriched_cpi_data List of enriched CPI data objects
+     * @param synPropName The name of the synonyms property in the participant record; fallback to "synonyms" if not provided.
+     * @return void
+     */
+    private void updateParticipantListWithEnrichedCPIData(
+            List<Map<String, Object>> participant_list,
+            List<FormattedCPIResponse> enriched_cpi_data,
+            String synPropName
+    ) {
+        if (participant_list == null || participant_list.isEmpty() || enriched_cpi_data == null || enriched_cpi_data.isEmpty()) {
+            return;
+        }
+
+        // The synonyms property name in the participant record; fallback to "cpi_data" if not provided.
+        String synonymsPropertyKey = (synPropName != null && !synPropName.isEmpty()) ? synPropName : "cpi_data";
+
+        // Create a map for quick lookup of enriched CPI data by participant_id + study_id combination
+        Map<String, Object> enrichedCPILookup = new HashMap<>();
+
+        for (FormattedCPIResponse cpiResponse : enriched_cpi_data) {
+            try {
+                // Extract participant_id and study_id from the CPI response
+                Object participantIdObj = getFieldValue(cpiResponse, "participantId");
+                Object studyIdObj = getFieldValue(cpiResponse, "studyId");
+
+                String participantId = participantIdObj != null ? participantIdObj.toString() : null;
+                String studyId = studyIdObj != null ? studyIdObj.toString() : null;
+
+                if (participantId != null && studyId != null) {
+                    String lookupKey = participantId + "_" + studyId;
+
+                    // Extract the enriched cpiData array from the response (this is the array with enriched objects)
+                    Object enrichedCpiDataArray = getFieldValue(cpiResponse, "cpiData");
+                    if (enrichedCpiDataArray != null) {
+                        enrichedCPILookup.put(lookupKey, enrichedCpiDataArray);
+                        // System.out.println("Added enriched CPI data array for participant: " + participantId + ", study: " + studyId);
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Error processing CPI response for lookup map: " + e.getMessage(), e);
+            }
+        }
+
+        // Update each participant in the participant_list with enriched CPI data
+        for (Map<String, Object> participant : participant_list) {
+            try {
+                String participantId = getStringValue(participant, "participant_id");
+                String studyId = getStringValue(participant, "study_id");
+
+                if (participantId != null && studyId != null) {
+                    String lookupKey = participantId + "_" + studyId;
+
+                    // Check if we have enriched CPI data for this participant
+                    if (enrichedCPILookup.containsKey(lookupKey)) {
+                        Object enrichedCpiDataArray = enrichedCPILookup.get(lookupKey);
+
+                        // Update the cpi_data field (or user-provided field) in the participant record with the enriched array
+                        participant.put(synonymsPropertyKey, enrichedCpiDataArray);
+                        // System.out.println("Updated participant " + participantId + " with enriched CPI data array");
+                    } else {
+                        // System.out.println("No enriched CPI data found for participant: " + participantId + ", study: " + studyId);
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Error updating participant with enriched CPI data: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    /**
+     * Puts CPI data into participants
+     */
+    private void insertCPIDataIntoParticipants(List<Map<String, Object>> participants) {
+        insertCPIDataIntoParticipants(participants, null);
+    }
+
+    /**
+     * Puts CPI data into participants
+     * @param participants List of participant objects
+     * @param synPropName The name of the synonyms property in the participant record
+     * @return void
+     */
+    private void insertCPIDataIntoParticipants(List<Map<String, Object>> participants, String synPropName) {
+        List<ParticipantRequest> cpiIDs = extractIDs(participants);
+
+        // Check if CPIFetcherService is properly injected
+        if (cpiFetcherService == null) {
+            logger.warn("CPIFetcherService is not properly injected. CPI integration will be skipped.");
+            return;
+        }
+
+        try {
+            List<FormattedCPIResponse> cpiData = cpiFetcherService.fetchAssociatedParticipantIds(cpiIDs);
+            logger.info("CPI data received: " + cpiData.size() + " records");
+
+            // Print the first value as JSON
+            if (cpiData != null && !cpiData.isEmpty()) {
+                // System.out.println("First CPI data value BEFORE enrichment: " + gson.toJson(cpi_data.get(0)));
+
+                // Enrich CPI data with additional participant information
+                enrichCPIDataWithParticipantInfo(cpiData);
+
+                // Print the first enriched CPI data value
+                // System.out.println("First enriched CPI data value AFTER enrichment: " + gson.toJson(cpi_data.get(0)));
+
+                // Update the participant_list with the enriched CPI data
+                if (synPropName == null) {
+                    updateParticipantListWithEnrichedCPIData(participants, cpiData);
+                } else {
+                    updateParticipantListWithEnrichedCPIData(participants, cpiData, synPropName);
+                }
+
+            } else {
+                // System.out.println("CPI data is empty or null");
+            }
+        } catch (Exception e) {
+            // System.err.println("Error fetching CPI data: " + e.getMessage());
+            logger.error("Error fetching CPI data", e);
+        }
+    }
+
+    /**
+     * Helper method to extract field values from FormattedCPIResponse objects using reflection
+     */
+    private Object getFieldValue(FormattedCPIResponse obj, String fieldName) {
+        try {
+            java.lang.reflect.Field field = obj.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            Object value = field.get(obj);
+            return value;
+        } catch (Exception e) {
+            logger.debug("Could not access field '" + fieldName + "' from FormattedCPIResponse: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Helper method to safely extract string values from maps
+     */
+    private String getStringValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        return value != null ? value.toString() : null;
     }
 
     /**
@@ -454,6 +1185,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         data = new HashMap<>();
 
         final String CARDINALITY_AGG_NAME = "cardinality_agg_name";
+        final String CARDINALITY_INDEX_NAME = "cardinality_index_name";
         final String AGG_NAME = "agg_name";
         final String WIDGET_QUERY = "widget_count_name";
         final String FILTER_COUNT_QUERY = "filter_count_name";
@@ -503,6 +1235,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         data.put("numberOfSurvivals", numberOfSurvivals);
         data.put("numberOfTreatments", numberOfTreatments);
         data.put("numberOfTreatmentResponses", numberOfTreatmentResponses);
+        data.put("pageSize", pageSize);
 
         // Iterate through facet filters to query their counts
         for (Map.Entry<String, List<Map<String, String>>> entry : facetFilters.entrySet()) {
@@ -513,6 +1246,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             // Query this index for counts of each relevant facet filter
             for (Map<String, String> filter : filters) {
                 String cardinalityAggName = filter.get(CARDINALITY_AGG_NAME);
+                String cardinalityIndexName = filter.containsKey(CARDINALITY_INDEX_NAME) ? filter.get(CARDINALITY_INDEX_NAME) : null;
                 String field = filter.get(AGG_NAME);
                 String filterCountQueryName = filter.get(FILTER_COUNT_QUERY);
                 List<String> values = null;
@@ -539,7 +1273,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 if (widgetQueryName != null) {
                     // Fetch data for widgets
                     if (RANGE_PARAMS.contains(field)) {
-                        List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, endpoint, cardinalityAggName, index);
+                        String queryIndex = cardinalityIndexName != null ? cardinalityIndexName : index;
+                        List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, queryIndex, cardinalityAggName, queryIndex);
                         data.put(widgetQueryName, subjectCount);
                     } else if (params.containsKey(field) && values.size() > 0) {
                         List<Map<String, Object>> subjectCount = subjectCountBy(field, params, endpoint, cardinalityAggName, index);
@@ -783,6 +1518,245 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return charts;
     }
 
+    private List<Map<String, Object>> kMPlot(Map<String, Object> params) throws Exception {
+        List<Map<String, Object>> dataPoints = new ArrayList<Map<String, Object>>();
+        final List<Map<String, Object>> PROPERTIES = List.of(
+            Map.ofEntries( // Participant ID
+                Map.entry("gqlName", "id"),
+                Map.entry("osName", "id")
+            ),
+            Map.ofEntries( // Difference between participant's highest age_at_diagnosis and highest age_at_last_known_survival_status
+                Map.entry("gqlName", "time"),
+                Map.entry("osName", "time")
+            ),
+            Map.ofEntries( // 1 if participant is dead, and 0 if participant is alive
+                Map.entry("gqlName", "event"),
+                Map.entry("osName", "event")
+            )
+        );
+
+        String defaultSort = "time"; // Default sort order
+
+        Map<String, Map<String, Object>> mapping = Map.ofEntries(
+            Map.entry("id", Map.ofEntries(
+                Map.entry("osName", "id"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("time", Map.ofEntries(
+                Map.entry("osName", "time"),
+                Map.entry("isNested", false)
+            )),
+            Map.entry("event", Map.ofEntries(
+                Map.entry("osName", "event"),
+                Map.entry("isNested", false)
+            ))
+        );
+
+        if (!(params.containsKey("c1") || params.containsKey("c2") || params.containsKey("c3"))) {
+            return List.of(); // No cohorts specified
+        }
+
+        // Iterate through "c1", "c2", and "c3" in params
+        for (String cohortKey : List.of("c1", "c2", "c3")) {
+            List<String> cohort = new ArrayList<String>();
+            Object cohortRaw;
+
+            if (!params.containsKey(cohortKey)) {
+                continue;
+            }
+
+            cohortRaw = params.get(cohortKey);
+
+            if (cohortRaw == null) {
+                continue;
+            }
+
+            if (TypeChecker.isOfType(cohortRaw, new TypeToken<List<String>>() {})) {
+                @SuppressWarnings("unchecked")
+                List<String> castedCohort = (List<String>) cohortRaw;
+                cohort = castedCohort;
+            }
+
+            if (cohort.isEmpty()) {
+                continue;
+            }
+
+            Map<String, Object> cohortParams = Map.ofEntries(
+                Map.entry("id", cohort),
+                Map.entry(ORDER_BY, "time"),
+                Map.entry(SORT_DIRECTION, "ASC"),
+                Map.entry(PAGE_SIZE, ESService.MAX_ES_SIZE),
+                Map.entry(OFFSET, 0)
+            );
+            List<Map<String, Object>> cohortKMPlotData = overview(KM_PLOT_DATA_END_POINT, cohortParams, PROPERTIES, defaultSort, mapping, "participants");
+
+            // Specify cohort for each data point
+            cohortKMPlotData.forEach(data -> {
+                data.put("group", cohortKey);
+                dataPoints.add(data);
+            });
+        }
+
+        return dataPoints;
+    }
+
+    /**
+     * Returns data for the risk table
+     * At 0 months, we count all participants who are eligible for KM plot data
+     * At 6 months, we subtract participants who experienced the event up until then
+     * At 12 months, we further subtract participants who experienced the event up until then
+     * And so on...
+     * @param params
+     * @return List of three "tables" - one for each cohort
+     * @throws IOException
+     */
+    private Map<String, Object> riskTableData(Map<String, Object> params) throws IOException {
+        Map<String, Object> result = new HashMap<>(Map.of(
+            "timeIntervals", List.of("0 Months", "6 Months", "12 Months", "18 Months", "24 Months", "30 Months", "36 Months")
+        ));
+        ArrayList<Map<String, Object>> cohortsData = new ArrayList<Map<String, Object>>();
+
+        Set<Map<String, Object>> cutoffTimes = Set.of(
+            Map.of(
+                "key", "6 Months",
+                "from", 0,
+                "to", 183
+            ),
+            Map.of(
+                "key", "12 Months",
+                "from", 183,
+                "to", 365
+            ),
+            Map.of(
+                "key", "18 Months",
+                "from", 365,
+                "to", 548
+            ),
+            Map.of(
+                "key", "24 Months",
+                "from", 548,
+                "to", 730
+            ),
+            Map.of(
+                "key", "30 Months",
+                "from", 730,
+                "to", 913
+            ),
+            Map.of(
+                "key", "36 Months",
+                "from", 913,
+                "to", 1095
+            )
+        );
+
+        // Obtain data for each cohort
+        for (String cohortName : List.of("c1", "c2", "c3")) { // All three are guaranteed by GraphQL
+            List<String> cohort = new ArrayList<String>();
+            JsonArray counts;
+            int initialCount;
+            Map<String, Object> initialCountQuery;
+            JsonObject opensearchResponse;
+            Map<String, Object> query;
+            String queryJson;
+            Request request;
+            int runningCount;
+            List<Map<String, Object>> table = new ArrayList<Map<String, Object>>();
+            Object cohortRaw = params.get(cohortName);
+
+            // Obtain cohort (list of Participant primary keys)
+            if (TypeChecker.isOfType(cohortRaw, new TypeToken<List<String>>() {})) {
+                @SuppressWarnings("unchecked")
+                List<String> castedCohort = (List<String>) cohortRaw;
+                cohort = castedCohort;
+            }
+
+            // Count all eligible participants in the cohort
+            initialCountQuery = Map.of(
+                "query", Map.of(
+                    "bool", Map.of(
+                        "filter", Set.of(
+                            Map.of(
+                                "terms", Map.of(
+                                    "id", cohort
+                                )
+                            )
+                        )
+                    )
+                )
+            );
+
+            // Obtain initial count
+            initialCount = inventoryESService.getCount(initialCountQuery, "km_plot_data");
+            runningCount = initialCount; // To be used later for each cutoff time
+            table.add(Map.ofEntries(
+                Map.entry("group", "0 Months"),
+                Map.entry("subjects", initialCount)
+            ));
+
+            // Build query
+            query = Map.of(
+                "size", 0,
+                "query", Map.of(
+                    "bool", Map.of(
+                        "filter", Set.of(
+                            Map.of(
+                                "term", Map.of(
+                                    "event", 1
+                                )
+                            ),
+                            Map.of(
+                                "terms", Map.of(
+                                    "id", cohort
+                                )
+                            )
+                        )
+                    )
+                ),
+                "aggs", Map.of(
+                    "cutoff_times", Map.of(
+                        "range", Map.of(
+                            "field", "time",
+                            "ranges", cutoffTimes
+                        ),
+                        "aggs", Map.of(
+                            "unique_participants", Map.of(
+                                "cardinality", Map.of(
+                                    "field", "id"
+                                )
+                            )
+                        )
+                    )
+                )
+            );
+
+            queryJson = gson.toJson(query);
+            request = new Request("GET", KM_PLOT_DATA_END_POINT);
+            request.setJsonEntity(queryJson);
+            opensearchResponse = inventoryESService.send(request);
+            counts = inventoryESService.collectRangCountAggs(opensearchResponse, "cutoff_times").get("cutoff_times");
+
+            for (JsonElement item : counts) {
+                String key = item.getAsJsonObject().get("key").getAsString();
+                int count = item.getAsJsonObject().get("unique_participants").getAsJsonObject().get("value").getAsInt();
+                runningCount = runningCount - count;
+
+                table.add(Map.ofEntries(
+                    Map.entry("group", key),
+                    Map.entry("subjects", runningCount)
+                ));
+            }
+
+            // Add data to result to return
+            cohortsData.add(Map.ofEntries(
+                Map.entry("cohort", cohortName),
+                Map.entry("survivalData", table)
+            ));
+        }
+
+        result.put("cohorts", cohortsData);
+        return result;
+    }
+
     private Map<String, String> getGroupConfig(String propertyName) {
         for (String index : facetFilters.keySet()) {
             List<Map<String, String>> groupConfigs = facetFilters.get(index);
@@ -801,6 +1775,81 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return null;
     }
 
+    /**
+     * Returns data for the cohort manifest
+     * @param params
+     * @return List of diagnosis-centric records
+     * @throws IOException
+     */
+    private List<Map<String, Object>> cohortManifest(Map<String, Object> params) throws IOException {
+        List<Map<String, Object>> result;
+        final List<Map<String, Object>> PROPERTIES = List.of(
+            // Studies
+            Map.ofEntries(
+                Map.entry("gqlName", "dbgap_accession"),
+                Map.entry("osName", "dbgap_accession")
+            ),
+            // Demographics
+            Map.ofEntries(
+                Map.entry("gqlName", "participant"),
+                Map.entry("osName", "participant"),
+                Map.entry("nested", List.of(
+                    Map.ofEntries(
+                        Map.entry("gqlName", "id"),
+                        Map.entry("osName", "id")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "participant_id"),
+                        Map.entry("osName", "participant_id")
+                    ),
+
+                    // Additional fields for Cohort manifest download
+                    Map.ofEntries(
+                        Map.entry("gqlName", "race"),
+                        Map.entry("osName", "race")
+                    ),
+                    Map.ofEntries(
+                        Map.entry("gqlName", "sex_at_birth"),
+                        Map.entry("osName", "sex_at_birth")
+                    )
+                ))
+            ),
+            // Diagnoses
+            Map.ofEntries(
+                Map.entry("gqlName", "id"),
+                Map.entry("osName", "id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "diagnosis"),
+                Map.entry("osName", "diagnosis")
+            )
+        );
+
+        String defaultSort = "diagnosis"; // Default sort order
+
+        Map<String, Map<String, Object>> mapping = Map.ofEntries(
+            // Studies
+            Map.entry("dbgap_accession", Map.ofEntries(
+                Map.entry("osName", "dbgap_accession"),
+                Map.entry("isNested", false)
+            )),
+            // Demographics
+            Map.entry("participant.participant_id", Map.ofEntries(
+                Map.entry("osName", "participant_id"),
+                Map.entry("isNested", true),
+                Map.entry("path", "participant")
+            )),
+            // Diagnoses
+            Map.entry("diagnosis", Map.ofEntries(
+                Map.entry("osName", "diagnosis"),
+                Map.entry("isNested", false)
+            ))
+        );
+
+        result = overview(COHORT_MANIFEST_END_POINT, params, PROPERTIES, defaultSort, mapping, "diagnoses");
+        return result;
+    }
+
     private List<Map<String, Object>> cohortMetadata(Map<String, Object> params) throws IOException {
         List<Map<String, Object>> participants;
         Map<String, Map<String, Map<String, Object>>> consentGroupsByStudy = new HashMap<String, Map<String, Map<String, Object>>>();
@@ -808,6 +1857,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         final List<Map<String, Object>> PROPERTIES = List.of(
             // Studies
+            Map.ofEntries( // study_id needed for CPI data
+                Map.entry("gqlName", "study_id"),
+                Map.entry("osName", "study_id")
+            ),
             Map.ofEntries(
                 Map.entry("gqlName", "dbgap_accession"),
                 Map.entry("osName", "dbgap_accession")
@@ -865,10 +1918,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("osName", "synonyms"),
                 Map.entry("nested", List.of(
                     Map.ofEntries(
-                        Map.entry("gqlName", "id"),
-                        Map.entry("osName", "id")
-                    ),
-                    Map.ofEntries(
                         Map.entry("gqlName", "associated_id"),
                         Map.entry("osName", "associated_id")
                     ),
@@ -908,6 +1957,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         Map<String, Map<String, Object>> mapping = Map.ofEntries(
             // Studies
+            Map.entry("study_id", Map.ofEntries( // study_id needed for CPI data
+                Map.entry("osName", "study_id"),
+                Map.entry("isNested", false)
+            )),
             Map.entry("dbgap_accession", Map.ofEntries(
                 Map.entry("osName", "dbgap_accession"),
                 Map.entry("isNested", false)
@@ -942,11 +1995,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             )),
 
             // CPI Data
-            Map.entry("synonyms.id", Map.ofEntries(
-                Map.entry("osName", "id"),
-                Map.entry("isNested", true),
-                Map.entry("path", "synonyms")
-            )),
             Map.entry("synonyms.associated_id", Map.ofEntries(
                 Map.entry("osName", "associated_id"),
                 Map.entry("isNested", true),
@@ -975,6 +2023,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         );
 
         participants = overview(COHORTS_END_POINT, params, PROPERTIES, defaultSort, mapping, "participants");
+        insertCPIDataIntoParticipants(participants, "synonyms");
 
         // Group participants by consent group and then by study
         participants.forEach((Map<String, Object> participant) -> {
@@ -1016,6 +2065,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
+        List<Map<String, Object>> participants;
+
         final List<Map<String, Object>> PROPERTIES = List.of(
             // Demographics
             Map.ofEntries(
@@ -1033,38 +2084,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.ofEntries(
                 Map.entry("gqlName", "sex_at_birth"),
                 Map.entry("osName", "sex_at_birth")
-            ),
-
-            // CPI Data
-            Map.ofEntries(
-                Map.entry("gqlName", "cpi_data"),
-                Map.entry("osName", "cpi_data"),
-                Map.entry("nested", List.of(
-                    Map.ofEntries(
-                        Map.entry("gqlName", "associated_id"),
-                        Map.entry("osName", "associated_id")
-                    ),
-                    Map.ofEntries(
-                        Map.entry("gqlName", "data_location"),
-                        Map.entry("osName", "data_location")
-                    ),
-                    Map.ofEntries(
-                        Map.entry("gqlName", "data_type"),
-                        Map.entry("osName", "data_type")
-                    ),
-                    Map.ofEntries(
-                        Map.entry("gqlName", "domain_category"),
-                        Map.entry("osName", "domain_category")
-                    ),
-                    Map.ofEntries(
-                        Map.entry("gqlName", "domain_description"),
-                        Map.entry("osName", "domain_description")
-                    ),
-                    Map.ofEntries(
-                        Map.entry("gqlName", "repository_of_synonym_id"),
-                        Map.entry("osName", "repository_of_synonym_id")
-                    )
-                ))
             ),
 
             // Studies
@@ -1101,12 +2120,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("isNested", false)
             )),
 
-            // CPI Data
-            Map.entry("cpi_data", Map.ofEntries(
-                Map.entry("osName", "cpi_data"),
-                Map.entry("isNested", false)
-            )),
-
             // Studies
             Map.entry("dbgap_accession", Map.ofEntries(
                 Map.entry("osName", "dbgap_accession"),
@@ -1120,7 +2133,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             ))
         );
 
-        return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, "participants");
+        participants = overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, "participants");
+        insertCPIDataIntoParticipants(participants);
+
+        return participants;
     }
 
     private List<Map<String, Object>> diagnosisOverview(Map<String, Object> params) throws IOException {
@@ -1319,6 +2335,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         final List<Map<String, Object>> PROPERTIES = List.of(
             // Study
             Map.ofEntries(
+                Map.entry("gqlName", "study_id"),
+                Map.entry("osName", "study_id")
+            ),
+            Map.ofEntries(
                 Map.entry("gqlName", "dbgap_accession"),
                 Map.entry("osName", "dbgap_accession")
             ),
@@ -1438,6 +2458,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         Map<String, Map<String, Object>> mapping = Map.ofEntries(
             // Study
+            Map.entry("study_id", Map.ofEntries(
+                Map.entry("osName", "study_id"),
+                Map.entry("isNested", false)
+            )),
             Map.entry("dbgap_accession", Map.ofEntries(
                 Map.entry("osName", "dbgap_accession"),
                 Map.entry("isNested", false)
@@ -2146,6 +3170,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         String sortDirection = "asc";
         Object sortPredicate;
 
+        // Handle null sort mapping
+        if (mapping == null) {
+            return Map.of(defaultSort, sortDirection);
+        }
+
         // Handle invalid sort parameters
         if (!mapping.containsKey(order_by)) {
             logger.info("Order: \"" + order_by + "\" not recognized, use default order");
@@ -2175,7 +3204,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return Map.of(propName, sortPredicate);
     }
 
-    private Integer numberOfDiseases(Map<String, Object> params) throws Exception {
+    private Integer numberOfDiseases(Map<String, Object> params) throws IOException {
         // String cacheKey = generateCacheKey(params);
         // Integer data = (Integer)caffeineCache.asMap().get(cacheKey);
 
@@ -2190,7 +3219,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Iterator<JsonElement> hitsIter = hits.iterator();
 
         if (!hitsIter.hasNext()) {
-            throw new Exception("Error: no results for homepage stats!");
+            logger.error("Error: no results for homepage stats!");
+            return 0;
         }
 
         JsonObject counts = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
@@ -2201,14 +3231,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return count;
     }
 
-    private Integer numberOfParticipants(Map<String, Object> params) throws Exception {
+    private Integer numberOfParticipants(Map<String, Object> params) throws IOException {
         Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
         JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
         JsonArray hits = homeStatsResult.getAsJsonObject("hits").getAsJsonArray("hits");
         Iterator<JsonElement> hitsIter = hits.iterator();
 
         if (!hitsIter.hasNext()) {
-            throw new Exception("Error: no results for homepage stats!");
+            logger.error("Error: no results for homepage stats!");
+            return 0;
         }
 
         JsonObject counts = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
@@ -2217,14 +3248,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return count;
     }
 
-    private Integer numberOfStudies(Map<String, Object> params) throws Exception {
+    private Integer numberOfStudies(Map<String, Object> params) throws IOException {
         Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
         JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
         JsonArray hits = homeStatsResult.getAsJsonObject("hits").getAsJsonArray("hits");
         Iterator<JsonElement> hitsIter = hits.iterator();
 
         if (!hitsIter.hasNext()) {
-            throw new Exception("Error: no results for homepage stats!");
+            logger.error("Error: no results for homepage stats!");
+            return 0;
         }
 
         JsonObject counts = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
@@ -2233,14 +3265,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return count;
     }
 
-    private Integer numberOfSurvivals(Map<String, Object> params) throws Exception {
+    private Integer numberOfSurvivals(Map<String, Object> params) throws IOException {
         Request homeStatsRequest = new Request("GET", HOME_STATS_END_POINT);
         JsonObject homeStatsResult = inventoryESService.send(homeStatsRequest);
         JsonArray hits = homeStatsResult.getAsJsonObject("hits").getAsJsonArray("hits");
         Iterator<JsonElement> hitsIter = hits.iterator();
 
         if (!hitsIter.hasNext()) {
-            throw new Exception("Error: no results for homepage stats!");
+            logger.error("Error: no results for homepage stats!");
+            return 0;
         }
 
         JsonObject counts = hitsIter.next().getAsJsonObject().getAsJsonObject("_source");
@@ -2280,18 +3313,40 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     @SuppressWarnings("unchecked")
                     List<String> castedValueSet = (List<String>) valueSetRaw;
                     valueSet = castedValueSet;
+                } else if (TypeChecker.isOfType(valueSetRaw, new TypeToken<String>() {})) {
+                    String castedValue = (String) valueSetRaw;
+                    valueSet = List.of(castedValue);
+                } else if (TypeChecker.isOfType(valueSetRaw, new TypeToken<Integer>() {})) {
+                    Integer castedValue = (Integer) valueSetRaw;
+                    valueSet = List.of(castedValue.toString());
+                } else if (TypeChecker.isOfType(valueSetRaw, new TypeToken<Boolean>() {})) {
+                    Boolean castedValue = (Boolean) valueSetRaw;
+                    valueSet = List.of(castedValue.toString());
                 }
             
-                // list with only one empty string [""] means return all records
-                if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
-                    keys.add(key.concat(valueSet.toString()));
+                if (valueSet != null) {
+                    // list with only one empty string [""] means return all records
+                    if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
+                        keys.add(key.concat(valueSet.toString()));
+                    }
                 }
             }
         }
-        if (keys.size() == 0){
+
+        if (keys.isEmpty()) {
             return "all";
         } else {
             return keys.toString();
+        }
+    }
+
+    @PostConstruct
+    public void onStartup() {
+        try {
+            idsLists(Map.of("cpi_batch_size", 2500, "use_cache", true));
+            logger.info("idsLists cache preloaded on application startup");
+        } catch (IOException e) {
+            logger.error("Failed to preload idsLists cache on startup: " + e.getMessage(), e);
         }
     }
 }

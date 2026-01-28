@@ -1,3 +1,9 @@
+/**
+ * When a new node is added to C3DC and we'll filter by its properties, 
+ * make a new _PARAMS set for it, and add it to the INDEX_TO_PARAMS map.
+ * Add a mapping for any new nested properties to the NESTED_FILTERS map.
+ */
+
 package gov.nih.nci.bento_ri.service;
 
 import com.google.gson.*;
@@ -22,33 +28,48 @@ public class InventoryESService extends ESService {
     public static final String AGGS = "aggs";
     public static final int MAX_ES_SIZE = 60000;
     public static final int SCROLL_THRESHOLD = 10000;
-    final Set<String> PARTICIPANT_PARAMS = Set.of(
+    static final Set<String> COMMON_PARAMS = Set.of(
+        "dbgap_accession", "participant_pk", "study_name"
+    );
+    static final Set<String> PARTICIPANT_PARAMS = Set.of(
         "id", "participant_id", "race", "sex_at_birth"
     );
-    final Set<String> DIAGNOSIS_PARAMS = Set.of(
+    static final Set<String> DIAGNOSIS_PARAMS = Set.of(
         "age_at_diagnosis", "anatomic_site", "diagnosis_basis",
         "diagnosis", "diagnosis_classification_system",
         "disease_phase"
     );
-    final Set<String> GENETIC_ANALYSIS_PARAMS = Set.of(
+    static final Set<String> GENETIC_ANALYSIS_PARAMS = Set.of(
         "alteration", "alteration_type", "fusion_partner_gene",
         "gene_symbol", "reported_significance",
         "reported_significance_system", "status"
     );
-    final Set<String> STUDY_PARAMS = Set.of(
-        "dbgap_accession", "study_name"
+    static final Set<String> STUDY_PARAMS = Set.of(
+        "dbgap_accession", "study_name",
+        "study_id" // Not a facet filter, but used by study overview
     );
-    final Set<String> SURVIVAL_PARAMS = Set.of(
+    static final Set<String> SURVIVAL_PARAMS = Set.of(
         "age_at_last_known_survival_status", "cause_of_death",
         "first_event", "last_known_survival_status"
     );
-    final Set<String> TREATMENT_PARAMS = Set.of(
+    static final Set<String> TREATMENT_PARAMS = Set.of(
         "age_at_treatment_start", "age_at_treatment_end",
         "treatment_type", "treatment_agent"
     );
-    final Set<String> TREATMENT_RESPONSE_PARAMS = Set.of(
+    static final Set<String> TREATMENT_RESPONSE_PARAMS = Set.of(
         "response", "age_at_response",
         "response_category", "response_system"
+    );
+
+    // Map of index type to respective params
+    public final Map<String, Set<String>> INDEX_TO_PARAMS = Map.ofEntries(
+        Map.entry("participants", PARTICIPANT_PARAMS),
+        Map.entry("diagnoses", DIAGNOSIS_PARAMS),
+        Map.entry("genetic_analyses", GENETIC_ANALYSIS_PARAMS),
+        Map.entry("studies", STUDY_PARAMS),
+        Map.entry("survivals", SURVIVAL_PARAMS),
+        Map.entry("treatments", TREATMENT_PARAMS),
+        Map.entry("treatment_responses", TREATMENT_RESPONSE_PARAMS)
     );
 
     static final AWSCredentialsProvider credentialsProvider = new DefaultAWSCredentialsProviderChain();
@@ -101,18 +122,46 @@ public class InventoryESService extends ESService {
     public Map<String, Object> buildFacetFilterQuery(Map<String, Object> params, Set<String> rangeParams, Set<String> excludedParams, String indexType) throws IOException {
         Map<String, Object> result = new HashMap<>();
 
+        // Add unknownAges parameters to excluded parameters to prevent them from being processed as regular filters
+        Set<String> localExcludedParams = new HashSet<>(excludedParams);
+
+        for (String key : params.keySet()) {
+            if (key.endsWith("_unknownAges")) {
+                localExcludedParams.add(key);
+            }
+        }
+
         List<Object> filter = new ArrayList<>();
-        List<Object> participant_filters = new ArrayList<>();
-        List<Object> diagnosis_filters = new ArrayList<>();
-        List<Object> genetic_analysis_filters = new ArrayList<>();
-        List<Object> survival_filters = new ArrayList<>();
-        List<Object> treatment_filters = new ArrayList<>();
-        List<Object> treatment_response_filters = new ArrayList<>();
+        // Map of nested filters
+        Map<String, List<Object>> NESTED_FILTERS = Map.ofEntries(
+            Map.entry("participants", new ArrayList<>()),
+            Map.entry("diagnoses", new ArrayList<>()),
+            Map.entry("genetic_analyses", new ArrayList<>()),
+            Map.entry("survivals", new ArrayList<>()),
+            Map.entry("treatments", new ArrayList<>()),
+            Map.entry("treatment_responses", new ArrayList<>())
+        );
         
         for (String key: params.keySet()) {
             String finalKey = key;
-            if (excludedParams.contains(finalKey)) {
+            if (localExcludedParams.contains(finalKey)) {
                 continue;
+            }
+
+            // Determine the nested property for the key, in case it's nested
+            String nestedProperty = null;
+            String formattedNestedProperty = null;
+            for (String index : INDEX_TO_PARAMS.keySet()) {
+                if (INDEX_TO_PARAMS.get(index).contains(key)) {
+                    nestedProperty = index;
+                    formattedNestedProperty = index;
+                    break;
+                }
+            }
+
+            // Special treatment for participants, which doesn't use a plural nested property name
+            if (nestedProperty != null && nestedProperty.equals("participants")) {
+                formattedNestedProperty = "participant";
             }
 
             if (rangeParams.contains(key)) {
@@ -125,6 +174,20 @@ public class InventoryESService extends ESService {
                     @SuppressWarnings("unchecked")
                     List<Integer> castedBounds = (List<Integer>) boundsRaw;
                     bounds = castedBounds;
+                }
+
+                // Check if unknownAges parameter exists to determine if we should include unknown values
+                String unknownAgesKey = key + "_unknownAges";
+                String unknownAgesValue = "include";
+                boolean includeUnknown = true; // Default to including unknown values
+                if (params.containsKey(unknownAgesKey)) {
+                    @SuppressWarnings("unchecked") // Type is guaranteed by GraphQL schema
+                    List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                    // Only consider unknownAges parameter if it has a meaningful value
+                    if (!(unknownAgesValues == null || unknownAgesValues.isEmpty() || unknownAgesValues.get(0).equals(""))) {
+                        unknownAgesValue = unknownAgesValues.get(0).toLowerCase();
+                        includeUnknown = unknownAgesValue.equals("include"); // Use normal range filtering when unknownAges parameter is specified
+                    }
                 }
 
                 if (bounds.size() >= 2) {
@@ -140,25 +203,58 @@ public class InventoryESService extends ESService {
                     if (higher != null) {
                         range.put("lte", higher);
                     }
-                    if (!indexType.equals("diagnoses") && key.equals("age_at_diagnosis")) {
-                        diagnosis_filters.add(Map.of(
-                            "range", Map.of("diagnoses." + key, range)
-                        ));
-                    } else if (!indexType.equals("survivals") && key.equals("age_at_last_known_survival_status")) {
-                        survival_filters.add(Map.of(
-                            "range", Map.of("survivals." + key, range)
-                        ));
-                    } else if (TREATMENT_PARAMS.contains(key) && !indexType.equals("treatments")) {
-                        treatment_filters.add(Map.of(
-                            "range", Map.of("treatments." + key, range)
-                        ));
-                    } else if (TREATMENT_RESPONSE_PARAMS.contains(key) && !indexType.equals("treatment_responses")) {
-                        treatment_response_filters.add(Map.of(
-                            "range", Map.of("treatment_responses." + key, range)
-                        ));
-                    } else {
+
+                    if (INDEX_TO_PARAMS.get(indexType).contains(key)) { // Key is a top-level param for index
+                        if (includeUnknown) {
+                            // Include unknown values (-999)
+                            filter.add(Map.of(
+                                "bool", Map.of("should", List.of(
+                                    Map.of("range", Map.of(key, range)),
+                                    Map.of("term", Map.of(key, -999))
+                                ))
+                            ));
+                        } else {
+                            // Use normal range filter when unknownAges parameter is specified
+                            filter.add(Map.of(
+                                "range", Map.of(key, range)
+                            ));
+                        }
+                    } else { // Key is a nested param for index
+                        if (includeUnknown) {
+                            // Include unknown values (-999)
+                            NESTED_FILTERS.get(nestedProperty).add(Map.of(
+                                "bool", Map.of("should", List.of(
+                                    Map.of("range", Map.of(formattedNestedProperty + "." + key, range)),
+                                    Map.of("term", Map.of(formattedNestedProperty + "." + key, -999))
+                                ))
+                            ));
+                        } else {
+                            // Use normal range filter when unknownAges parameter is specified
+                            NESTED_FILTERS.get(nestedProperty).add(Map.of(
+                                "range", Map.of(formattedNestedProperty + "." + key, range)
+                            ));
+                        }
+                    }
+                }
+
+                if (INDEX_TO_PARAMS.get(indexType).contains(key)) { // Key is a top-level param for index
+                    if (unknownAgesValue.equals("exclude")) {
                         filter.add(Map.of(
-                            "range", Map.of(key, range)
+                            "bool", Map.of("must_not", Map.of("terms", Map.of(key, List.of(-999))))
+                        ));
+                    } else if (unknownAgesValue.equals("only")) {
+                        filter.add(Map.of(
+                            "terms", Map.of(key, List.of(-999))
+                        ));
+                    }
+                } else { // Key is a nested param for index
+                    if (unknownAgesValue.equals("exclude")) {
+                        NESTED_FILTERS.get(nestedProperty).add(Map.of(
+                            "bool", Map.of("must_not", Map.of("terms", Map.of(formattedNestedProperty + "." + key, List.of(-999))))
+                        ));
+                    } else if (unknownAgesValue.equals("only")) {
+                        NESTED_FILTERS.get(nestedProperty).add(Map.of(
+                            "terms", Map.of(formattedNestedProperty + "." + key, List.of(-999))
                         ));
                     }
                 }
@@ -179,68 +275,39 @@ public class InventoryESService extends ESService {
 
                 // list with only one empty string [""] means return all records
                 if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
-                    if (DIAGNOSIS_PARAMS.contains(key) && !indexType.equals("diagnoses")) {
-                        diagnosis_filters.add(Map.of(
-                            "terms", Map.of("diagnoses." + key, valueSet)
-                        ));
-                    } else if (GENETIC_ANALYSIS_PARAMS.contains(key) && !indexType.equals("genetic_analyses")) {
-                        genetic_analysis_filters.add(Map.of(
-                            "terms", Map.of("genetic_analyses." + key, valueSet)
-                        ));
-                    } else if (SURVIVAL_PARAMS.contains(key) && !indexType.equals("survivals")) {
-                        survival_filters.add(Map.of(
-                            "terms", Map.of("survivals." + key, valueSet)
-                        ));
-                    } else if (TREATMENT_PARAMS.contains(key) && !indexType.equals("treatments")) {
-                        treatment_filters.add(Map.of(
-                            "terms", Map.of("treatments." + key, valueSet)
-                        ));
-                    } else if (TREATMENT_RESPONSE_PARAMS.contains(key) && !indexType.equals("treatment_responses")) {
-                        treatment_response_filters.add(Map.of(
-                            "terms", Map.of("treatment_responses." + key, valueSet)
-                        ));
-                    } else if (PARTICIPANT_PARAMS.contains(key) && !indexType.equals("participants")) {// Filter by nested Participant property
-                        participant_filters.add(Map.of(
-                            "terms", Map.of("participant." + key, valueSet)
-                        ));
-                    } else {
+                    if (COMMON_PARAMS.contains(key) || INDEX_TO_PARAMS.get(indexType).contains(key)) { // Key is a top-level param for index
                         filter.add(Map.of(
                             "terms", Map.of(key, valueSet)
+                        ));
+                    } else { // Key is a nested param for index
+                        NESTED_FILTERS.get(nestedProperty).add(Map.of(
+                            "terms", Map.of(formattedNestedProperty + "." + key, valueSet)
                         ));
                     }
                 }
             }
         }
 
-        int FilterLen = filter.size();
-        int participantFilterLen = participant_filters.size();
-        int diagnosisFilterLen = diagnosis_filters.size();
-        int geneticAnalysisFilterLen = genetic_analysis_filters.size();
-        int survivalFilterLen = survival_filters.size();
-        int treatmentFilterLen = treatment_filters.size();
-        int treatmentResponseFilterLen = treatment_response_filters.size();
-        if (FilterLen + participantFilterLen + diagnosisFilterLen + geneticAnalysisFilterLen + survivalFilterLen + treatmentFilterLen + treatmentResponseFilterLen == 0) {
-            result.put("query", Map.of("match_all", Map.of()));
-        } else {
-            if (participantFilterLen > 0) {
-                filter.add(Map.of("nested", Map.of("path", "participant", "query", Map.of("bool", Map.of("filter", participant_filters)), "inner_hits", Map.of())));
+        // Gather all the filters together
+        for (String nestedProperty : NESTED_FILTERS.keySet()) {
+            List<Object> filters = NESTED_FILTERS.get(nestedProperty);
+            String formattedNestedProperty = nestedProperty;
+
+            // Special treatment for participants, which doesn't use a plural nested property name
+            if (nestedProperty.equals("participants")) {
+                formattedNestedProperty = "participant";
             }
-            if (diagnosisFilterLen > 0) {
-                filter.add(Map.of("nested", Map.of("path", "diagnoses", "query", Map.of("bool", Map.of("filter", diagnosis_filters)), "inner_hits", Map.of())));
+
+            if (filters.size() > 0) {
+                filter.add(Map.of("nested", Map.of("path", formattedNestedProperty, "query", Map.of("bool", Map.of("filter", filters)), "inner_hits", Map.of())));
             }
-            if (geneticAnalysisFilterLen > 0) {
-                filter.add(Map.of("nested", Map.of("path", "genetic_analyses", "query", Map.of("bool", Map.of("filter", genetic_analysis_filters)), "inner_hits", Map.of())));
-            }
-            if (survivalFilterLen > 0) {
-                filter.add(Map.of("nested", Map.of("path", "survivals", "query", Map.of("bool", Map.of("filter", survival_filters)), "inner_hits", Map.of())));
-            }
-            if (treatmentFilterLen > 0) {
-                filter.add(Map.of("nested", Map.of("path", "treatments", "query", Map.of("bool", Map.of("filter", treatment_filters)), "inner_hits", Map.of())));
-            }
-            if (treatmentResponseFilterLen > 0) {
-                filter.add(Map.of("nested", Map.of("path", "treatment_responses", "query", Map.of("bool", Map.of("filter", treatment_response_filters)), "inner_hits", Map.of())));
-            }
+        }
+
+        // Apply filters if they exist, otherwise match all
+        if (filter.size() > 0) {
             result.put("query", Map.of("bool", Map.of("filter", filter)));
+        } else {
+            result.put("query", Map.of("match_all", Map.of()));
         }
         
         return result;
