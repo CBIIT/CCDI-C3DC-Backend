@@ -166,6 +166,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         })
                         .dataFetcher("cohortCpiData", env -> {
                             Map<String, Object> args = env.getArguments();
+                            if (args.containsKey("uses_async")) {
+                                if (args.get("uses_async").equals(true)) {
+                                    return cohortCpiDataAsync(args);
+                                }
+                            }
                             return cohortCpiData(args);
                         })
                         .dataFetcher("cohortManifest", env -> {
@@ -1785,6 +1790,156 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
      * @return CPI data
      * @throws IOException
      */
+    private Map<String, Object> cohortCpiDataAsync(Map<String, Object> params) throws IOException {
+        List<Map<String, Object>> allParticipants;
+        List<Future<List<Map<String, Object>>>> cpiFutures = new ArrayList<>();
+        ExecutorService executorService;
+        List<Map<String, Object>> listOfRepositories = new ArrayList<>();
+        List<String> listOfRepositoryNames = new ArrayList<>();
+        int maxParticipantsPerCPIRequest = (int) params.get("cpi_batch_size");
+        int numCpiRequests = 0;
+        int participantCount = 0;
+        Map<String, List<Map<String, Object>>> participantsByRepository = new HashMap<>();
+        Map<String, Object> result = new HashMap<>();
+
+        final List<Map<String, Object>> PROPERTIES = List.of(
+            // Studies
+            Map.ofEntries( // study_id needed for CPI data
+                Map.entry("gqlName", "study_id"),
+                Map.entry("osName", "study_id")
+            ),
+
+            // Demographics
+            Map.ofEntries(
+                Map.entry("gqlName", "id"),
+                Map.entry("osName", "id")
+            ),
+            Map.ofEntries(
+                Map.entry("gqlName", "participant_id"),
+                Map.entry("osName", "participant_id")
+            )
+        );
+        Map<String, Object> participantParams = new HashMap<>(Map.of(
+            "participant_pk", params.get("participant_pk"),
+            OFFSET, 0,
+            ORDER_BY, "participant_id",
+            PAGE_SIZE, ESService.MAX_ES_SIZE,
+            SORT_DIRECTION, "asc"
+        ));
+
+        allParticipants = overview(
+            COHORTS_END_POINT,
+            participantParams,
+            PROPERTIES,
+            "participant_id",
+            null,
+            "participants"
+        );
+
+        participantCount = allParticipants.size();
+
+        // Calculate the number of CPI requests needed
+        numCpiRequests = (int) Math.ceil((double) participantCount / maxParticipantsPerCPIRequest);
+
+        // Use an ExecutorService for async requests
+        executorService = Executors.newFixedThreadPool(Math.min(numCpiRequests, THREAD_POOL_SIZE));
+
+        try {
+            // Create a Future for each CPI request
+            for (int i = 0; i < numCpiRequests; i++) {
+                int fromIndex = i * maxParticipantsPerCPIRequest;
+                int toIndex = Math.min((i + 1) * maxParticipantsPerCPIRequest, participantCount);
+                List<Map<String, Object>> participants = allParticipants.subList(fromIndex, toIndex);
+
+                // Submit each CPI request batch as a separate task
+                Future<List<Map<String, Object>>> future = executorService.submit(() -> {
+                    insertCPIDataIntoParticipants(participants);
+                    return participants;
+                });
+
+                cpiFutures.add(future);
+            }
+
+            // Aggregate results after all batches complete
+            for (Future<List<Map<String, Object>>> future : cpiFutures) {
+                List<Map<String, Object>> participants;
+
+                try {
+                    participants = future.get();
+                } catch (Exception e) {
+                    logger.error("Error processing batch in async CPI requests", e);
+                    continue;
+                }
+
+                // Group participants by repository_of_synonym_id
+                participants.forEach((Map<String, Object> participant) -> {
+                    List<Map<String, Object>> cpiData;
+                    Object cpiDataRaw;
+                    List<String> repositoryNames = new ArrayList<>();
+
+                    // Skip if no CPI data
+                    if (!participant.containsKey("cpi_data")) {
+                        return;
+                    }
+
+                    cpiDataRaw = participant.get("cpi_data");
+
+                    // Cast CPI data
+                    if (TypeChecker.isOfType(cpiDataRaw, new TypeToken<List<Map<String, Object>>>() {})) {
+                        @SuppressWarnings("unchecked")
+                        List<Map<String, Object>> castedCpiData = (List<Map<String, Object>>) cpiDataRaw;
+                        cpiData = castedCpiData;
+                    } else { // Skip participant if CPI data is somehow the wrong type
+                        return;
+                    }
+
+                    // Process all of the participant's repositories
+                    for (Map<String, Object> cpiEntry : cpiData) {
+                        String repositoryName = getStringValue(cpiEntry, "repository_of_synonym_id");
+
+                        // Add to the grand list of repo names if it's not already there
+                        if (!listOfRepositoryNames.contains(repositoryName)) {
+                            listOfRepositoryNames.add(repositoryName);
+                        }
+
+                        // Make sure a mapping exists for the repository
+                        if (!participantsByRepository.containsKey(repositoryName)) {
+                            participantsByRepository.put(repositoryName, new ArrayList<Map<String, Object>>());
+                        }
+
+                        // Add to the repository's list of participants
+                        List<Map<String, Object>> participantsList = participantsByRepository.get(repositoryName);
+                        participantsList.add(participant);
+                    }
+                });
+            }
+        } catch (Exception e) { // Just in case
+            logger.error("Error processing batches in async CPI requests", e);
+        } finally {
+            executorService.shutdown();
+        }
+
+        // Structure a list of repositories to return
+        participantsByRepository.forEach((repositoryName, repoParticipants) -> {
+            listOfRepositories.add(Map.ofEntries(
+                Map.entry("repository_of_synonym_id", repositoryName),
+                Map.entry("participants", repoParticipants)
+            ));
+        });
+
+        // Build return object
+        result.put("names", listOfRepositoryNames);
+        result.put("repositories", listOfRepositories);
+
+        return result;
+    }
+
+    /**
+     * Returns CPI data for a cohort
+     * @param params
+     * @return CPI data
+     * @throws IOException
+     */
     private Map<String, Object> cohortCpiData(Map<String, Object> params) throws IOException {
         List<Map<String, Object>> listOfRepositories = new ArrayList<>();
         List<String> listOfRepositoryNames = new ArrayList<>();
@@ -1807,46 +1962,24 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.ofEntries(
                 Map.entry("gqlName", "participant_id"),
                 Map.entry("osName", "participant_id")
-            ),
-            Map.ofEntries(
-                Map.entry("gqlName", "race"),
-                Map.entry("osName", "race")
-            ),
-            Map.ofEntries(
-                Map.entry("gqlName", "sex_at_birth"),
-                Map.entry("osName", "sex_at_birth")
             )
         );
+        Map<String, Object> participantParams = new HashMap<>(Map.of(
+            "participant_pk", params.get("participant_pk"),
+            OFFSET, 0,
+            ORDER_BY, "participant_id",
+            PAGE_SIZE, ESService.MAX_ES_SIZE,
+            SORT_DIRECTION, "asc"
+        ));
 
-        String defaultSort = "participant_id"; // Default sort order
-
-        Map<String, Map<String, Object>> mapping = Map.ofEntries(
-            // Studies
-            Map.entry("study_id", Map.ofEntries( // study_id needed for CPI data
-                Map.entry("osName", "study_id"),
-                Map.entry("isNested", false)
-            )),
-
-            // Demographics
-            Map.entry("participant_pk", Map.ofEntries(
-                Map.entry("osName", "id"),
-                Map.entry("isNested", false)
-            )),
-            Map.entry("participant_id", Map.ofEntries(
-                Map.entry("osName", "participant_id"),
-                Map.entry("isNested", false)
-            )),
-            Map.entry("race", Map.ofEntries(
-                Map.entry("osName", "race"),
-                Map.entry("isNested", false)
-            )),
-            Map.entry("sex_at_birth", Map.ofEntries(
-                Map.entry("osName", "sex_at_birth"),
-                Map.entry("isNested", false)
-            ))
+        participants = overview(
+            COHORTS_END_POINT,
+            participantParams,
+            PROPERTIES,
+            "participant_id",
+            null,
+            "participants"
         );
-
-        participants = overview(COHORTS_END_POINT, params, PROPERTIES, defaultSort, mapping, "participants");
         insertCPIDataIntoParticipants(participants);
 
         // Group participants by repository_of_synonym_id

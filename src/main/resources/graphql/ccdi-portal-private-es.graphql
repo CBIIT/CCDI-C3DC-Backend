@@ -462,14 +462,9 @@ type QueryType {
     ): [DiagnosisOverviewResult]
 
     cohortCpiData(
-        # Demographics
+        cpi_batch_size: Int = 2500,
         participant_pk: [String]
-
-        # Table config
-        first: Int = 10,
-        offset: Int = 0,
-        order_by: String = "",
-        sort_direction: String = ""
+        uses_async: Boolean = false
     ): CohortCpiDataReturnObject
 
     cohortMetadata(
