@@ -1161,6 +1161,30 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     /**
+     * Helper method to recalculate counts
+     */
+    private List<Map<String, Object>> recalculateCounts(List<Map<String, Object>> counts, Map<String, Integer> thresholds, Map<String, Object> params, String index, String field) throws IOException {
+        List<Map<String, Object>> newCounts = new ArrayList<Map<String, Object>>();
+        for (Map<String, Object> countEntry : counts) {
+            String value = (String) countEntry.get("group");
+            Integer count = (Integer) countEntry.get("subjects");
+
+            // Recalculate the count
+            if (thresholds.containsKey(value) && count > thresholds.get(value)) {
+                count = inventoryESService.recountFacetFilterValue(params, RANGE_PARAMS, index, field, value);
+            }
+
+            // Save the new count
+            newCounts.add(Map.ofEntries(
+                Map.entry("group", value),
+                Map.entry("subjects", count)
+            ));
+        }
+
+        return newCounts;
+    }
+
+    /**
      * Returns facet filter counts and widget counts
      * Recalculates counts that might be inaccurate
      * @param params GraphQL variables
@@ -1178,7 +1202,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             data = castedData;
         }
 
-        if (false && data != null) {
+        if (data != null) {
             logger.info("hit cache!");
             return data;
         }
@@ -1295,52 +1319,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 }
 
                 thresholds = facetFilterThresholds.get(index).get(field);
-                newFilterCounts = new ArrayList<Map<String, Object>>();
-                newWidgetCounts = new ArrayList<Map<String, Object>>();
 
-                // Do we have to replace the entire list?
-                for (int i = 0; i < filterCounts.size(); i++) {
-                    Map<String, Object> filterCount = filterCounts.get(i);
-                    String value = (String) filterCount.get("group");
-                    Integer count = (Integer) filterCount.get("subjects");
-
-                    // Recalculate the count
-                    if (thresholds.containsKey(value) && count > thresholds.get(value)) {
-                        count = inventoryESService.recountFacetFilterValue(params, RANGE_PARAMS, index, field, value);
-                    }
-
-                    // Save the new count
-                    newFilterCounts.add(Map.ofEntries(
-                        Map.entry("group", value),
-                        Map.entry("subjects", count)
-                    ));
-                }
-
-                for (int i = 0; i < widgetCounts.size(); i++) {
-                    Map<String, Object> widgetCount = widgetCounts.get(i);
-                    String value = (String) widgetCount.get("group");
-                    Integer count = (Integer) widgetCount.get("subjects");
-
-                    // Recalculate the count
-                    if (thresholds.containsKey(value) && count > thresholds.get(value)) {
-                        count = inventoryESService.recountFacetFilterValue(params, RANGE_PARAMS, index, field, value);
-                    }
-
-                    // Save the new count
-                    newWidgetCounts.add(Map.ofEntries(
-                        Map.entry("group", value),
-                        Map.entry("subjects", count)
-                    ));
-                }
+                newFilterCounts = recalculateCounts(filterCounts, thresholds, params, index, field);
+                newWidgetCounts = recalculateCounts(widgetCounts, thresholds, params, index, field);
 
                 // Replace old counts with new counts
                 data.put(filterCountQueryName, newFilterCounts);
                 data.put(widgetQueryName, newWidgetCounts);
-
-                // Only non-range widgets need to be recalculated
-                if (widgetQueryName != null && !isRangeParam) {
-                    // data.put(widgetQueryName, newFilterCounts);
-                }
             }
         }
 
