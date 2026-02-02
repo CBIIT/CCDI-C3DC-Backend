@@ -1171,7 +1171,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
      * @throws IOException
      */
     private List<Map<String, Object>> recalculateCounts(List<Map<String, Object>> counts, Map<String, Integer> thresholds, Map<String, Object> params, String index, String field) throws IOException {
-        List<Map<String, Object>> newCounts = new ArrayList<Map<String, Object>>();
+        List<Map<String, Object>> newCounts = new ArrayList<>();
         for (Map<String, Object> countEntry : counts) {
             String value = (String) countEntry.get("group");
             Integer count = (Integer) countEntry.get("subjects");
