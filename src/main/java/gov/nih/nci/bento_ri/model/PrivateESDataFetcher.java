@@ -1313,7 +1313,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         String queryIndex = cardinalityIndexName != null ? cardinalityIndexName : index;
                         widgetCounts = subjectCountByRange(field, params, queryIndex, cardinalityAggName, queryIndex);
                     } else if (params.containsKey(field) && values.size() > 0) { // Non-range widgets - these counts might be inaccurate!
-                        // 
                         widgetCounts = subjectCountBy(field, params, endpoint, cardinalityAggName, index);
                     }
 
