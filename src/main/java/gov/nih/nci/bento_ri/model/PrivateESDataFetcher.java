@@ -1327,11 +1327,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 thresholds = facetFilterThresholds.get(index).get(field);
 
                 newFilterCounts = recalculateCounts(filterCounts, thresholds, params, index, field);
-                newWidgetCounts = recalculateCounts(widgetCounts, thresholds, params, index, field);
 
                 // Replace old counts with new counts
                 data.put(filterCountQueryName, newFilterCounts);
-                data.put(widgetQueryName, newWidgetCounts);
+
+                // Replace widget counts if there is a widget
+                if (widgetQueryName != null) {
+                    newWidgetCounts = recalculateCounts(widgetCounts, thresholds, params, index, field);
+                    data.put(widgetQueryName, newWidgetCounts);
+                }
             }
         }
 
