@@ -1316,7 +1316,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         widgetCounts = subjectCountBy(field, params, endpoint, cardinalityAggName, index);
                     }
 
-                    data.put(widgetQueryName, filterCounts);
+                    data.put(widgetQueryName, widgetCounts);
                 }
 
                 // Nothing left to do if counts don't need to be redone
