@@ -262,11 +262,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     // Used to calculate numerical range widgets
+    // These counts are exact!
     private List<Map<String, Object>> subjectCountByRange(String category, Map<String, Object> params, String endpoint, String cardinalityAggName, String indexType) throws IOException {
         return subjectCountByRange(category, params, endpoint, Map.of(), cardinalityAggName, indexType);
     }
 
     // Used to calculate numerical range widgets
+    // These counts are exact!
     private List<Map<String, Object>> subjectCountByRange(String category, Map<String, Object> params, String endpoint, Map<String, Object> additionalParams, String cardinalityAggName, String indexType) throws IOException {
         ExecutorService executorService;
         List<Future<Map<String, Object>>> futures = new ArrayList<>();
@@ -1176,7 +1178,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             data = castedData;
         }
 
-        if (data != null) {
+        if (false && data != null) {
             logger.info("hit cache!");
             return data;
         }
@@ -1249,20 +1251,24 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 String cardinalityIndexName = filter.containsKey(CARDINALITY_INDEX_NAME) ? filter.get(CARDINALITY_INDEX_NAME) : null;
                 String field = filter.get(AGG_NAME);
                 String filterCountQueryName = filter.get(FILTER_COUNT_QUERY);
+                boolean isRangeParam = RANGE_PARAMS.contains(field);
                 List<String> values = null;
                 Object valuesRaw = params.get(field);
                 String widgetQueryName = filter.get(WIDGET_QUERY);
                 boolean shouldCheckThreshold = facetFilterThresholds.get(index).containsKey(field);
                 List<Map<String, Object>> filterCounts = filterSubjectCountBy(field, params, endpoint, cardinalityAggName, index);
+                List<Map<String, Object>> widgetCounts = filterCounts;
                 Map<String, Integer> thresholds;
                 List<Map<String, Object>> newFilterCounts;
+                List<Map<String, Object>> newWidgetCounts;
 
-                if (RANGE_PARAMS.contains(field)) {
+                if (isRangeParam) {
                     data.put(filterCountQueryName, filterCounts.get(0));
                 } else {
                     data.put(filterCountQueryName, filterCounts);
                 }
 
+                // Get the values we're filtering the field by
                 if (TypeChecker.isOfType(valuesRaw, new TypeToken<List<String>>() {})) {
                     @SuppressWarnings("unchecked")
                     List<String> castedValues = (List<String>) valuesRaw;
@@ -1272,16 +1278,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 // Get widget counts
                 if (widgetQueryName != null) {
                     // Fetch data for widgets
-                    if (RANGE_PARAMS.contains(field)) {
+                    if (isRangeParam) { // Numerical range widgets - these counts will be exact!
                         String queryIndex = cardinalityIndexName != null ? cardinalityIndexName : index;
-                        List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, queryIndex, cardinalityAggName, queryIndex);
-                        data.put(widgetQueryName, subjectCount);
-                    } else if (params.containsKey(field) && values.size() > 0) {
-                        List<Map<String, Object>> subjectCount = subjectCountBy(field, params, endpoint, cardinalityAggName, index);
-                        data.put(widgetQueryName, subjectCount);
-                    } else {
-                        data.put(widgetQueryName, filterCounts);
+                        widgetCounts = subjectCountByRange(field, params, queryIndex, cardinalityAggName, queryIndex);
+                    } else if (params.containsKey(field) && values.size() > 0) { // Non-range widgets - these counts might be inaccurate!
+                        // 
+                        widgetCounts = subjectCountBy(field, params, endpoint, cardinalityAggName, index);
                     }
+
+                    data.put(widgetQueryName, filterCounts);
                 }
 
                 // Nothing left to do if counts don't need to be redone
@@ -1291,6 +1296,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
                 thresholds = facetFilterThresholds.get(index).get(field);
                 newFilterCounts = new ArrayList<Map<String, Object>>();
+                newWidgetCounts = new ArrayList<Map<String, Object>>();
 
                 // Do we have to replace the entire list?
                 for (int i = 0; i < filterCounts.size(); i++) {
@@ -1310,12 +1316,30 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     ));
                 }
 
+                for (int i = 0; i < widgetCounts.size(); i++) {
+                    Map<String, Object> widgetCount = widgetCounts.get(i);
+                    String value = (String) widgetCount.get("group");
+                    Integer count = (Integer) widgetCount.get("subjects");
+
+                    // Recalculate the count
+                    if (thresholds.containsKey(value) && count > thresholds.get(value)) {
+                        count = inventoryESService.recountFacetFilterValue(params, RANGE_PARAMS, index, field, value);
+                    }
+
+                    // Save the new count
+                    newWidgetCounts.add(Map.ofEntries(
+                        Map.entry("group", value),
+                        Map.entry("subjects", count)
+                    ));
+                }
+
                 // Replace old counts with new counts
                 data.put(filterCountQueryName, newFilterCounts);
+                data.put(widgetQueryName, newWidgetCounts);
 
-                // Redo widget counts
-                if (widgetQueryName != null) {
-                    data.put(widgetQueryName, newFilterCounts);
+                // Only non-range widgets need to be recalculated
+                if (widgetQueryName != null && !isRangeParam) {
+                    // data.put(widgetQueryName, newFilterCounts);
                 }
             }
         }
