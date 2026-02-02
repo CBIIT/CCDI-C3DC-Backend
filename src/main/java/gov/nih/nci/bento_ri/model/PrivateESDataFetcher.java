@@ -1162,6 +1162,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     /**
      * Helper method to recalculate counts
+     * @param counts Original count entries
+     * @param thresholds Thresholds for recounting
+     * @param params GraphQL variables
+     * @param index Opensearch index to query for counts
+     * @param field Property whose counts are to be recalculated
+     * @return List of recalculated count entries
+     * @throws IOException
      */
     private List<Map<String, Object>> recalculateCounts(List<Map<String, Object>> counts, Map<String, Integer> thresholds, Map<String, Object> params, String index, String field) throws IOException {
         List<Map<String, Object>> newCounts = new ArrayList<Map<String, Object>>();
