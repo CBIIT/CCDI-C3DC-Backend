@@ -8,10 +8,18 @@ RUN mvn package -DskipTests
 # Production stage
 FROM tomcat:11.0.18-jdk21 AS fnl_base_image
 
-RUN apt-get update && apt-get -y upgrade
+# Upgrade OS packages, install deps, and update Java to 21.0.10.
+RUN set -eux; \
+    apt-get update; \
+    apt-get -y upgrade; \
+    apt-get install -y --no-install-recommends openjdk-21-jdk unzip; \
+    ln -sfn "/usr/lib/jvm/java-21-openjdk-$(dpkg --print-architecture)" /usr/lib/jvm/java-21-openjdk; \
+    /usr/lib/jvm/java-21-openjdk/bin/java -version; \
+    /usr/lib/jvm/java-21-openjdk/bin/java -version 2>&1 | grep -Fq '21.0.10'; \
+    rm -rf /var/lib/apt/lists/*
 
-# install dependencies and clean up unused files
-RUN apt-get update && apt-get install unzip
+ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
 RUN rm -rf /usr/local/tomcat/webapps.dist
 RUN rm -rf /usr/local/tomcat/webapps/ROOT
 
