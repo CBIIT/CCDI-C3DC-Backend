@@ -8,17 +8,30 @@ RUN mvn package -DskipTests
 # Production stage
 FROM tomcat:11.0.18-jdk21 AS fnl_base_image
 
-# Upgrade OS packages, install deps, and update Java to 21.0.10.
+# Upgrade OS packages, install deps, and update Java to Temurin 21.0.10.
+ARG TEMURIN_DIR="jdk-21.0.10+7"
+ARG TEMURIN_BUILD="21.0.10_7"
 RUN set -eux; \
     apt-get update; \
     apt-get -y upgrade; \
-    apt-get install -y --no-install-recommends openjdk-21-jdk unzip; \
-    ln -sfn "/usr/lib/jvm/java-21-openjdk-$(dpkg --print-architecture)" /usr/lib/jvm/java-21-openjdk; \
-    /usr/lib/jvm/java-21-openjdk/bin/java -version; \
-    /usr/lib/jvm/java-21-openjdk/bin/java -version 2>&1 | grep -Fq '21.0.10'; \
+    apt-get install -y --no-install-recommends ca-certificates curl tar unzip; \
+    arch="$(dpkg --print-architecture)"; \
+    case "$arch" in \
+      amd64) temurin_arch="x64" ;; \
+      arm64) temurin_arch="aarch64" ;; \
+      *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; \
+    esac; \
+    url="https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.10%2B7/OpenJDK21U-jdk_${temurin_arch}_linux_hotspot_${TEMURIN_BUILD}.tar.gz"; \
+    mkdir -p /opt/java; \
+    curl -fsSL "$url" -o /tmp/temurin.tgz; \
+    tar -xzf /tmp/temurin.tgz -C /opt/java; \
+    rm /tmp/temurin.tgz; \
+    rm -rf /opt/java/openjdk; \
+    mv "/opt/java/${TEMURIN_DIR}" /opt/java/openjdk; \
+    java -version; \
     rm -rf /var/lib/apt/lists/*
 
-ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk
+ENV JAVA_HOME=/opt/java/openjdk
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 RUN rm -rf /usr/local/tomcat/webapps.dist
 RUN rm -rf /usr/local/tomcat/webapps/ROOT
