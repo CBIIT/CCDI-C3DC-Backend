@@ -31,8 +31,6 @@ RUN set -eux; \
     java -version; \
     rm -rf /var/lib/apt/lists/*
 
-ENV JAVA_HOME=/opt/java/openjdk
-ENV PATH="${JAVA_HOME}/bin:${PATH}"
 RUN rm -rf /usr/local/tomcat/webapps.dist
 RUN rm -rf /usr/local/tomcat/webapps/ROOT
 
