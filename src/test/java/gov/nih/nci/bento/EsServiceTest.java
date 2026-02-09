@@ -6,7 +6,9 @@ import gov.nih.nci.bento.utility.TypeChecker;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import com.google.common.reflect.TypeToken;
@@ -19,9 +21,40 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 @RunWith( SpringRunner.class )
-@SpringBootTest
+@SpringBootTest(classes = {
+    gov.nih.nci.bento.service.ESService.class,
+    gov.nih.nci.bento.model.ConfigurationDAO.class
+})
+@TestPropertySource(properties = {
+    "bento.api.version=1.0.0-TEST",
+    "auth.enabled=false",
+    "auth.endpoint=http://localhost:8080/auth",
+    "neo4j.url=bolt://localhost:7687",
+    "neo4j.user=neo4j",
+    "neo4j.password=password",
+    "graphql.schema=graphql/ccdi-portal.graphql",
+    "graphql.es_schema=graphql/ccdi-portal-private-es.graphql",
+    "graphql.public.schema=graphql/ccdi-portal-public.graphql",
+    "graphql.public.es_schema=graphql/ccdi-portal-public-es.graphql",
+    "allow_graphql_query=true",
+    "allow_graphql_mutation=false",
+    "redis.enable=false",
+    "redis.use_cluster=false",
+    "redis.host=localhost",
+    "redis.port=6379",
+    "redis.ttl=-1",
+    "es.host=localhost",
+    "es.port=443",
+    "es.scheme=https",
+    "es.filter.enabled=true",
+    "es.sign.requests=false",
+    "es.service_name=es",
+    "es.region=us-east-1",
+    "test.queries_file=placeholder"
+})
 public class EsServiceTest {
     @Autowired
+    @Qualifier("ESService")
     private ESService esService;
 
     @Test

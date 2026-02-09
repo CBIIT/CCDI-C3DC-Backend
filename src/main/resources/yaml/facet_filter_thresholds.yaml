@@ -8,39 +8,53 @@ diagnoses:
     Not Reported: 2900
     'C71.9 : Posterior cranial fossa': 1200
     'C42.0 : Blood': 1900
-  # diagnosis_classification_system:
-  #   ICD-O-3.2: 5000
+  diagnosis:
+    Precursor cell lymphoblastic lymphoma, NOS: 5600
+  diagnosis_classification_system:
+    ICD-O-3.2: 1500
   # diagnosis_basis:
-  #   Clinical: 5700
-  #   Not Reported: 5000
+    # Clinical: 5700
+    # Not Reported: 5000
   disease_phase:
-    Initial Diagnosis: 8800
+  #   Initial Diagnosis: 8800
+    Not Reported: 1100
 genetic_analyses:
-  alteration:
-    MLL Other partner: 2800
-    Trisomy 21: 2700
-  alteration_type:
-    Unknown: 2900
-    Translocation: 2900
-    Chromosomal Gain: 2900
+  reported_significance:
+    Not Reported: 3800
+  reported_significance_system:
+    Not Reported: 3800
+  # gene_symbol:
+  #   Not Reported: 2000
+  #   MLL: 2000
+  # alteration:
+  #   MLL Other partner: 2800
+  #   Trisomy 21: 2700
   fusion_partner_gene:
-    Other: 2900
-  gene_symbol:
-    Not Reported: 2000
-    MLL: 2000
+    Not Reported: 3800
+    # Other: 2900
+  # alteration_type:
+  #   Unknown: 2900
+  #   Translocation: 2900
+  #   Chromosomal Gain: 2900
 participants: {}
 studies: {}
 survivals: 
   last_known_survival_status:
-    Alive: 9500
-    Not reported: 2000
+    Unknown: 9400
+    # Alive: 9500
+    # Not reported: 2000
   cause_of_death:
+    Unknown: 14500
     Not Reported: 11600
-  # first_event:
+  first_event:
+    Unknown: 9400
   #   Not Reported: 5700
 treatments:
+  treatment_type:
+    Chemotherapy: 17800
+    Surgical Procedure: 2800
+    Radiation Therapy: 1500
   treatment_agent:
-    Not Reported: 3000
-  # treatment_type:
-  #   Surgical Procedure: 1500
+    Unknown: 2800
+    # Not Reported: 3000
 treatment_responses: {}
