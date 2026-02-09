@@ -262,11 +262,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     // Used to calculate numerical range widgets
+    // These counts are exact!
     private List<Map<String, Object>> subjectCountByRange(String category, Map<String, Object> params, String endpoint, String cardinalityAggName, String indexType) throws IOException {
         return subjectCountByRange(category, params, endpoint, Map.of(), cardinalityAggName, indexType);
     }
 
     // Used to calculate numerical range widgets
+    // These counts are exact!
     private List<Map<String, Object>> subjectCountByRange(String category, Map<String, Object> params, String endpoint, Map<String, Object> additionalParams, String cardinalityAggName, String indexType) throws IOException {
         ExecutorService executorService;
         List<Future<Map<String, Object>>> futures = new ArrayList<>();
@@ -1159,6 +1161,37 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     /**
+     * Helper method to recalculate counts
+     * @param counts Original count entries
+     * @param thresholds Thresholds for recounting
+     * @param params GraphQL variables
+     * @param index Opensearch index to query for counts
+     * @param field Property whose counts are to be recalculated
+     * @return List of recalculated count entries
+     * @throws IOException
+     */
+    private List<Map<String, Object>> recalculateCounts(List<Map<String, Object>> counts, Map<String, Integer> thresholds, Map<String, Object> params, String index, String field) throws IOException {
+        List<Map<String, Object>> newCounts = new ArrayList<>();
+        for (Map<String, Object> countEntry : counts) {
+            String value = (String) countEntry.get("group");
+            Integer count = (Integer) countEntry.get("subjects");
+
+            // Recalculate the count
+            if (thresholds.containsKey(value) && count > thresholds.get(value)) {
+                count = inventoryESService.recountFacetFilterValue(params, RANGE_PARAMS, index, field, value);
+            }
+
+            // Save the new count
+            newCounts.add(Map.ofEntries(
+                Map.entry("group", value),
+                Map.entry("subjects", count)
+            ));
+        }
+
+        return newCounts;
+    }
+
+    /**
      * Returns facet filter counts and widget counts
      * Recalculates counts that might be inaccurate
      * @param params GraphQL variables
@@ -1249,20 +1282,24 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 String cardinalityIndexName = filter.containsKey(CARDINALITY_INDEX_NAME) ? filter.get(CARDINALITY_INDEX_NAME) : null;
                 String field = filter.get(AGG_NAME);
                 String filterCountQueryName = filter.get(FILTER_COUNT_QUERY);
+                boolean isRangeParam = RANGE_PARAMS.contains(field);
                 List<String> values = null;
                 Object valuesRaw = params.get(field);
                 String widgetQueryName = filter.get(WIDGET_QUERY);
                 boolean shouldCheckThreshold = facetFilterThresholds.get(index).containsKey(field);
                 List<Map<String, Object>> filterCounts = filterSubjectCountBy(field, params, endpoint, cardinalityAggName, index);
+                List<Map<String, Object>> widgetCounts = filterCounts;
                 Map<String, Integer> thresholds;
                 List<Map<String, Object>> newFilterCounts;
+                List<Map<String, Object>> newWidgetCounts;
 
-                if (RANGE_PARAMS.contains(field)) {
+                if (isRangeParam) {
                     data.put(filterCountQueryName, filterCounts.get(0));
                 } else {
                     data.put(filterCountQueryName, filterCounts);
                 }
 
+                // Get the values we're filtering the field by
                 if (TypeChecker.isOfType(valuesRaw, new TypeToken<List<String>>() {})) {
                     @SuppressWarnings("unchecked")
                     List<String> castedValues = (List<String>) valuesRaw;
@@ -1272,16 +1309,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 // Get widget counts
                 if (widgetQueryName != null) {
                     // Fetch data for widgets
-                    if (RANGE_PARAMS.contains(field)) {
+                    if (isRangeParam) { // Numerical range widgets - these counts will be exact!
                         String queryIndex = cardinalityIndexName != null ? cardinalityIndexName : index;
-                        List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, queryIndex, cardinalityAggName, queryIndex);
-                        data.put(widgetQueryName, subjectCount);
-                    } else if (params.containsKey(field) && values.size() > 0) {
-                        List<Map<String, Object>> subjectCount = subjectCountBy(field, params, endpoint, cardinalityAggName, index);
-                        data.put(widgetQueryName, subjectCount);
-                    } else {
-                        data.put(widgetQueryName, filterCounts);
+                        widgetCounts = subjectCountByRange(field, params, queryIndex, cardinalityAggName, queryIndex);
+                    } else if (params.containsKey(field) && values.size() > 0) { // Non-range widgets - these counts might be inaccurate!
+                        widgetCounts = subjectCountBy(field, params, endpoint, cardinalityAggName, index);
                     }
+
+                    data.put(widgetQueryName, widgetCounts);
                 }
 
                 // Nothing left to do if counts don't need to be redone
@@ -1290,32 +1325,16 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 }
 
                 thresholds = facetFilterThresholds.get(index).get(field);
-                newFilterCounts = new ArrayList<Map<String, Object>>();
 
-                // Do we have to replace the entire list?
-                for (int i = 0; i < filterCounts.size(); i++) {
-                    Map<String, Object> filterCount = filterCounts.get(i);
-                    String value = (String) filterCount.get("group");
-                    Integer count = (Integer) filterCount.get("subjects");
-
-                    // Recalculate the count
-                    if (thresholds.containsKey(value) && count > thresholds.get(value)) {
-                        count = inventoryESService.recountFacetFilterValue(params, RANGE_PARAMS, index, field, value);
-                    }
-
-                    // Save the new count
-                    newFilterCounts.add(Map.ofEntries(
-                        Map.entry("group", value),
-                        Map.entry("subjects", count)
-                    ));
-                }
+                newFilterCounts = recalculateCounts(filterCounts, thresholds, params, index, field);
 
                 // Replace old counts with new counts
                 data.put(filterCountQueryName, newFilterCounts);
 
-                // Redo widget counts
+                // Replace widget counts if there is a widget
                 if (widgetQueryName != null) {
-                    data.put(widgetQueryName, newFilterCounts);
+                    newWidgetCounts = recalculateCounts(widgetCounts, thresholds, params, index, field);
+                    data.put(widgetQueryName, newWidgetCounts);
                 }
             }
         }
