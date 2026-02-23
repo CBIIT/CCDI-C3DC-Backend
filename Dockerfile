@@ -12,8 +12,8 @@ FROM tomcat:11.0.18-jdk21 AS fnl_base_image
 ARG TEMURIN_DIR=jdk-21.0.10+7
 ARG TEMURIN_BUILD=21.0.10_7
 # SHA256 checksums for the Temurin JDK tarballs (replace with the official published values)
-ARG TEMURIN_SHA256_AMD64="REPLACE_WITH_OFFICIAL_SHA256_FOR_OpenJDK21U-jdk_x64_linux_hotspot_21.0.10_7.tar.gz"
-ARG TEMURIN_SHA256_ARM64="REPLACE_WITH_OFFICIAL_SHA256_FOR_OpenJDK21U-jdk_aarch64_linux_hotspot_21.0.10_7.tar.gz"
+ARG TEMURIN_SHA256_AMD64="ea3b9bd464d6dd253e9a7accf59f7ccd2a36e4aa69640b7251e3370caef896a4"
+ARG TEMURIN_SHA256_ARM64="357fee29fb0d5c079f6730db98b28942df13a6eed426f6c61cd4ad703ab27b9a"
 RUN set -eux; \
     apt-get update; \
     apt-get -y upgrade; \
