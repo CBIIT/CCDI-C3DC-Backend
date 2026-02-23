@@ -9,8 +9,8 @@ RUN mvn package -DskipTests
 FROM tomcat:11.0.18-jdk21 AS fnl_base_image
 
 # Upgrade OS packages, install deps, and update Java to Temurin 21.0.10.
-ARG TEMURIN_DIR="jdk-21.0.10+7"
-ARG TEMURIN_BUILD="21.0.10_7"
+ARG TEMURIN_DIR=jdk-21.0.10+7
+ARG TEMURIN_BUILD=21.0.10_7
 # SHA256 checksums for the Temurin JDK tarballs (replace with the official published values)
 ARG TEMURIN_SHA256_AMD64="REPLACE_WITH_OFFICIAL_SHA256_FOR_OpenJDK21U-jdk_x64_linux_hotspot_21.0.10_7.tar.gz"
 ARG TEMURIN_SHA256_ARM64="REPLACE_WITH_OFFICIAL_SHA256_FOR_OpenJDK21U-jdk_aarch64_linux_hotspot_21.0.10_7.tar.gz"
