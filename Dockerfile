@@ -17,7 +17,7 @@ ARG TEMURIN_SHA256_ARM64="REPLACE_WITH_OFFICIAL_SHA256_FOR_OpenJDK21U-jdk_aarch6
 RUN set -eux; \
     apt-get update; \
     apt-get -y upgrade; \
-    apt-get install -y --no-install-recommends ca-certificates curl tar unzip; \
+    apt-get install -y --no-install-recommends ca-certificates curl tar; \
     arch="$(dpkg --print-architecture)"; \
     case "$arch" in \
       amd64) temurin_arch="x64"; temurin_sha256="$TEMURIN_SHA256_AMD64" ;; \
