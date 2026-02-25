@@ -17,7 +17,7 @@ ARG TEMURIN_SHA256_ARM64="357fee29fb0d5c079f6730db98b28942df13a6eed426f6c61cd4ad
 RUN set -eux; \
     apt-get update; \
     apt-get -y upgrade; \
-    apt-get install -y --no-install-recommends ca-certificates curl tar; \
+    apt-get install -y --no-install-recommends ca-certificates curl tar unzip; \
     arch="$(dpkg --print-architecture)"; \
     case "$arch" in \
       amd64) temurin_arch="x64"; temurin_sha256="$TEMURIN_SHA256_AMD64" ;; \
