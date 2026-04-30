@@ -53,6 +53,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     @Value("${page_size:5000}")
     private int pageSize;
 
+    private Map<String, Map<String, String>> cohortChartProperties;
     private Map<String, Map<String, Map<String, Integer>>> facetFilterThresholds;
     private Map<String, List<Map<String, String>>> facetFilters;
 
@@ -121,6 +122,18 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         super(esService);
         inventoryESService = esService;
         yamlQueryFactory = new YamlQueryFactory(esService);
+
+        // Load cohort chart fields
+        try {
+            String cohortChartPropertiesPath = Const.YAML_QUERY.SUB_FOLDER + "cohort_chart_properties.yaml";
+            ClassPathResource cohortChartPropertiesResource = new ClassPathResource(cohortChartPropertiesPath);
+            InputStream cohortChartPropertiesFileStream = cohortChartPropertiesResource.getInputStream();
+            Yaml cohortChartPropertiesYaml = new Yaml();
+            this.cohortChartProperties = cohortChartPropertiesYaml.load(cohortChartPropertiesFileStream);
+        } catch (IOException e) {
+            logger.error("Error reading cohort chart properties: "+ e.toString());
+            throw new IOException(e.toString());
+        }
 
         // Load facet filters
         try {
@@ -1405,15 +1418,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
 
         // Retrieve Opensearch details for each property
-        for (String index : facetFilters.keySet()) {
-            List<Map<String, String>> facetFilterConfigs = facetFilters.get(index);
-            for (Map<String, String> facetFilterConfig : facetFilterConfigs) {
-                String aggName = facetFilterConfig.get("agg_name");
-                if (aggName != null && groupConfigs.containsKey(aggName)) {
-                    HashMap<String, String> groupConfig = new HashMap<>(facetFilterConfig);
-                    groupConfig.put("index", index);
-                    groupConfigs.put(aggName, groupConfig);
-                }
+        for (String prop : cohortChartProperties.keySet()) {
+            Map<String, String> propConfig = cohortChartProperties.get(prop);
+            String index = propConfig.get("index");
+
+            if (groupConfigs.containsKey(prop)) {
+                HashMap<String, String> groupConfig = new HashMap<>(propConfig);
+                groupConfig.put("index", index);
+                groupConfigs.put(prop, groupConfig);
             }
         }
 
@@ -3359,13 +3371,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
     }
 
-    @PostConstruct
-    public void onStartup() {
-        try {
-            idsLists(Map.of("cpi_batch_size", 2500, "use_cache", true));
-            logger.info("idsLists cache preloaded on application startup");
-        } catch (IOException e) {
-            logger.error("Failed to preload idsLists cache on startup: " + e.getMessage(), e);
-        }
-    }
+    // @PostConstruct
+    // public void onStartup() {
+    //     try {
+    //         idsLists(Map.of("cpi_batch_size", 2500, "use_cache", true));
+    //         logger.info("idsLists cache preloaded on application startup");
+    //     } catch (IOException e) {
+    //         logger.error("Failed to preload idsLists cache on startup: " + e.getMessage(), e);
+    //     }
+    // }
 }
