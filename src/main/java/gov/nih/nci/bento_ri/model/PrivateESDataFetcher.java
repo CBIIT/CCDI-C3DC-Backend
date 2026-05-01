@@ -127,9 +127,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         try {
             String cohortChartPropertiesPath = Const.YAML_QUERY.SUB_FOLDER + "cohort_chart_properties.yaml";
             ClassPathResource cohortChartPropertiesResource = new ClassPathResource(cohortChartPropertiesPath);
-            InputStream cohortChartPropertiesFileStream = cohortChartPropertiesResource.getInputStream();
             Yaml cohortChartPropertiesYaml = new Yaml();
-            this.cohortChartProperties = cohortChartPropertiesYaml.load(cohortChartPropertiesFileStream);
+            try (InputStream cohortChartPropertiesFileStream = cohortChartPropertiesResource.getInputStream()) {
+                this.cohortChartProperties = cohortChartPropertiesYaml.load(cohortChartPropertiesFileStream);
+            }
         } catch (IOException e) {
             logger.error("Error reading cohort chart properties: "+ e.toString());
             throw new IOException(e.toString());
@@ -139,9 +140,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         try {
             String facetFiltersPath = Const.YAML_QUERY.SUB_FOLDER + "facet_filters.yaml";
             ClassPathResource facetFiltersResource = new ClassPathResource(facetFiltersPath);
-            InputStream facetFilterFileStream = facetFiltersResource.getInputStream();
             Yaml facetFilterYaml = new Yaml();
-            this.facetFilters = facetFilterYaml.load(facetFilterFileStream);
+            try (InputStream facetFilterFileStream = facetFiltersResource.getInputStream()) {
+                this.facetFilters = facetFilterYaml.load(facetFilterFileStream);
+            }
         } catch (IOException e) {
             logger.error("Error reading facet filters: "+ e.toString());
             throw new IOException(e.toString());
@@ -151,9 +153,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         try {
             String facetFilterThresholdsPath = Const.YAML_QUERY.SUB_FOLDER + "facet_filter_thresholds.yaml";
             ClassPathResource facetFilterThresholdsResource = new ClassPathResource(facetFilterThresholdsPath);
-            InputStream facetFilterThresholdFileStream = facetFilterThresholdsResource.getInputStream();
             Yaml facetFilterThresholdYaml = new Yaml();
-            this.facetFilterThresholds = facetFilterThresholdYaml.load(facetFilterThresholdFileStream);
+            try (InputStream facetFilterThresholdFileStream = facetFilterThresholdsResource.getInputStream()) {
+                this.facetFilterThresholds = facetFilterThresholdYaml.load(facetFilterThresholdFileStream);
+            }
         } catch (IOException e) {
             logger.error("Error reading facet filter recount thresholds: " + e.toString());
             throw new IOException(e.toString());
