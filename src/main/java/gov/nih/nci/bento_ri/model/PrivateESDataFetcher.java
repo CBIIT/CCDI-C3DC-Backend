@@ -1444,6 +1444,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             List<String> bucketNamesTopFew;
             List<String> bucketNamesTopMany;
 
+            // Skip if invalid property name
+            if (!groupConfigs.containsKey(property)) {
+                continue;
+            }
+
             // Obtain details for querying Opensearch
             Map<String, String> groupConfig = groupConfigs.get(property);
             String cardinalityAggName = groupConfig.get("cardinality_agg_name");
