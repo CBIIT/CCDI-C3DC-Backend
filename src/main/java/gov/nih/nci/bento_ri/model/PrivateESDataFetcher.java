@@ -53,6 +53,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     @Value("${page_size:5000}")
     private int pageSize;
 
+    private Map<String, Map<String, String>> cohortChartProperties;
     private Map<String, Map<String, Map<String, Integer>>> facetFilterThresholds;
     private Map<String, List<Map<String, String>>> facetFilters;
 
@@ -122,13 +123,27 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         inventoryESService = esService;
         yamlQueryFactory = new YamlQueryFactory(esService);
 
+        // Load cohort chart fields
+        try {
+            String cohortChartPropertiesPath = Const.YAML_QUERY.SUB_FOLDER + "cohort_chart_properties.yaml";
+            ClassPathResource cohortChartPropertiesResource = new ClassPathResource(cohortChartPropertiesPath);
+            Yaml cohortChartPropertiesYaml = new Yaml();
+            try (InputStream cohortChartPropertiesFileStream = cohortChartPropertiesResource.getInputStream()) {
+                this.cohortChartProperties = cohortChartPropertiesYaml.load(cohortChartPropertiesFileStream);
+            }
+        } catch (IOException e) {
+            logger.error("Error reading cohort chart properties: "+ e.toString());
+            throw new IOException(e.toString());
+        }
+
         // Load facet filters
         try {
             String facetFiltersPath = Const.YAML_QUERY.SUB_FOLDER + "facet_filters.yaml";
             ClassPathResource facetFiltersResource = new ClassPathResource(facetFiltersPath);
-            InputStream facetFilterFileStream = facetFiltersResource.getInputStream();
             Yaml facetFilterYaml = new Yaml();
-            this.facetFilters = facetFilterYaml.load(facetFilterFileStream);
+            try (InputStream facetFilterFileStream = facetFiltersResource.getInputStream()) {
+                this.facetFilters = facetFilterYaml.load(facetFilterFileStream);
+            }
         } catch (IOException e) {
             logger.error("Error reading facet filters: "+ e.toString());
             throw new IOException(e.toString());
@@ -138,9 +153,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         try {
             String facetFilterThresholdsPath = Const.YAML_QUERY.SUB_FOLDER + "facet_filter_thresholds.yaml";
             ClassPathResource facetFilterThresholdsResource = new ClassPathResource(facetFilterThresholdsPath);
-            InputStream facetFilterThresholdFileStream = facetFilterThresholdsResource.getInputStream();
             Yaml facetFilterThresholdYaml = new Yaml();
-            this.facetFilterThresholds = facetFilterThresholdYaml.load(facetFilterThresholdFileStream);
+            try (InputStream facetFilterThresholdFileStream = facetFilterThresholdsResource.getInputStream()) {
+                this.facetFilterThresholds = facetFilterThresholdYaml.load(facetFilterThresholdFileStream);
+            }
         } catch (IOException e) {
             logger.error("Error reading facet filter recount thresholds: " + e.toString());
             throw new IOException(e.toString());
@@ -1405,15 +1421,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
 
         // Retrieve Opensearch details for each property
-        for (String index : facetFilters.keySet()) {
-            List<Map<String, String>> facetFilterConfigs = facetFilters.get(index);
-            for (Map<String, String> facetFilterConfig : facetFilterConfigs) {
-                String aggName = facetFilterConfig.get("agg_name");
-                if (aggName != null && groupConfigs.containsKey(aggName)) {
-                    HashMap<String, String> groupConfig = new HashMap<>(facetFilterConfig);
-                    groupConfig.put("index", index);
-                    groupConfigs.put(aggName, groupConfig);
-                }
+        for (String prop : cohortChartProperties.keySet()) {
+            Map<String, String> propConfig = cohortChartProperties.get(prop);
+            String index = propConfig.get("index");
+
+            if (groupConfigs.containsKey(prop)) {
+                HashMap<String, String> groupConfig = new HashMap<>(propConfig);
+                groupConfig.put("index", index);
+                groupConfigs.put(prop, groupConfig);
             }
         }
 
@@ -1428,6 +1443,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             List<String> bucketNames;
             List<String> bucketNamesTopFew;
             List<String> bucketNamesTopMany;
+
+            // Skip if invalid property name
+            if (!groupConfigs.containsKey(property)) {
+                continue;
+            }
 
             // Obtain details for querying Opensearch
             Map<String, String> groupConfig = groupConfigs.get(property);

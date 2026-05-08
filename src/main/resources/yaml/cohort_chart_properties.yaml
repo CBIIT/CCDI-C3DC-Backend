@@ -1,0 +1,207 @@
+# Datamodel properties available for charting in the Cohort Analyzer page
+# Each property is mapped to details on how to produce participant counts for that property
+# index - OpenSearch index to query
+# cardinality_agg_name - OpenSearch property to use for counting participants
+
+# Diagnosis properties
+anatomic_site:
+  index: diagnoses
+  cardinality_agg_name: participant_pk
+diagnosis:
+  index: diagnoses
+  cardinality_agg_name: participant_pk
+diagnosis_basis:
+  index: diagnoses
+  cardinality_agg_name: participant_pk
+diagnosis_category:
+  index: diagnoses
+  cardinality_agg_name: participant_pk
+diagnosis_classification_system:
+  index: diagnoses
+  cardinality_agg_name: participant_pk
+diagnosis_comment:
+  index: diagnoses
+  cardinality_agg_name: participant_pk
+disease_phase:
+  index: diagnoses
+  cardinality_agg_name: participant_pk
+laterality:
+  index: diagnoses
+  cardinality_agg_name: participant_pk
+toronto_childhood_cancer_staging:
+  index: diagnoses
+  cardinality_agg_name: participant_pk
+tumor_classification:
+  index: diagnoses
+  cardinality_agg_name: participant_pk
+tumor_grade:
+  index: diagnoses
+  cardinality_agg_name: participant_pk
+tumor_stage_clinical_m:
+  index: diagnoses
+  cardinality_agg_name: participant_pk
+tumor_stage_clinical_n:
+  index: diagnoses
+  cardinality_agg_name: participant_pk
+tumor_stage_clinical_t:
+  index: diagnoses
+  cardinality_agg_name: participant_pk
+year_of_diagnosis:
+  index: diagnoses
+  cardinality_agg_name: participant_pk
+
+# Genetic Analysis properties
+alteration:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+alteration_effect:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+alteration_type:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+allelic_ratio:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+chromosome:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+cytoband:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+dna_index_numeric:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+exon:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+fusion_partner_exon:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+fusion_partner_gene:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+fusion_partner_transcript:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+gene_symbol:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+genomic_source_category:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+hgvs_coding:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+hgvs_genome:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+hgvs_protein:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+iscn:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+method:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+reference_genome:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+reported_significance:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+reported_significance_system:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+result:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+status:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+test:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+transcript:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+translocation_partner_chromosome:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+translocation_partner_cytoband:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+vaf_numeric:
+  index: genetic_analyses
+  cardinality_agg_name: participant_pk
+
+# Participant properties
+race:
+  index: participants
+  cardinality_agg_name: null
+sex_at_birth:
+  index: participants
+  cardinality_agg_name: null
+
+# Study properties
+dbgap_accession:
+  index: participants
+  cardinality_agg_name: null
+external_url:
+  index: participants
+  cardinality_agg_name: null
+study_description:
+  index: participants
+  cardinality_agg_name: null
+study_name:
+  index: participants
+  cardinality_agg_name: null
+study_status:
+  index: participants
+  cardinality_agg_name: null
+
+# Survival properties
+cause_of_death:
+  index: survivals
+  cardinality_agg_name: participant_pk
+event_free_survival_status:
+  index: survivals
+  cardinality_agg_name: participant_pk
+first_event:
+  index: survivals
+  cardinality_agg_name: participant_pk
+last_known_survival_status:
+  index: survivals
+  cardinality_agg_name: participant_pk
+
+# Treatment properties
+dose:
+  index: treatments
+  cardinality_agg_name: participant_pk
+dose_frequency:
+  index: treatments
+  cardinality_agg_name: participant_pk
+dose_route:
+  index: treatments
+  cardinality_agg_name: participant_pk
+dose_unit:
+  index: treatments
+  cardinality_agg_name: participant_pk
+treatment_agent:
+  index: treatments
+  cardinality_agg_name: participant_pk
+treatment_type:
+  index: treatments
+  cardinality_agg_name: participant_pk
+
+# Treatment Response properties
+response:
+  index: treatment_responses
+  cardinality_agg_name: participant_pk
+response_category:
+  index: treatment_responses
+  cardinality_agg_name: participant_pk
+response_system:
+  index: treatment_responses
+  cardinality_agg_name: participant_pk
