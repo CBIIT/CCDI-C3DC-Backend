@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "codebase-doc-writer": {
+      "source": "essentialsoft/agentskills",
+      "sourceType": "github",
+      "skillPath": "skills/codebase-doc-writer/SKILL.md",
+      "computedHash": "5750e2aefe3fd31724272fb5429b7b06fe5cc4b58c073a1c15df9318d5a77068"
+    },
+    "git-commit-push": {
+      "source": "essentialsoft/agentskills",
+      "sourceType": "github",
+      "skillPath": "skills/git-commit-push/SKILL.md",
+      "computedHash": "5137abb136eb8c2beafc8266aa6f638a243560c5f7e5f9372aab1ec28e5ca609"
+    }
+  }
+}
