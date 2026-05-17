@@ -12,6 +12,12 @@
       "sourceType": "github",
       "skillPath": "skills/git-commit-push/SKILL.md",
       "computedHash": "5137abb136eb8c2beafc8266aa6f638a243560c5f7e5f9372aab1ec28e5ca609"
+    },
+    "snyk-fix": {
+      "source": "snyk/studio-recipes",
+      "sourceType": "github",
+      "skillPath": "command_directives/synchronous_remediation/skills/snyk-fix/SKILL.md",
+      "computedHash": "cb1d22d15a0c82fc15ca4abbf2426998d97aa5e9eeb5f1dfdfe818ed62a39c7b"
     }
   }
 }
