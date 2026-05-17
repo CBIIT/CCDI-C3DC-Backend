@@ -13,6 +13,12 @@
       "skillPath": "skills/git-commit-push/SKILL.md",
       "computedHash": "5137abb136eb8c2beafc8266aa6f638a243560c5f7e5f9372aab1ec28e5ca609"
     },
+    "scanning-docker-images-with-trivy": {
+      "source": "mukul975/anthropic-cybersecurity-skills",
+      "sourceType": "github",
+      "skillPath": "skills/scanning-docker-images-with-trivy/SKILL.md",
+      "computedHash": "8574ffd858d6ca9ffd451c04edea3f019ab127d1fb4a21a83342e45075ddea16"
+    },
     "snyk-fix": {
       "source": "snyk/studio-recipes",
       "sourceType": "github",
