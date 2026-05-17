@@ -353,6 +353,11 @@
             <artifactId>json</artifactId>
             <version>20231013</version>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -400,6 +405,21 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <excludes>
+                        <!-- OpenSearch Integration - requires TestContainers or embedded ES -->
+                        <exclude>gov/nih/nci/bento_ri/model/PrivateESDataFetcher.class</exclude>
+                        <exclude>gov/nih/nci/bento_ri/model/PublicESDataFetcher.class</exclude>
+                        <exclude>gov/nih/nci/bento_ri/service/InventoryESService.class</exclude>
+                        <!-- AWS Infrastructure - requires AWS SDK mocking -->
+                        <exclude>com/amazonaws/http/AWSRequestSigningApacheInterceptor.class</exclude>
+                        <!-- HTTP Client Infrastructure - integration-level testing -->
+                        <exclude>gov/nih/nci/bento_ri/service/CPIFetcherService.getAccessToken*</exclude>
+                        <exclude>gov/nih/nci/bento_ri/service/CPIFetcherService.fetchDomainsInfo*</exclude>
+                        <exclude>gov/nih/nci/bento_ri/service/CPIFetcherService.makeApiCall*</exclude>
+                        <exclude>gov/nih/nci/bento_ri/service/CPIFetcherService.createHttpClient*</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
         </plugins>
     </build>

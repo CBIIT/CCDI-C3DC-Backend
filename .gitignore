@@ -23,3 +23,5 @@ target/
 .mvn/wrapper/maven-wrapper.properties
 mvnw
 mvnw.cmd
+.github/
+.git/
