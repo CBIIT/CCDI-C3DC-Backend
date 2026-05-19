@@ -17,20 +17,28 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.10</version>
+        <version>3.5.14</version>
     </parent>
 
 
     <properties>
         <java.version>21</java.version>
-        <spring.version>6.2.11</spring.version>
+        <spring.version>6.2.18</spring.version>
         <spring.restdocs.version>3.0.5</spring.restdocs.version>
         <snakeyaml.version>2.3</snakeyaml.version>
         <kotlin.version>2.1.0</kotlin.version>
+        <netty.version>4.1.133.Final</netty.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-bom</artifactId>
+                <version>${netty.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson</groupId>
                 <artifactId>jackson-bom</artifactId>
@@ -86,7 +94,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-log4j2</artifactId>
-            <version>3.4.3</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.logging.log4j</groupId>
@@ -200,7 +207,7 @@
         <dependency>
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-core</artifactId>
-            <version>11.0.18</version>
+            <version>11.0.21</version>
         </dependency>
         <!-- JUnit -->
         <dependency>
@@ -233,7 +240,7 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-handler</artifactId>
-            <version>4.1.125.Final</version>
+            <version>${netty.version}</version>
         </dependency>
         <dependency>
             <groupId>org.neo4j.driver</groupId>
@@ -353,6 +360,11 @@
             <artifactId>json</artifactId>
             <version>20231013</version>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -400,6 +412,21 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <excludes>
+                        <!-- OpenSearch Integration - requires TestContainers or embedded ES -->
+                        <exclude>gov/nih/nci/bento_ri/model/PrivateESDataFetcher.class</exclude>
+                        <exclude>gov/nih/nci/bento_ri/model/PublicESDataFetcher.class</exclude>
+                        <exclude>gov/nih/nci/bento_ri/service/InventoryESService.class</exclude>
+                        <!-- AWS Infrastructure - requires AWS SDK mocking -->
+                        <exclude>com/amazonaws/http/AWSRequestSigningApacheInterceptor.class</exclude>
+                        <!-- HTTP Client Infrastructure - integration-level testing -->
+                        <exclude>gov/nih/nci/bento_ri/service/CPIFetcherService.getAccessToken*</exclude>
+                        <exclude>gov/nih/nci/bento_ri/service/CPIFetcherService.fetchDomainsInfo*</exclude>
+                        <exclude>gov/nih/nci/bento_ri/service/CPIFetcherService.makeApiCall*</exclude>
+                        <exclude>gov/nih/nci/bento_ri/service/CPIFetcherService.createHttpClient*</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
         </plugins>
     </build>

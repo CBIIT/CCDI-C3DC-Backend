@@ -13,6 +13,8 @@ target/
 .settings/
 .sts4-cache/*
 .vscode
+.agents/
+.mvn/
 
 # Binaries
 .mvn/wrapper/maven-wrapper.jar
@@ -21,3 +23,5 @@ target/
 .mvn/wrapper/maven-wrapper.properties
 mvnw
 mvnw.cmd
+.github/
+.git/

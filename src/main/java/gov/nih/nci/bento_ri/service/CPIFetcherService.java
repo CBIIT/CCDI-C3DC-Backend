@@ -67,11 +67,11 @@ public class CPIFetcherService {
      * @throws Exception if the API call fails
      */
     public List<FormattedCPIResponse> fetchAssociatedParticipantIds(List<ParticipantRequest> participantRequests) throws Exception {
-        logger.info("Fetching associated participant IDs for {} participants", participantRequests.size());
-        
         if (participantRequests == null || participantRequests.isEmpty()) {
             return new ArrayList<>();
         }
+
+        logger.info("Fetching associated participant IDs for {} participants", participantRequests.size());
         
         // Get access token
         String accessToken = getAccessToken();

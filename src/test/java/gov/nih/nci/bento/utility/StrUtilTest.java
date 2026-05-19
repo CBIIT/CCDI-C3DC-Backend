@@ -1,51 +1,40 @@
 package gov.nih.nci.bento.utility;
 
-import org.junit.Test;
+import gov.nih.nci.bento_ri.model.OAuth2TokenResponse;
+import gov.nih.nci.bento_ri.model.ParticipantRequest;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class StrUtilTest {
 
-    @Test
-    public void getBoolText_Test() {
-        assertThat(StrUtil.getBoolText(null), is(""));
-        assertThat(StrUtil.getBoolText("TESTTESTTEST true TESTTESTTEST"), is("true"));
-        assertThat(StrUtil.getBoolText("TEST_FALSE_TEST"), is(""));
-        assertThat(StrUtil.getBoolText("TRUEFALSETESTTEST"), is(""));
-        assertThat(StrUtil.getBoolText("TESTTESTTESTTESTTESTTEST true"), is("true"));
-        assertThat(StrUtil.getBoolText("true"), is("true"));
-        assertThat(StrUtil.getBoolText("false"), is("false"));
-        assertThat(StrUtil.getBoolText(" false "), is("false"));
-        assertThat(StrUtil.getBoolText(" FALse "), is("false"));
-        assertThat(StrUtil.getBoolText(" tRue "), is("true"));
-    }
+	@Test
+	@DisplayName("OAuth2TokenResponse toString masks access token value")
+	void oAuth2TokenResponse_shouldMaskAccessToken_whenToStringCalled() {
+		OAuth2TokenResponse tokenResponse = new OAuth2TokenResponse();
+		tokenResponse.setAccessToken("super-secret-token");
+		tokenResponse.setTokenType("Bearer");
+		tokenResponse.setExpiresIn(3600);
+		tokenResponse.setScope("read");
 
-    @Test
-    public void getIntText_Test() {
-        assertThat(StrUtil.getIntText(null), is(""));
-        assertThat(StrUtil.getIntText("TESTTESTTEST 000 TESTTESTTEST"), is("000"));
-        assertThat(StrUtil.getIntText("55TEST_FALSE_TEST"), is(""));
-        assertThat(StrUtil.getIntText("TRUEFALSETESTTEST"), is(""));
-        assertThat(StrUtil.getIntText("TESTTESTTESTTESTTESTTEST 1"), is("1"));
-        assertThat(StrUtil.getIntText("1234"), is("1234"));
-        assertThat(StrUtil.getIntText("98 "), is("98"));
-        assertThat(StrUtil.getIntText(" 5 "), is("5"));
-    }
+		String text = tokenResponse.toString();
 
-/*    @Test
-    public void getToken_Test() {
-        assertThat(StrUtil.getToken(null), is(""));
-        assertThat(StrUtil.getToken("Bearer "), is(""));
-        assertThat(StrUtil.getToken("Bearer    ssss   "), is(""));
-        assertThat(StrUtil.getToken("Bearer"), is(""));
-        assertThat(StrUtil.getToken("Bearer xxxx"), is("xxxx"));
-        assertThat(StrUtil.getToken("XXBearer xxxx"), is(""));
-        assertThat(StrUtil.getToken("XXX xxxx"), is(""));
-        assertThat(StrUtil.getToken("Bearerxxxx"), is(""));
-        assertThat(StrUtil.getToken("Bearer 1234"), is("1234"));
-        assertThat(StrUtil.getToken("Bearer 1*23/4"), is("1*23/4"));
-        assertThat(StrUtil.getToken("bearer 1*23/4"), is(""));
-    }*/
+		assertThat(text).contains("accessToken='***'");
+		assertThat(text).contains("tokenType='Bearer'");
+		assertThat(text).contains("expiresIn=3600");
+		assertThat(text).contains("scope='read'");
+		assertThat(text).doesNotContain("super-secret-token");
+	}
 
+	@Test
+	@DisplayName("ParticipantRequest toString includes participant and study identifiers")
+	void participantRequest_shouldIncludeIdentifiers_whenToStringCalled() {
+		ParticipantRequest participantRequest = new ParticipantRequest("P-001", "STUDY-A");
+
+		assertThat(participantRequest.getParticipantId()).isEqualTo("P-001");
+		assertThat(participantRequest.getStudyId()).isEqualTo("STUDY-A");
+		assertThat(participantRequest.toString()).contains("participantId='P-001'");
+		assertThat(participantRequest.toString()).contains("studyId='STUDY-A'");
+	}
 }

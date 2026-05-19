@@ -6,7 +6,7 @@ COPY . .
 RUN mvn package -DskipTests
 
 # Production stage
-FROM tomcat:11.0.18-jdk21 AS fnl_base_image
+FROM tomcat:11.0.22-jdk21-temurin-jammy AS fnl_base_image
 
 # Upgrade OS packages, install deps, and update Java to Temurin 21.0.10.
 ARG TEMURIN_DIR=jdk-21.0.10+7
