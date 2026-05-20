@@ -10,8 +10,31 @@ FROM tomcat:11.0.22-jdk21-temurin-noble AS fnl_base_image
 
 RUN set -eux; \
     apt-get update; \
-    apt-get -y upgrade; \
+    apt-get -y full-upgrade; \
+    apt-get install -y --no-install-recommends --only-upgrade \
+        libc6 \
+        libc-bin \
+        locales \
+        util-linux \
+        util-linux-extra \
+        mount \
+        bsdutils \
+        libblkid1 \
+        libmount1 \
+        libsmartcols1 \
+        libuuid1; \
     apt-get install -y --no-install-recommends ca-certificates; \
+    # Mitigate util-linux mount TOCTOU CVE path by disabling SUID binaries not needed in containers.
+    if [ -f /usr/bin/mount ]; then chmod u-s /usr/bin/mount; fi; \
+    if [ -f /usr/bin/umount ]; then chmod u-s /usr/bin/umount; fi; \
+    # Remove toolchain packages if inherited from base layers; not needed at runtime.
+    if dpkg-query -W -f='${Status}' binutils 2>/dev/null | grep -q "ok installed"; then \
+        apt-get purge -y --auto-remove \
+            binutils \
+            binutils-aarch64-linux-gnu \
+            binutils-common \
+            libbinutils; \
+    fi; \
     java -version; \
     rm -rf /var/lib/apt/lists/*
 
