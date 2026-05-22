@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "skills": {
+    "codebase-doc-writer": {
+      "source": "essentialsoft/agentskills",
+      "sourceType": "github",
+      "skillPath": "skills/codebase-doc-writer/SKILL.md",
+      "computedHash": "5750e2aefe3fd31724272fb5429b7b06fe5cc4b58c073a1c15df9318d5a77068"
+    },
+    "git-commit-push": {
+      "source": "essentialsoft/agentskills",
+      "sourceType": "github",
+      "skillPath": "skills/git-commit-push/SKILL.md",
+      "computedHash": "5137abb136eb8c2beafc8266aa6f638a243560c5f7e5f9372aab1ec28e5ca609"
+    },
+    "scanning-docker-images-with-trivy": {
+      "source": "mukul975/anthropic-cybersecurity-skills",
+      "sourceType": "github",
+      "skillPath": "skills/scanning-docker-images-with-trivy/SKILL.md",
+      "computedHash": "8574ffd858d6ca9ffd451c04edea3f019ab127d1fb4a21a83342e45075ddea16"
+    },
+    "snyk-fix": {
+      "source": "snyk/studio-recipes",
+      "sourceType": "github",
+      "skillPath": "command_directives/synchronous_remediation/skills/snyk-fix/SKILL.md",
+      "computedHash": "cb1d22d15a0c82fc15ca4abbf2426998d97aa5e9eeb5f1dfdfe818ed62a39c7b"
+    }
+  }
+}
